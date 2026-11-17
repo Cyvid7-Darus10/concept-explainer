@@ -95,11 +95,16 @@ export function sameSource(entry, source) {
 export function chooseSlug(entries, base, source) {
   const match = entries.find((entry) => sameSource(entry, source));
   if (match) return { slug: match.slug, existing: true };
+  return { slug: freeSlug(entries, base), existing: false };
+}
+
+/** `base` if no entry uses it, else `base-2`, `base-3`... within 64 characters. */
+export function freeSlug(entries, base) {
   const taken = new Set(entries.map((entry) => entry.slug));
   for (let n = 1; ; n += 1) {
     const suffix = n === 1 ? '' : `-${n}`;
     const slug = `${base.slice(0, SLUG_MAX - suffix.length).replace(/-+$/, '')}${suffix}`;
-    if (!taken.has(slug)) return { slug, existing: false };
+    if (!taken.has(slug)) return slug;
   }
 }
 

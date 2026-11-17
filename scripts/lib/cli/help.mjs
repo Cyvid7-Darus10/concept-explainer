@@ -28,6 +28,8 @@ Library (home: $CONCEPT_EXPLAINER_HOME, else ~/.concept-explainer)
   library open                     Open the hub in your browser
   library style [clean|playful]    Print or set the default style
   library serve [--port n]         Serve the library on 127.0.0.1 so Settings can save (Ctrl+C stops)
+  export [slug...] [--out f]       Share as a data-only bundle (--type, --tag, --stack, --search; none = all)
+  import <file> [--dry-run]        Add a bundle (--on-conflict rename|skip|replace, default rename)
   install [--force]                Link this skill into Claude and add the library rule
 
 Config (saved in <home>/config.json)
@@ -47,4 +49,5 @@ Options
   --json         Machine-readable output          --open      open the built file
   --style        clean or playful                 --no-library  build without publishing
   --port         Port for library serve           --force     install: replace (keeps a backup)
+  --tag, --stack, --search  export selectors      --on-conflict, --dry-run  import options
 `;

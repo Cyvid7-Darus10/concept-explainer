@@ -6,10 +6,11 @@ import {
 import { installSkill, resolveConfigDir } from '../install.mjs';
 import { CONFIG_DEFAULTS, setConfigValue } from '../config.mjs';
 import { startLibraryServer } from '../serve.mjs';
+import { applyImport, createBundle, planImport, readBundleFile } from '../bundle.mjs';
 import { openPath } from '../open.mjs';
 import { validateExplainer } from '../validate.mjs';
 import {
-  BIN, UsageError, asUsage, printJson, readJson, report, requirePositional,
+  BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
 } from './io.mjs';
 
 const home = () => resolveHome();
@@ -131,6 +132,28 @@ export const LIBRARY_COMMANDS = {
     const run = CONFIG[sub];
     if (!run) throw new UsageError(`unknown config command "${sub}". Use get, set or reset, or no command to print`);
     return run(rest, opts);
+  },
+
+  export(positionals, opts) {
+    const selectors = { slugs: positionals, type: opts.type, tag: opts.tag, stack: opts.stack, search: opts.search };
+    const { bundle, slugs } = asUsage(() => createBundle(home(), selectors));
+    const out = opts.out || `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
+    writeFile(out, toJson(bundle));
+    process.stderr.write(`✔ exported ${slugs.length} explainer(s): ${slugs.join(', ')}\n  data only: no pages, no config, no local paths\n`);
+  },
+
+  import(positionals, opts) {
+    const file = requirePositional(positionals, '<bundle.explainers.json>');
+    const plan = asUsage(() => planImport(home(), readBundleFile(file), { onConflict: opts['on-conflict'] }));
+    const summary = opts['dry-run'] ? plan.summary : applyImport(home(), plan);
+    const line = (verb, item) => `  ${verb.padEnd(8)}${item.slug || `#${item.index}`}${item.title ? `  ${item.title}` : ''}${item.note ? `  (${item.note})` : ''}${item.reason ? `  (${item.reason})` : ''}\n`;
+    process.stdout.write(summary.dryRun ? 'Dry run: nothing was written.\n' : 'Imported.\n');
+    summary.added.forEach((item) => process.stdout.write(line('add', item)));
+    summary.replaced.forEach((item) => process.stdout.write(line('replace', item)));
+    summary.skipped.forEach((item) => process.stdout.write(line('skip', item)));
+    summary.rejected.forEach((item) => process.stdout.write(`${line('reject', item)}${item.reasons.map((r) => `            ${r}\n`).join('')}`));
+    process.stdout.write(`${summary.added.length} added, ${summary.replaced.length} replaced, ${summary.skipped.length} skipped, ${summary.rejected.length} rejected.\n`);
+    if (!summary.dryRun) process.stdout.write(`Library: ${libraryPaths(home()).hub}\n`);
   },
 
   install(_positionals, opts, context) {
