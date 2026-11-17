@@ -1,17 +1,18 @@
-// Chapters: key concepts (one idea per card) and check-yourself quiz.
+// Chapters: key concepts (one idea per card) and the check-yourself quiz.
 function renderConcepts(data, mount) {
   const concepts = list(data.concepts);
-  if (!concepts.length) return;
+  if (!concepts.length) return null;
   let index = 0;
-  const card = h('article', { class: 'card concept-card', 'aria-live': 'polite' });
-  const controls = h('div', { class: 'carousel-controls' });
+  const card = h('article', { class: 'panel concept-card', 'aria-live': 'polite' });
+  const controls = h('div', { class: 'step-controls' });
 
-  function go(next) {
+  function show(next, { animate = true, link = true } = {}) {
     const target = Math.min(Math.max(next, 0), concepts.length - 1);
     const direction = target >= index ? 1 : -1;
     index = target;
     render();
-    slideIn(card, direction);
+    if (link) setDeepLink(`concepts/${index}`);
+    if (animate) slideIn(card, direction);
   }
 
   function render() {
@@ -19,42 +20,56 @@ function renderConcepts(data, mount) {
     fill(card,
       h('span', { class: 'step-count' }, `Idea ${index + 1} of ${concepts.length}`),
       h('h3', null, concept.title),
-      h('p', null, concept.body),
-      concept.analogy && h('div', { class: 'callout' }, h('b', null, 'Think of it like'), concept.analogy),
+      h('p', { class: 'concept-body' }, concept.body),
+      concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, concept.analogy)),
       concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),
+      controls,
     );
     fill(controls,
-      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', disabled: index === 0, onclick: () => go(index - 1) }, 'Back'),
-      stepDots(concepts.length, index, go),
-      h('button', { class: 'btn btn-primary', type: 'button', disabled: index === concepts.length - 1, onclick: () => go(index + 1) }, 'Continue'),
+      stepDots(concepts.length, index, (i) => show(i)),
+      h('button', { class: 'btn', type: 'button', disabled: index === 0, onclick: () => show(index - 1) }, 'Back'),
+      h('button', { class: 'btn primary', type: 'button', disabled: index === concepts.length - 1, onclick: () => show(index + 1) }, 'Continue'),
     );
   }
 
   render();
-  mount.append(h('div', { class: 'lesson' }, card, controls));
+  mount.append(h('div', { class: 'lesson' }, card));
+  return {
+    open([raw] = []) {
+      const wanted = Number.parseInt(raw, 10);
+      if (Number.isInteger(wanted) && wanted >= 0 && wanted < concepts.length) show(wanted, { animate: false, link: false });
+      return null;
+    },
+  };
 }
 
 function renderQuiz(data, mount) {
   const questions = list(data.quiz);
-  if (!questions.length) return;
+  if (!questions.length) return null;
   let results = {};
-  const bar = h('div');
+  const bar = h('span');
   const label = h('b');
-  const score = h('div', { class: 'score card' }, label, h('div', { class: 'score-bar' }, bar));
+  const note = h('span', { class: 'score-note' });
+  const score = h('div', { class: 'panel score', 'aria-live': 'polite' },
+    h('p', { class: 'eyebrow quiet' }, 'Score'), label, h('div', { class: 'meter', 'aria-hidden': 'true' }, bar), note);
+
+  function paint() {
+    const right = Object.values(results).filter(Boolean).length;
+    const answered = Object.keys(results).length;
+    label.textContent = `${right} of ${questions.length} correct`;
+    bar.style.setProperty('--share', String(right / questions.length));
+    note.textContent = answered < questions.length ? `${questions.length - answered} left` : right === questions.length ? 'Perfect score.' : 'Nice work.';
+  }
 
   function record(index, correct) {
     results = { ...results, [index]: correct };
-    const right = Object.values(results).filter(Boolean).length;
-    const answered = Object.keys(results).length;
-    label.textContent = `${right} / ${questions.length} correct`;
-    bar.style.width = `${(right / questions.length) * 100}%`;
-    if (answered === questions.length) label.textContent += right === questions.length ? ' · Perfect!' : ' · Nice work';
+    paint();
   }
 
-  label.textContent = `0 / ${questions.length} correct`;
-  bar.style.width = '0%';
+  paint();
   mount.append(h('div', { class: 'lesson quiz' }, questions.map((q, i) => questionCard(q, i, record)), score));
+  return null;
 }
 
 function questionCard(question, index, record) {
@@ -63,8 +78,8 @@ function questionCard(question, index, record) {
   const optionEls = options.map((option, i) => h('button', {
     class: 'option', type: 'button', role: 'radio', 'aria-checked': 'false',
     onclick: () => pick(i),
-  }, h('span', { class: 'key' }, String(i + 1)), option));
-  const check = h('button', { class: 'btn btn-primary', type: 'button', disabled: true, onclick: grade }, 'Check');
+  }, h('span', { class: 'key' }, String(i + 1)), h('span', { class: 'option-text' }, option)));
+  const check = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: grade }, 'Check');
   const feedback = h('div', { 'aria-live': 'polite' });
 
   function pick(i) {
@@ -84,13 +99,13 @@ function questionCard(question, index, record) {
     const pickedEl = optionEls[picked];
     if (correct) pop(pickedEl); else shake(pickedEl);
     fill(feedback, h('div', { class: `feedback ${correct ? 'is-correct' : 'is-wrong'}` },
-      h('b', null, correct ? 'Correct!' : 'Not quite'),
-      text(question.explain, correct ? 'You got it.' : `The answer is “${options[question.answer]}”.`)));
+      h('b', null, correct ? 'Correct' : 'Not quite'),
+      h('p', null, text(question.explain, correct ? 'You got it.' : `The answer is “${options[question.answer]}”.`))));
     riseIn(feedback.firstElementChild);
     record(index, correct);
   }
 
-  return h('article', { class: 'card question' },
+  return h('article', { class: 'panel question' },
     h('span', { class: 'step-count' }, `Question ${index + 1}`),
     h('h3', null, question.question),
     h('div', { class: 'options', role: 'radiogroup', 'aria-label': question.question }, optionEls),

@@ -1,5 +1,5 @@
 // DOM helpers. Every string from the data file goes through text nodes or
-// setAttribute — never innerHTML — so repo content cannot inject markup.
+// setAttribute, never innerHTML, so repo content cannot inject markup.
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function applyAttrs(el, attrs) {
@@ -78,7 +78,47 @@ function breakablePath(path) {
 }
 
 function fileChip(path) {
-  return h('span', { class: 'chip chip-file', title: path }, path);
+  return h('span', { class: 'chip-file', title: path }, path);
+}
+
+// Browser storage is a per-reader convenience only: it can be missing or
+// throw (private windows, file:// rules), and the page works without it.
+function readStore(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeStore(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Record where the reader is inside a view (a node, a step) without adding a
+// history entry: Back still goes to the previous view.
+function setDeepLink(hash) {
+  const next = `#${hash}`;
+  if (window.location.hash === next) return;
+  try {
+    window.history.replaceState(window.history.state, '', next);
+  } catch (error) {
+    // Some file:// contexts refuse history writes; the view still works.
+  }
+}
+
+function linkPart(value) {
+  return encodeURIComponent(String(value));
+}
+
+// A small mono label: kinds, authors, PK/FK. Never coloured fills.
+function tag(label, extra = '') {
+  return h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, label);
 }
 
 // Tiny, safe highlighter: tokenises into spans, never parses HTML.
@@ -139,3 +179,66 @@ function drawPath(path, marker) {
     path.setAttribute('marker-end', marker);
   };
 }
+
+// ---------- Theme: system, light, dark. Shared by the explainer and the kit. ----------
+const THEME_KEY = 'repo-explainer:theme';
+const THEME_CHOICES = [
+  { choice: 'system', label: 'System' },
+  { choice: 'light', label: 'Light' },
+  { choice: 'dark', label: 'Dark' },
+];
+
+function storedTheme() {
+  const value = readStore(THEME_KEY);
+  return THEME_CHOICES.some((t) => t.choice === value) ? value : 'system';
+}
+
+// "system" leaves data-theme off so the CSS media query decides.
+function applyTheme(choice) {
+  const root = document.documentElement;
+  if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
+  else delete root.dataset.theme;
+}
+
+function themeSwitch(registry) {
+  const buttons = THEME_CHOICES.map((option, index) => h('button', {
+    class: 'ts-option', type: 'button', role: 'radio', 'aria-label': `${option.label} theme`, title: `${option.label} theme`, 'data-label': option.label,
+    onclick: () => choose(option.choice),
+    onkeydown: (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const next = THEME_CHOICES[(index + step + THEME_CHOICES.length) % THEME_CHOICES.length];
+      choose(next.choice);
+      registry.focus(next.choice, event.currentTarget.parentElement);
+    },
+  }, icon(option.choice)));
+  const el = h('div', { class: 'theme-switch', role: 'radiogroup', 'aria-label': 'Colour theme' }, buttons);
+  function choose(choice) {
+    writeStore(THEME_KEY, choice);
+    applyTheme(choice);
+    registry.paint();
+  }
+  registry.add(el);
+  return el;
+}
+
+function themeRegistry() {
+  const groups = [];
+  return {
+    add: (el) => groups.push(el),
+    paint: () => {
+      const picked = storedTheme();
+      groups.forEach((group) => [...group.children].forEach((button, i) => {
+        const on = THEME_CHOICES[i].choice === picked;
+        button.setAttribute('aria-checked', String(on));
+        button.tabIndex = on ? 0 : -1;
+      }));
+    },
+    focus: (choice, group) => {
+      const index = THEME_CHOICES.findIndex((t) => t.choice === choice);
+      if (group && group.children[index]) group.children[index].focus();
+    },
+  };
+}
+
