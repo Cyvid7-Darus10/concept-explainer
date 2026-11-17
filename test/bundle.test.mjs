@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   BUNDLE_FORMAT, MAX_BUNDLE_BYTES, applyImport, createBundle, parseBundle, planImport, readBundleFile,
 } from '../scripts/lib/bundle.mjs';
-import { libraryPaths, listExplainers, publishExplainer } from '../scripts/lib/library.mjs';
+import { libraryPaths, listExplainers, publishExplainer, rebuildLibrary } from '../scripts/lib/library.mjs';
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}.explainer.json`, import.meta.url), 'utf8'));
 const taskflow = load('taskflow');
@@ -163,4 +163,35 @@ test('entries that are not objects, or too many, are rejected or refused', () =>
   assert.equal(summary.rejected.length, 3);
   const many = bundleOf(Array.from({ length: 501 }, () => ({ slug: 'a', data: {} })));
   assert.throws(() => parseBundle(many), /more than 500 explainers/);
+});
+
+test('replace backs up the old data, names it in the dry run, and marks the entry as imported', () => {
+  const to = libraryWith(pr);
+  const original = stored(to, listExplainers({ home: to })[0].slug);
+  const changed = structuredClone(pr);
+  changed.meta.title = 'Attacker version';
+  const text = bundleOf([{ slug: 'x', data: changed }]);
+  const slug = listExplainers({ home: to })[0].slug;
+  const withHint = text.replace('"slug":"x"', `"slug":"${slug}"`);
+  const plan = planImport(to, parseBundle(withHint), { onConflict: 'replace' });
+  assert.deepEqual(plan.summary.replaced[0].overwrites, { slug, title: pr.meta.title });
+  applyImport(to, plan);
+  const dir = join(to, 'explainers', slug);
+  const backups = readdirSync(dir).filter((f) => f.startsWith('explainer.json.replaced-'));
+  assert.equal(backups.length, 1);
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, backups[0]), 'utf8')), original);
+  const entry = listExplainers({ home: to }).find((e) => e.slug === slug);
+  assert.equal(entry.origin, 'import');
+  assert.match(entry.importedAt, /^\d{4}-\d{2}-\d{2}T/);
+  const added = importText(tempHome(), bundleOf([{ slug: 'y', data: concept }]));
+  assert.equal(added.added.length, 1);
+});
+
+test('imported entries keep their origin through a rebuild; local builds have none', () => {
+  const to = tempHome();
+  importText(to, bundleOf([{ slug: 'y', data: concept }]));
+  rebuildLibrary({ home: to });
+  assert.equal(listExplainers({ home: to })[0].origin, 'import');
+  const local = libraryWith(concept);
+  assert.equal(listExplainers({ home: local })[0].origin, undefined);
 });
