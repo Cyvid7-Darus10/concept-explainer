@@ -40,11 +40,14 @@ test('install is idempotent', () => {
   assert.deepEqual(readdirSync(join(config, 'skills')), ['concept-explainer']);
 });
 
-test('a symlink pointing elsewhere is relinked', () => {
+test('a symlink pointing elsewhere is replaced only with --force', () => {
   const config = tempConfig();
   mkdirSync(join(config, 'skills'), { recursive: true });
-  symlinkSync(tempConfig(), skillLink(config));
-  const [action] = installSkill({ skillDir: SKILL_DIR, configDir: config });
+  const elsewhere = tempConfig();
+  symlinkSync(elsewhere, skillLink(config));
+  assert.throws(() => installSkill({ skillDir: SKILL_DIR, configDir: config }), /points to .*--force/s);
+  assert.equal(realpathSync(skillLink(config)), realpathSync(elsewhere), 'left alone');
+  const [action] = installSkill({ skillDir: SKILL_DIR, configDir: config, force: true });
   assert.match(action, /relinked/);
   assert.equal(realpathSync(skillLink(config)), realpathSync(SKILL_DIR));
 });
@@ -74,10 +77,13 @@ test('--force moves the real folder and rule aside, then installs', () => {
   const actions = installSkill({ skillDir: SKILL_DIR, configDir: config, force: true });
   assert.ok(lstatSync(skillLink(config)).isSymbolicLink());
   assert.equal(readFileSync(ruleFile(config), 'utf8'), RULE);
-  const backups = readdirSync(join(config, 'skills')).filter((f) => f.startsWith('concept-explainer.backup-'));
-  assert.equal(backups.length, 1);
-  assert.equal(readFileSync(join(config, 'skills', backups[0], 'SKILL.md'), 'utf8'), 'mine');
-  assert.ok(readdirSync(join(config, 'rules')).some((f) => f.startsWith('concept-explainer.md.backup-')));
+  assert.deepEqual(readdirSync(join(config, 'skills')), ['concept-explainer'], 'no backup left in skills/, where it would load as a skill');
+  const backups = readdirSync(join(config, 'backups'));
+  const skillBackup = backups.find((f) => f.startsWith('skill-concept-explainer.backup-'));
+  assert.ok(skillBackup, backups.join(', '));
+  assert.equal(readFileSync(join(config, 'backups', skillBackup, 'SKILL.md'), 'utf8'), 'mine');
+  assert.ok(backups.some((f) => f.startsWith('rule-concept-explainer.md.backup-')));
+  assert.deepEqual(readdirSync(join(config, 'rules')), ['concept-explainer.md'], 'no backup left in rules/, where it would load as a rule');
   assert.ok(actions.some((a) => /moved/.test(a)));
 });
 
