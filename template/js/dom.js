@@ -680,3 +680,18 @@ function watchNavMore(nav) {
   if ('ResizeObserver' in window) new ResizeObserver(paint).observe(nav);
   paint();
 }
+
+// ---------- Dates ----------
+// A date-only value (2026-11-17) is a calendar day: show that day wherever
+// the reader is. A value with a time is a moment: show the reader's own day
+// for it, so 2026-11-17T20:00Z reads Nov 18 in Manila.
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+function displayDate(value, { year = true, fallback = '' } = {}) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const raw = String(value).trim();
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return fallback;
+  const options = { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}) };
+  return date.toLocaleDateString(undefined, DATE_ONLY.test(raw) ? { ...options, timeZone: 'UTC' } : options);
+}

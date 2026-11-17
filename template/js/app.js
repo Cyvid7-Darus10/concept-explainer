@@ -98,7 +98,7 @@ function footBits(meta, context, registry, progressLines, links) {
     progress,
     library && h('div', { class: 'side-util' }, h('a', { class: 'util', href: library }, h('span', { class: 'util-ic' }, icon('library_shelf')), 'Library')),
     h('div', { class: 'foot-row' }, gear, themeSwitch(registry)),
-    (meta.generatedAt || meta.commit) && footMeta([meta.generatedAt && formatDate(meta.generatedAt), meta.commit && String(meta.commit).slice(0, 7)]),
+    (meta.generatedAt || meta.commit) && footMeta([meta.generatedAt && displayDate(meta.generatedAt), meta.commit && String(meta.commit).slice(0, 7)]),
   ];
 }
 
@@ -271,7 +271,7 @@ function boot() {
   const views = [overviewView(data, ctx), ...chapters.map((c, i) => chapterView(c, i, chapters, data, ctx)),
     settingsView(registry, { context, config: context.config || null, extra: [explainerShareGroup(data, context)] })];
   const meta = data.meta;
-  const stamp = [meta.generatedAt && `Generated ${formatDate(meta.generatedAt)}`, meta.commit && `at ${String(meta.commit).slice(0, 7)}`].filter(Boolean).join(' ');
+  const stamp = [meta.generatedAt && `Generated ${displayDate(meta.generatedAt)}`, meta.commit && `at ${String(meta.commit).slice(0, 7)}`].filter(Boolean).join(' ');
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' },
     shell.top,
     h('div', { class: 'wrap' }, views.map((v) => v.section),

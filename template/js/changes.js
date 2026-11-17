@@ -88,7 +88,7 @@ function changeItem(change, nodeIndex, isTarget) {
     h('div', { class: 'change-dot', 'aria-hidden': 'true' }, icon(isAgent ? 'robot' : 'user')),
     h('article', { class: 'panel change-card' },
       h('div', { class: 'change-top' },
-        h('span', null, formatDate(change.date)),
+        h('span', null, displayDate(change.date, { fallback: 'undated' })),
         change.ref && (url
           ? h('a', { class: 'link', href: safeUrl(change.url), target: '_blank', rel: 'noopener noreferrer' }, softBreaks(change.ref))
           : h('span', null, softBreaks(change.ref))),
@@ -106,8 +106,3 @@ function changeItem(change, nodeIndex, isTarget) {
       list(change.files).length > 0 && h('div', { class: 'change-nodes' }, list(change.files).slice(0, 6).map(fileChip))));
 }
 
-function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return text(value, 'undated');
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-}

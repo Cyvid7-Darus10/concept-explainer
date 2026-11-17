@@ -25,12 +25,6 @@ function explainerHref(slug) {
   return libraryHref(`explainers/${slug}/index.html`);
 }
 
-function hubDate(value) {
-  const date = new Date(value);
-  if (!value || Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-}
-
 function plural(n, one, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -154,7 +148,7 @@ function countsLine(counts) {
 
 function explainerCard(explainer) {
   const href = explainerHref(explainer.slug);
-  const dated = hubDate(explainer.generatedAt) || hubDate(explainer.publishedAt);
+  const dated = displayDate(explainer.generatedAt) || displayDate(explainer.publishedAt);
   const parts = [
     h('span', { class: 'top-row' }, h('span', null, KIND_LABELS[explainer.type] || 'Repo', explainer.origin === 'import' && h('span', { class: 'tag tag-imported' }, 'Imported')),
       h('span', null, dated || 'Undated')),
@@ -229,7 +223,7 @@ function changeRow(entry, titles) {
   const href = libraryHref(entry.href);
   const isAgent = entry.authorType === 'agent';
   const body = [
-    h('span', { class: 'row-date' }, hubDate(entry.date) || 'Undated'),
+    h('span', { class: 'row-date' }, displayDate(entry.date) || 'Undated'),
     h('span', { class: 'result-text' },
       h('span', { class: 'row-title' }, softBreaks(text(entry.title, 'Untitled'))),
       h('span', { class: 'result-snippet' }, softBreaks(titles.get(entry.slug) || entry.slug))),
@@ -346,8 +340,7 @@ function bootLibrary() {
     { key: 'changes', nav: 'Recent changes', count: changes.length },
   ];
   const registry = themeRegistry();
-  const shortDate = manifest.updatedAt && !Number.isNaN(new Date(manifest.updatedAt).getTime())
-    ? new Date(manifest.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }) : '';
+  const shortDate = displayDate(manifest.updatedAt, { year: false });
   const shell = hubShell(views, explainers, shortDate, registry, safeHref(data && data.kitHref));
   const selected = new Set();
   const getSelection = () => {

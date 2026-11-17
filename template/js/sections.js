@@ -75,7 +75,7 @@ function progressCard(data, viewedCount, total) {
   const meta = data.meta;
   const rows = [
     ['Tour', `${tourMinutes(data)} min`],
-    meta.generatedAt && ['Generated', formatDate(meta.generatedAt)],
+    meta.generatedAt && ['Generated', displayDate(meta.generatedAt)],
     meta.commit && ['Commit', String(meta.commit).slice(0, 7)],
   ].filter(Boolean);
   return h('article', { class: 'panel progress-card' },
@@ -122,7 +122,7 @@ function latestChanges(data) {
       h('a', { href: '#changes' }, 'All changes')),
     h('ul', { class: 'rows' }, changes.map(({ change, key }) => h('li', null,
       h('a', { class: 'row-link', href: `#changes/${linkPart(key)}` },
-        h('span', { class: 'row-date' }, formatDate(change.date)),
+        h('span', { class: 'row-date' }, displayDate(change.date, { fallback: 'undated' })),
         h('span', { class: 'row-title' }, softBreaks(change.title)),
         tag(change.authorType === 'agent' ? 'Agent' : 'Human'))))));
 }
