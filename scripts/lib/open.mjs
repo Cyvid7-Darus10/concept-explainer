@@ -2,6 +2,7 @@
 // through a shell: on Windows that means explorer.exe, not `cmd /c start`,
 // because cmd.exe would run metacharacters (& ^ |) found in the path.
 import { execFileSync } from 'node:child_process';
+import { posix, win32 } from 'node:path';
 
 /**
  * @param {string} platform process.platform
@@ -18,7 +19,9 @@ export function openCommand(platform, path) {
  * @param {{ platform?: string, exec?: typeof execFileSync }} [options]
  */
 export function openPath(path, { platform = process.platform, exec = execFileSync } = {}) {
-  const { command, args, ignoreExitCode } = openCommand(platform, path);
+  // Absolute, so a name like "-n" reaches the program as a path, never an option.
+  const absolute = (platform === 'win32' ? win32 : posix).resolve(path);
+  const { command, args, ignoreExitCode } = openCommand(platform, absolute);
   try {
     exec(command, args, { stdio: 'ignore' });
   } catch (error) {

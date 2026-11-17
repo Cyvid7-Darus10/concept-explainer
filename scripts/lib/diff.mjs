@@ -71,8 +71,8 @@ function nodeStatus(node, entries) {
 export function collectDiff(repo, { base, head = 'HEAD', nodes = [] } = {}) {
   if (!base) throw new Error('diff: needs --base <ref> (the branch or commit the change starts from)');
   const range = `${checkRef(base, 'base')}...${checkRef(head, 'head')}`;
-  const counts = new Map(parseNumstat(git(repo, ['diff', '--numstat', '-M', '-z', range])).map((r) => [r.path, r]));
-  const diff = parseNameStatus(git(repo, ['diff', '--name-status', '-M', '-z', range])).map((row) => {
+  const counts = new Map(parseNumstat(git(repo, ['diff', '--numstat', '-M', '-z', '--end-of-options', range, '--'])).map((r) => [r.path, r]));
+  const diff = parseNameStatus(git(repo, ['diff', '--name-status', '-M', '-z', '--end-of-options', range, '--'])).map((row) => {
     const count = counts.get(row.path);
     const linked = mapFilesToNodes([row.path, ...(row.from ? [row.from] : [])], nodes);
     return {

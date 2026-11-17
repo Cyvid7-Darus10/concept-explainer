@@ -10,9 +10,21 @@ const AGENT_TRAILERS = /^(Co-Authored-By|Generated-By|Assisted-By):.*\b(claude|c
 const CONVENTIONAL = /^(feat|fix|refactor|perf|docs|test|chore|ci|security|build|style)(\(.+?\))?!?:\s*/i;
 const PR_REF = /(?:#|!)(\d+)/;
 
+// The repo being explained is untrusted: its own config can name programs
+// git would run (fsmonitor, external diff, textconv, pager, hooks). Turn them
+// all off for every call, and never let diff or log run a diff driver.
+const HARDENING = ['-c', 'core.fsmonitor=false', '-c', 'diff.external=', '-c', 'core.pager=cat', '-c', 'core.hooksPath=/dev/null'];
+const DIFF_FLAGS = ['--no-ext-diff', '--no-textconv'];
+
+export function gitArgs(repo, args) {
+  const [command, ...rest] = args;
+  const extra = command === 'diff' || command === 'log' ? DIFF_FLAGS : [];
+  return [...HARDENING, '-C', repo, command, ...extra, ...rest];
+}
+
 export function git(repo, args) {
   try {
-    return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    return execFileSync('git', gitArgs(repo, args), { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {
     throw new Error(`git ${args[0]} failed in ${repo}: ${error.stderr || error.message}`);
   }

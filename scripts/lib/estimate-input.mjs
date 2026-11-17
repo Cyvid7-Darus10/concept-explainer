@@ -31,7 +31,7 @@ export function measureDiff(repo, { base, head = 'HEAD' }) {
   [base, head].forEach((ref) => {
     if (!SAFE_REF.test(String(ref))) throw new Error(`estimate: "${ref}" is not a git ref`);
   });
-  const rows = git(repo, ['diff', '--numstat', `${base}...${head}`]).trim().split('\n').filter(Boolean);
+  const rows = git(repo, ['diff', '--numstat', '--end-of-options', `${base}...${head}`, '--']).trim().split('\n').filter(Boolean);
   const lines = rows.reduce((total, row) => {
     const [added, removed] = row.split('\t');
     return total + (Number(added) || 0) + (Number(removed) || 0);
