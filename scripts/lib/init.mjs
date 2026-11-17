@@ -38,6 +38,7 @@ export function createStarter(presetId, scan = {}) {
   return {
     schemaVersion: SCHEMA_VERSION,
     meta: {
+      type: 'repo',
       title: `${scan.name || 'This repo'}, explained`,
       repo: scan.name || 'TODO: owner/repo',
       summary: 'TODO: two plain sentences. What this does, and for whom.',

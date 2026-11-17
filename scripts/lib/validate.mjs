@@ -1,46 +1,16 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  AUTHOR_TYPES, CHANGE_KINDS, CHAPTER_KEYS, DASH, EDGE_KINDS, LAYER_COLORS, LIMITS, MARKUP, NODE_KINDS, NON_PROSE_KEYS, PLACEHOLDER, STEP_KINDS,
+  AUTHOR_TYPES, CHANGE_KINDS, CHAPTER_KEYS, DASH, EDGE_KINDS, LAYER_COLORS, LIMITS, MARKUP, NODE_KINDS, NON_PROSE_KEYS, PLACEHOLDER, STEP_KINDS, TYPE_RULES,
 } from './schema.mjs';
+import {
+  arr, checkEnum, checkUniqueIds, collector, isObject, isText, requireText, sentences, words,
+} from './validate-util.mjs';
+import { checkV2, typeOf } from './validate-v2.mjs';
 
 /**
  * @typedef {{ errors: string[], warnings: string[] }} ValidationResult
  */
-
-const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
-const isText = (value) => typeof value === 'string' && value.trim().length > 0;
-const arr = (value) => (Array.isArray(value) ? value : []);
-
-function collector() {
-  const errors = [];
-  const warnings = [];
-  return {
-    error: (path, message) => errors.push(`${path}: ${message}`),
-    warn: (path, message) => warnings.push(`${path}: ${message}`),
-    result: () => ({ errors, warnings }),
-  };
-}
-
-function requireText(report, path, value) {
-  if (!isText(value)) report.error(path, 'must be a non-empty string');
-}
-
-function checkEnum(report, path, value, allowed) {
-  if (value !== undefined && !allowed.includes(value)) {
-    report.warn(path, `"${value}" is not one of ${allowed.join(", ")}. It will render with a default style`);
-  }
-}
-
-function checkUniqueIds(report, path, items) {
-  const seen = new Set();
-  items.forEach((item, i) => {
-    requireText(report, `${path}[${i}].id`, item && item.id);
-    if (item && seen.has(item.id)) report.error(`${path}[${i}].id`, `duplicate id "${item.id}"`);
-    if (item) seen.add(item.id);
-  });
-  return seen;
-}
 
 function checkMeta(report, meta) {
   if (!isObject(meta)) return report.error('meta', 'is required');
@@ -52,11 +22,14 @@ function checkMeta(report, meta) {
   return undefined;
 }
 
-function checkGraph(report, data) {
+// The map is required for repos; other types may leave it out, but a map
+// that is there must be whole.
+function checkGraph(report, data, type) {
   const layers = arr(data.layers);
   const nodes = arr(data.nodes);
-  if (!layers.length) report.error('layers', 'needs at least one layer');
-  if (!nodes.length) report.error('nodes', 'needs at least one node');
+  const needsMap = type === 'repo' || layers.length > 0 || nodes.length > 0;
+  if (needsMap && !layers.length) report.error('layers', 'needs at least one layer');
+  if (needsMap && !nodes.length) report.error('nodes', 'needs at least one node');
   const layerIds = checkUniqueIds(report, 'layers', layers);
   layers.forEach((layer, i) => {
     requireText(report, `layers[${i}].label`, layer.label);
@@ -80,8 +53,8 @@ function checkGraph(report, data) {
   return nodeIds;
 }
 
-function checkFlows(report, flows, nodeIds) {
-  if (!flows.length) report.warn('flows', 'no end-to-end flow traced. This is the most useful chapter');
+function checkFlows(report, flows, nodeIds, type) {
+  if (!flows.length && type === 'repo') report.warn('flows', 'no end-to-end flow traced. This is the most useful chapter');
   checkUniqueIds(report, 'flows', flows);
   flows.forEach((flow, i) => {
     requireText(report, `flows[${i}].title`, flow.title);
@@ -105,7 +78,6 @@ function checkChanges(report, changes, nodeIds) {
     if (Number.isNaN(Date.parse(change.date))) report.error(`${path}.date`, 'must be an ISO date');
     checkEnum(report, `${path}.authorType`, change.authorType, AUTHOR_TYPES);
     checkEnum(report, `${path}.kind`, change.kind, CHANGE_KINDS);
-    if (change.url !== undefined && !/^https?:\/\//i.test(String(change.url))) report.error(`${path}.url`, 'must start with http:// or https://');
     if (!isText(change.why)) report.warn(`${path}.why`, 'missing the reason. The "why" is the point of this chapter');
     arr(change.nodes).forEach((id, j) => {
       if (!nodeIds.has(id)) report.error(`${path}.nodes[${j}]`, `"${id}" is not a node id`);
@@ -136,20 +108,24 @@ function citedFiles(data) {
   return [
     ...arr(data.nodes).flatMap((n) => arr(n.files)),
     ...arr(data.flows).flatMap((f) => arr(f.steps).map((st) => st.file)),
-    ...arr(data.concepts).map((c) => c.file),
+    ...arr(data.concepts).map((c) => c && c.file),
     ...arr(data.tree).map((t) => t.path),
+    // A removed file is gone at the head, so it is not looked for.
+    ...arr(data.diff).filter((d) => isObject(d) && d.status !== 'removed').map((d) => d.path),
   ].filter(isText);
 }
 
 function checkFilesExist(report, data, repoRoot) {
+  const type = typeOf(data);
+  if (!TYPE_RULES[type].citesCode) {
+    report.warn('files', `--repo is ignored for a ${type} explainer, which does not cite code`);
+    return;
+  }
   const missing = [...new Set(citedFiles(data))]
     .map((file) => file.replace(/[:#]L?\d+(-L?\d+)?$/, '').replace(/\/$/, ''))
     .filter((file) => !existsSync(resolve(repoRoot, file)));
   missing.forEach((file) => report.error('files', `cited path "${file}" does not exist in ${repoRoot}`));
 }
-
-const words = (value) => (isText(value) ? value.trim().split(/\s+/).length : 0);
-const sentences = (value) => (isText(value) ? (value.match(/[.!?](\s|$)/g) || []).length : 0);
 
 function checkLessonShape(report, data) {
   if (arr(data.layers).length > LIMITS.layers) report.warn('layers', `${arr(data.layers).length} layers. Group into ${LIMITS.layers} or fewer`);
@@ -211,6 +187,7 @@ function checkPlaceholders(report, data) {
  * Validate an explainer data object.
  * @param {unknown} data
  * @param {{ repoRoot?: string }} [options] when repoRoot is given, every cited file must exist there
+ *   (only for types that cite code: repo, pr, change, migration)
  * @returns {ValidationResult}
  */
 export function validateExplainer(data, options = {}) {
@@ -219,11 +196,13 @@ export function validateExplainer(data, options = {}) {
     report.error('root', 'explainer data must be a JSON object');
     return report.result();
   }
+  const type = typeOf(data);
   checkMeta(report, data.meta);
-  const nodeIds = checkGraph(report, data);
-  checkFlows(report, arr(data.flows), nodeIds);
+  const nodeIds = checkGraph(report, data, type);
+  checkFlows(report, arr(data.flows), nodeIds, type);
   checkChanges(report, arr(data.changes), nodeIds);
   checkLessons(report, data);
+  checkV2(report, data, nodeIds);
   checkLessonShape(report, data);
   checkNoMarkup(report, data);
   checkProseStyle(report, data);
