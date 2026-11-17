@@ -70,19 +70,11 @@ test('a different repo with the same name gets a suffixed slug', () => {
 });
 
 test('pages built into the library carry the library context', () => {
-  // The shipped template may not have the context tag yet; use a copy that does.
   const home = tempHome();
-  const templateDir = mkdtempSync(join(tmpdir(), 'rx-tpl-'));
-  const source = new URL('../template/', import.meta.url);
-  mkdirSync(join(templateDir, 'js'));
-  readdirSync(new URL('js/', source)).forEach((f) => writeFileSync(join(templateDir, 'js', f), readFileSync(new URL(`js/${f}`, source))));
-  ['styles.css', 'library.html'].forEach((f) => writeFileSync(join(templateDir, f), readFileSync(new URL(f, source))));
-  const html = readFileSync(new URL('explainer.html', source), 'utf8')
-    .replace(/<\/body>/, '<script type="application/json" id="explainer-context">__CONTEXT__</script>\n</body>');
-  writeFileSync(join(templateDir, 'explainer.html'), html);
-
-  const { pagePath } = publishExplainer(example, { home, templateDir });
-  assert.deepEqual(embedded(readFileSync(pagePath, 'utf8'), 'explainer-context'), { libraryHref: '../../index.html', slug: 'acme-taskflow', style: 'clean' });
+  const { pagePath } = publishExplainer(example, { home });
+  const { config, ...context } = embedded(readFileSync(pagePath, 'utf8'), 'explainer-context');
+  assert.deepEqual(context, { libraryHref: '../../index.html', slug: 'acme-taskflow', style: 'clean' });
+  assert.equal(config.audience, 'engineer');
 });
 
 test('remove deletes the folder and the entry, and refuses unknown or unsafe slugs', () => {

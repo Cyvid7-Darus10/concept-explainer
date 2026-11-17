@@ -120,10 +120,10 @@ test('--style sets the page style, standalone and in the library', () => {
   const { root, data, run, home } = setup();
   const result = run('build', data, '--style', 'playful');
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(contextOf(join(root, 'taskflow.html')), { style: 'playful' });
+  assert.equal(contextOf(join(root, 'taskflow.html')).style, 'playful');
   assert.equal(contextOf(join(home, 'explainers', 'acme-taskflow', 'index.html')).style, 'playful');
   assert.equal(run('build', data).status, 0);
-  assert.deepEqual(contextOf(join(root, 'taskflow.html')), { style: 'clean' });
+  assert.equal(contextOf(join(root, 'taskflow.html')).style, 'clean');
 });
 
 test('a bad --style is a usage error naming the value, on every command', () => {
@@ -142,10 +142,10 @@ test('library style sets the default used when no flag is given', () => {
   const set = run('library', 'style', 'playful');
   assert.equal(set.status, 0, set.stderr);
   assert.match(set.stderr, /default style: playful/);
-  assert.deepEqual(JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')), { style: 'playful' });
+  assert.equal(JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')).style, 'playful');
   assert.equal(run('library', 'style').stdout.trim(), 'playful');
   run('build', data);
-  assert.deepEqual(contextOf(join(root, 'taskflow.html')), { style: 'playful' });
+  assert.equal(contextOf(join(root, 'taskflow.html')).style, 'playful');
   const hub = readFileSync(join(home, 'index.html'), 'utf8').match(/id="explainer-data">([\s\S]*?)<\/script>/)[1];
   assert.equal(JSON.parse(hub).style, 'playful');
 });
