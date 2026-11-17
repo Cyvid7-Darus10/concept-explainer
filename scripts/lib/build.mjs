@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,6 +7,9 @@ export const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 
 // Order matters only for readability; all modules share one function scope.
 const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'changes.js', 'lessons.js', 'sections.js', 'app.js'];
 const LIBRARY_SCRIPT_ORDER = ['dom.js', 'icons.js', 'library.js'];
+// Stylesheets in template/styles/, joined in cascade order. A template folder
+// without styles/ (older custom templates) falls back to one styles.css.
+export const STYLE_ORDER = ['base.css', 'shell.css', 'views.css', 'diagrams.css', 'lessons.css', 'hub.css', 'kit.css', 'playful.css'];
 
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
@@ -37,7 +40,10 @@ function readTemplate(templateDir, order = SCRIPT_ORDER, page = 'explainer.html'
     }
   };
   const scripts = order.map((file) => `// ---- ${file} ----\n${read(join('js', file))}`).join('\n');
-  return { html: read(page), styles: read('styles.css'), scripts };
+  const styles = existsSync(join(templateDir, 'styles'))
+    ? STYLE_ORDER.map((file) => `/* ---- ${file} ---- */\n${read(join('styles', file))}`).join('\n')
+    : read('styles.css');
+  return { html: read(page), styles, scripts };
 }
 
 // One pass over the template, so text inserted for one placeholder (say, a
