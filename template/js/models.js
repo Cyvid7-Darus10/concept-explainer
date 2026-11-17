@@ -95,7 +95,7 @@ function renderModels(data, mount) {
     const rels = edges.filter((e) => e.from === model.name || e.to === model.name);
     return [
       h('div', { class: 'er-detail-head' },
-        h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), model.name),
+        h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
         model.summary && h('p', null, model.summary)),
       h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
         h('div', { class: 'er-row er-row-head', role: 'row' },
@@ -147,7 +147,7 @@ function entityBox(model, index, modelNames, onSelect) {
     class: 'entity', type: 'button', 'data-entity': model.name, 'aria-pressed': 'false',
     style: `grid-column:${col} / span 2;grid-row:${row + 1}`, onclick: onSelect,
   },
-  h('span', { class: 'entity-head' }, h('span', { class: 'node-icon' }, icon('db')), h('span', { class: 'entity-name' }, model.name), h('span', { class: 'entity-count' }, `${list(model.fields).length} fields`)),
+  h('span', { class: 'entity-head' }, h('span', { class: 'node-icon' }, icon('db')), h('span', { class: 'entity-name' }, softBreaks(model.name)), h('span', { class: 'entity-count' }, `${list(model.fields).length} fields`)),
   keys.length > 0 && h('span', { class: 'entity-keys' }, keys.map((f) => {
     const b = fieldBadges(f, modelNames);
     return h('span', { class: 'entity-key' }, h('span', { class: `key-badge ${b.isPk ? 'is-pk' : 'is-fk'}` }, b.isPk ? 'PK' : 'FK'), h('span', null, f.name));

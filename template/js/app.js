@@ -84,13 +84,14 @@ function buildShell(data, chapters, context, registry) {
   const progressLines = [];
   const side = h('aside', { class: 'side', 'aria-label': 'Sidebar' },
     brandRow(),
-    h('div', { class: 'side-repo' }, h('b', { title: meta.title }, meta.title), meta.repo && h('span', { class: 'mono', title: meta.repo }, meta.repo)),
+    h('div', { class: 'side-repo' }, truncatable(h('b', null, softBreaks(meta.title)), meta.title),
+      meta.repo && truncatable(h('span', { class: 'mono' }), meta.repo, { mode: 'middle' })),
     navList(chapters, data, links),
     h('div', { class: 'side-foot' }, footBits(meta, context, registry, progressLines)));
 
   const closeButton = h('button', { class: 'btn sheet-close', type: 'button' }, h('span', { class: 'close-icon', 'aria-hidden': 'true' }), 'Close');
   const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Menu' },
-    h('div', { class: 'sheet-head' }, h('span', { class: 'name', title: meta.title }, meta.title), closeButton),
+    h('div', { class: 'sheet-head' }, truncatable(h('span', { class: 'name' }, meta.title), meta.title), closeButton),
     navList(chapters, data, links),
     h('div', { class: 'sheet-foot' }, footBits(meta, context, registry, progressLines)));
   closeButton.addEventListener('click', () => sheet.close());
@@ -104,7 +105,7 @@ function buildShell(data, chapters, context, registry) {
     h('span', { class: 'menu-icon', 'aria-hidden': 'true' }), 'Menu');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
     h('a', { class: 'brand', href: '#overview', 'aria-label': 'Overview' }, brandMark(),
-      h('span', { class: 'bar-names' }, h('span', { class: 'name', title: meta.title }, meta.title), barView)),
+      h('span', { class: 'bar-names' }, truncatable(h('span', { class: 'name' }, meta.title), meta.title), barView)),
     h('div', { class: 'bar-actions' },
       library && h('a', { class: 'btn bar-library', href: library }, 'Library'),
       menuButton)));

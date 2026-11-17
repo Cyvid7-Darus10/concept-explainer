@@ -64,7 +64,7 @@ function renderMap(data, mount) {
     const flows = list(data.flows).filter((flow) => list(flow.steps).some((st) => st.from === node.id || st.to === node.id));
     return [h('div', { class: 'detail-main' },
       h('div', { class: 'step-top' }, h('span', { class: 'detail-icon' }, icon(node.kind)), tag(text(layer && layer.label, node.layer), 'tag-layer'), node.kind && tag(node.kind)),
-      h('h3', null, node.label),
+      h('h3', null, softBreaks(node.label)),
       h('p', null, text(node.summary, 'No summary yet.')),
       node.tech && h('p', { class: 'detail-tech' }, node.tech),
       list(node.files).length > 0 && [h('div', { class: 'detail-label' }, 'Lives in'), h('div', { class: 'files' }, list(node.files).map(fileChip))]),
@@ -103,9 +103,11 @@ function renderMap(data, mount) {
     const d = connectorPath(a, b);
     const key = `${edge.from}→${edge.to}`;
     const mid = { x: (a.cx + b.cx) / 2, y: (a.cy + b.cy) / 2 };
+    // No label when the boxes almost touch: it would sit on top of them.
+    const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
     return s('g', { 'data-edge': key },
       s('path', { class: `edge${edge.kind === 'async' ? ' is-async' : ''}`, d, 'marker-end': 'url(#map-arrow)' }),
-      edge.label && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
+      edge.label && gap > 36 && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
   }
 
   function showChanges() {
@@ -154,13 +156,13 @@ const MAP_GAP = 40;
 function mapColumn(layer, nodes, changedIds, onSelect) {
   const layerNodes = nodes.filter((node) => node.layer === layer.id);
   return h('div', { class: 'map-col', style: layerStyle(layer.color) },
-    h('div', { class: 'map-col-head', title: layer.label }, h('span', { class: 'map-col-name' }, layer.label)),
+    h('div', { class: 'map-col-head' }, truncatable(h('span', { class: 'map-col-name' }, layer.label), layer.label)),
     layerNodes.map((node) => h('button', {
       class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),
     },
     changedIds.has(node.id) && h('span', { class: 'node-badge tag tag-new' }, 'New'),
     h('span', { class: 'node-icon' }, icon(node.kind)),
-    h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, node.label), node.tech && h('span', { class: 'node-tech' }, node.tech)))));
+    h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, softBreaks(node.label)), node.tech && truncatable(h('span', { class: 'node-tech' }, node.tech), node.tech)))));
 }
 
 function relativeRect(el, box) {

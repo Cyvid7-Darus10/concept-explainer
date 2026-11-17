@@ -19,7 +19,7 @@
   --primary-ring: 0 0 0 0 transparent; --good-wash: var(--surface); --bad-wash: var(--surface); --hair: 1px;
   --radius-sm: 4px; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
   --code-ring: inset 0 0 0 var(--hair) var(--line); --code-ink: var(--body); --code-kw: var(--ink);
-  --code-cm: var(--quiet); --code-st: var(--accent-text); --mark-bg: rgb(252 94 50 / 0.16);
+  --code-cm: var(--quiet); --code-st: var(--accent-text); --mark-bg: rgb(252 94 50 / 0.16); --hint-bg: var(--surface); --hint-ring: var(--line); --hint-ink: var(--muted);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -164,4 +164,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* Single-column grids get an explicit shrinkable track: an implicit "auto" track grows to its longest path. */
 .view-body, .map-shell, .flow-player, .timeline, .change-card, .quiz, .question, .glossary-wrap, .runbook, .run-item,
-.detail-main, .detail-side, .er-detail-head, .er-rels, .kit-stack, .ov-head, .why, .feedback, .step-code, .flow-meta { grid-template-columns: minmax(0, 1fr); }
+.detail-main, .detail-side, .er-detail-head, .er-rels, .kit-stack, .ov-head, .why, .feedback, .step-code, .flow-meta, .rel, .files, .options { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- Long names: the "?" hint and its tooltip (truncatable in dom.js) ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.truncatable.is-truncated { position: relative; padding-inline-end: 22px; }
+.trunc-hint {
+  position: absolute; inset-inline-end: 2px; inset-block-end: max(1px, calc((1lh - 16px) / 2));
+  display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 9999px;
+  background: var(--hint-bg); box-shadow: inset 0 0 0 var(--hair) var(--hint-ring); color: var(--hint-ink);
+  font: 500 10px/1 var(--mono); letter-spacing: 0; text-transform: none; cursor: help;
+}
+.trunc-hint::before { content: ""; position: absolute; inset: -4px; }
+@media (hover: hover) { .trunc-hint:hover { color: var(--ink); box-shadow: inset 0 0 0 var(--hair) var(--faint); } }
+button.trunc-hint:focus-visible { outline-offset: 1px; }
+.trunc-tip {
+  position: fixed; inset: auto; margin: 0; z-index: 60; max-width: min(420px, 90vw); padding: 4px 8px; border: 0; border-radius: var(--radius-sm);
+  background: var(--ink); color: var(--canvas); font: 500 12.5px/1.45 var(--sans); letter-spacing: 0; text-transform: none;
+  overflow-wrap: anywhere; white-space: normal; pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) { .trunc-tip:not([hidden]) { animation: fade-in 120ms var(--ease); } }
+.chip-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

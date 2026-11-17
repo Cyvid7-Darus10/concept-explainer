@@ -10,7 +10,8 @@ Why the page is shaped like a guided dashboard rather than a wiki.
 6. **Never trap the scroll.** Diagrams scroll sideways only, so the page always moves with the wheel. Sticky actor heads and the sticky step card keep context without inner vertical scroll areas; the step card stops sticking when it is taller than the screen. On narrow screens the step card comes first, so Continue stays under your thumb.
 7. **Change is a first-class chapter.** When humans and agents land dozens of merges a day, "what is this system?" is only half the question. The other half is "what moved since I last looked, and why?". Each change is tied to the map ("Show on map") so readers update their mental model rather than reading a log.
 8. **One view at a time, and every view has an address.** Views are hash-routed (`#flows/create-task/3`), so a link can open a node, a step, a change or a term. Back and forward move between views; moving inside a view (a step, a node) updates the address without adding history. Opening a view moves focus to its heading and starts at the top.
-9. **Calm motion.** Motion only shows change: an arrow draws in, a dot travels once, a card slides in from the direction you moved. No loops except the selected-edge flow, which shows direction. Reduced-motion users get none of it.
+9. **Never hide that something is cut.** Long names break at word joints first (camelCase humps, path slashes), and anything that still has to be cut shows a small "?" with the full text. Paths keep their file name and line, cut in the middle instead.
+10. **Calm motion.** Motion only shows change: an arrow draws in, a dot travels once, a card slides in from the direction you moved. No loops except the selected-edge flow, which shows direction. Reduced-motion users get none of it.
 
 Pacing credit: the one-idea-per-step lesson format follows Brilliant.
 

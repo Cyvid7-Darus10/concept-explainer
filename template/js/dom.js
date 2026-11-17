@@ -77,8 +77,9 @@ function breakablePath(path) {
   return String(path).split(/(?<=\/)/).flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
 }
 
+// A file:line citation. Long paths keep the first folder and the file name.
 function fileChip(path) {
-  return h('span', { class: 'chip-file', title: path }, path);
+  return truncatable(h('span', { class: 'chip-file' }), path, { mode: 'middle' });
 }
 
 // Browser storage is a per-reader convenience only: it can be missing or
@@ -118,7 +119,7 @@ function linkPart(value) {
 
 // A small mono label: kinds, authors, PK/FK. Never coloured fills.
 function tag(label, extra = '') {
-  return h('span', { class: `tag${extra ? ` ${extra}` : ''}`, title: String(label) }, label);
+  return truncatable(h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, label), label);
 }
 
 // Display titles step down a size when their longest word is long, so an
@@ -255,7 +256,11 @@ function themeRegistry() {
         });
       });
     },
-    changed: () => listeners.forEach((fn) => fn()),
+    changed: () => {
+      listeners.forEach((fn) => fn());
+      // A style switch changes fonts and paddings: re-measure cut text.
+      if (typeof recheckTruncation === 'function') window.requestAnimationFrame(recheckTruncation);
+    },
   };
 }
 
@@ -339,3 +344,178 @@ function wireSkipLink(main) {
 }
 
 
+
+// ---------- Long names: soft breaks, truncation and the "?" hint ----------
+const SOFT_BREAK_MIN = 12;
+
+// Text with <wbr> at natural joints of long tokens: camelCase humps
+// (fooBar, HTTPServer), after / . _ - : @, and between letters and digits.
+// overflow-wrap: anywhere in CSS stays only as the last resort.
+function softBreaks(value) {
+  return String(value ?? '').split(/(\s+)/).flatMap((token) => {
+    if (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token)) return [token];
+    const marked = token
+      .replace(/([a-z])(?=[A-Z])/g, '$1\u0000')
+      .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1\u0000')
+      .replace(/([/._\-:@])(?=[^\s/._\-:@])/g, '$1\u0000')
+      .replace(/([A-Za-z])(?=\d)|(\d)(?=[A-Za-z])/g, '$1$2\u0000');
+    return marked.split('\u0000').flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
+  });
+}
+
+// Shorter forms of a path or slug, longest first: keep the first segment and
+// the file name with its :line; for a plain slug keep the start and the end.
+function middleForms(full) {
+  const parts = full.split('/');
+  if (parts.length > 2) {
+    const tails = Array.from({ length: parts.length - 2 }, (_, i) => parts.slice(parts.length - 1 - (parts.length - 3 - i)).join('/'));
+    return [...tails.map((tail) => `${parts[0]}/…/${tail}`), `…/${parts[parts.length - 1]}`];
+  }
+  const cuts = [];
+  for (let keep = full.length - 4; keep > 8; keep -= Math.max(2, Math.round(keep / 8))) {
+    const head = Math.ceil(keep * 0.4);
+    cuts.push(`${full.slice(0, head)}…${full.slice(full.length - (keep - head))}`);
+  }
+  return cuts;
+}
+
+const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, count: 0 };
+
+function truncTip() {
+  if (TRUNC.tip) return TRUNC.tip;
+  const tip = h('div', { class: 'trunc-tip', id: 'trunc-tip', role: 'tooltip', hidden: true });
+  if (typeof tip.showPopover === 'function') tip.setAttribute('popover', 'manual');
+  document.body.append(tip);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') hideTip(); });
+  document.addEventListener('pointerdown', (event) => {
+    if (TRUNC.anchor && !TRUNC.anchor.contains(event.target)) hideTip();
+  });
+  window.addEventListener('scroll', () => { if (!TRUNC.pinned) hideTip(); }, { passive: true });
+  TRUNC.tip = tip;
+  return tip;
+}
+
+function showTip(anchor, full, pinned = false) {
+  const tip = truncTip();
+  tip.textContent = full;
+  tip.hidden = false;
+  if (tip.showPopover && !tip.matches(':popover-open')) tip.showPopover();
+  const box = anchor.getBoundingClientRect();
+  const width = Math.min(tip.offsetWidth, window.innerWidth - 16);
+  const left = Math.min(Math.max(8, box.left + box.width / 2 - width / 2), window.innerWidth - width - 8);
+  const below = box.bottom + 6 + tip.offsetHeight <= window.innerHeight - 8;
+  tip.style.left = `${left}px`;
+  tip.style.top = `${below ? box.bottom + 6 : Math.max(8, box.top - 6 - tip.offsetHeight)}px`;
+  if (TRUNC.anchor && TRUNC.anchor !== anchor) TRUNC.anchor.setAttribute('aria-expanded', 'false');
+  TRUNC.anchor = anchor;
+  TRUNC.pinned = pinned;
+  if (anchor.tagName === 'BUTTON') anchor.setAttribute('aria-expanded', 'true');
+}
+
+function hideTip() {
+  const tip = TRUNC.tip;
+  if (!tip || tip.hidden) return;
+  if (tip.hidePopover && tip.matches(':popover-open')) tip.hidePopover();
+  tip.hidden = true;
+  if (TRUNC.anchor && TRUNC.anchor.tagName === 'BUTTON') TRUNC.anchor.setAttribute('aria-expanded', 'false');
+  TRUNC.anchor = null;
+  TRUNC.pinned = false;
+}
+
+// Inside a link or button a nested button is invalid, so the hint is a plain
+// marker there, shown on hover and when the link itself has focus.
+function truncHint(el, full) {
+  const host = el.parentElement && el.parentElement.closest('a, button, [role="button"]');
+  if (host) {
+    const mark = h('span', { class: 'trunc-hint', 'aria-hidden': 'true' }, '?');
+    mark.addEventListener('mouseenter', () => showTip(mark, full));
+    mark.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+    host.addEventListener('focus', () => { if (mark.isConnected) showTip(mark, full); });
+    host.addEventListener('blur', () => { if (TRUNC.anchor === mark) hideTip(); });
+    return mark;
+  }
+  TRUNC.count += 1;
+  const button = h('button', {
+    class: 'trunc-hint', type: 'button', 'aria-label': 'Show full name', 'aria-expanded': 'false', 'aria-describedby': 'trunc-tip',
+  }, '?');
+  button.addEventListener('mouseenter', () => showTip(button, full));
+  button.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+  button.addEventListener('focus', () => showTip(button, full));
+  button.addEventListener('blur', () => { if (!TRUNC.pinned) hideTip(); });
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (TRUNC.anchor === button && TRUNC.pinned) hideTip(); else showTip(button, full, true);
+  });
+  return button;
+}
+
+function isCut(el) {
+  return el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+}
+
+// Exact width of the visible text against the content box: CSS ellipsis
+// appears at any sub-pixel overflow, which rounded scrollWidth can miss.
+function textFits(el, span) {
+  const style = getComputedStyle(el);
+  const room = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  return span.getBoundingClientRect().width <= room - 0.5;
+}
+
+function checkTruncation(el) {
+  const state = el.__trunc;
+  if (!state || !el.isConnected || !el.getClientRects().length) return;
+  el.classList.remove('is-truncated');
+  if (state.hint) state.hint.remove();
+  if (state.mode === 'middle') state.visible.textContent = state.full;
+  let cut = state.mode === 'middle' ? !textFits(el, state.visible) : isCut(el);
+  if (cut) {
+    el.classList.add('is-truncated');
+    if (state.mode === 'middle') {
+      const forms = middleForms(state.full);
+      const fits = forms.find((form) => { state.visible.textContent = form; return textFits(el, state.visible); });
+      if (!fits) state.visible.textContent = forms[forms.length - 1] || state.full;
+    }
+    cut = true;
+    state.hint = state.hint || truncHint(el, state.full);
+    el.append(state.hint);
+  }
+  el.dataset.truncated = String(cut);
+}
+
+/**
+ * Mark an element whose text may be cut (CSS ellipsis or line clamp, or
+ * mode "middle" for paths). A "?" hint with the full text appears only while
+ * the text is really cut.
+ */
+function truncatable(el, full, { mode = 'end' } = {}) {
+  const text = String(full ?? '');
+  el.removeAttribute('title');
+  el.classList.add('truncatable');
+  if (mode === 'middle') {
+    const visible = h('span', { class: 'trunc-visible', 'aria-hidden': 'true' }, text);
+    fill(el, visible, h('span', { class: 'sr-only' }, text));
+    el.__trunc = { full: text, mode, visible, hint: null };
+  } else {
+    el.__trunc = { full: text, mode, hint: null };
+  }
+  if (!TRUNC.observer && 'ResizeObserver' in window) {
+    TRUNC.observer = new ResizeObserver((entries) => entries.forEach((entry) => checkTruncation(entry.target)));
+    // Web fonts load after first render; widths change when they land.
+    if (document.fonts) {
+      document.fonts.ready.then(recheckTruncation);
+      document.fonts.addEventListener('loadingdone', recheckTruncation);
+    }
+  }
+  TRUNC.watched.add(el);
+  if (TRUNC.observer) TRUNC.observer.observe(el);
+  return el;
+}
+
+// Re-check every watched element, for example after a style switch.
+function recheckTruncation() {
+  TRUNC.watched.forEach((el) => {
+    if (!el.isConnected) TRUNC.watched.delete(el);
+    else checkTruncation(el);
+  });
+}

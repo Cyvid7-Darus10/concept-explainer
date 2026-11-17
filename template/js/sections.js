@@ -40,9 +40,9 @@ function renderOverview(data, mount, ctx) {
 
   mount.append(h('div', { class: 'overview' },
     h('header', { class: 'ov-head' },
-      h('p', { class: 'eyebrow', title: text(meta.repo, 'Repository') }, text(meta.repo, 'Repository')),
-      h('h1', { id: 'view-overview-title', tabindex: '-1', class: fitClass(meta.title) }, meta.title),
-      meta.summary && h('p', { class: 'lede' }, meta.summary),
+      h('p', { class: 'eyebrow' }, softBreaks(text(meta.repo, 'Repository'))),
+      h('h1', { id: 'view-overview-title', tabindex: '-1', class: fitClass(meta.title) }, softBreaks(meta.title)),
+      meta.summary && h('p', { class: 'lede' }, softBreaks(meta.summary)),
       list(meta.stack).length > 0 && h('ul', { class: 'stack', 'aria-label': 'Built with' },
         list(meta.stack).map((item) => h('li', null, tag(item))))),
     nextSlot,
@@ -104,7 +104,7 @@ function chapterCard(data, chapter, index) {
   return h('a', { class: 'card', href: `#${chapter.key}` },
     h('span', { class: 'top-row' }, h('span', null, padNumber(index + 1)),
       h('span', { class: 'card-count' }, `${chapter.count(data)} ${chapter.unit}`)),
-    h('span', { class: `card-title ${fitClass(chapter.title)}` }, chapter.title),
+    h('span', { class: `card-title ${fitClass(chapter.title)}` }, softBreaks(chapter.title)),
     h('span', { class: 'line' }, chapter.lead),
     h('span', { class: 'card-foot' }, h('span', { class: 'card-viewed' }, 'Viewed'), h('span', { class: 'card-open' }, 'Open')));
 }

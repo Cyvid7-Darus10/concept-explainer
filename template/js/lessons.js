@@ -19,8 +19,8 @@ function renderConcepts(data, mount) {
     const concept = concepts[index];
     fill(card,
       h('span', { class: 'step-count' }, `Idea ${index + 1} of ${concepts.length}`),
-      h('h3', null, concept.title),
-      h('p', { class: 'concept-body' }, concept.body),
+      h('h3', null, softBreaks(concept.title)),
+      h('p', { class: 'concept-body' }, softBreaks(concept.body)),
       concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, concept.analogy)),
       concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),

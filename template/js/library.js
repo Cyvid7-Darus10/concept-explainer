@@ -74,8 +74,8 @@ function presetFacets(explainers) {
 function facetGroup(label, options, current, onPick) {
   if (!options.length) return null;
   const chip = (value, name) => h('button', {
-    class: 'facet', type: 'button', 'aria-pressed': String(current === value), title: name, onclick: () => onPick(value),
-  }, h('span', { class: 'facet-text' }, name));
+    class: 'facet', type: 'button', 'aria-pressed': String(current === value), onclick: () => onPick(value),
+  }, truncatable(h('span', { class: 'facet-text' }, name), name));
   return h('div', { class: 'facet-group', role: 'group', 'aria-label': label },
     h('span', { class: 'eyebrow quiet' }, label),
     h('span', { class: 'facet-chips' }, chip(null, 'Any'), options.map((option) => chip(option, option))));
@@ -93,7 +93,7 @@ function stackTags(stack, max = 4) {
   const items = list(stack).map(String);
   if (!items.length) return null;
   return h('span', { class: 'lib-stack' },
-    items.slice(0, max).map((item) => h('span', { class: 'tag', title: item }, item)),
+    items.slice(0, max).map((item) => tag(item)),
     items.length > max && h('span', { class: 'tag', title: items.slice(max).join(', ') }, `+${items.length - max}`));
 }
 
@@ -109,9 +109,9 @@ function explainerCard(explainer) {
   const dated = hubDate(explainer.generatedAt) || hubDate(explainer.publishedAt);
   const parts = [
     h('span', { class: 'top-row' }, h('span', null, dated || 'Undated'), explainer.commit && h('span', null, String(explainer.commit).slice(0, 7))),
-    h('span', { class: `card-title ${fitClass(explainer.title)}` }, text(explainer.title, explainer.slug)),
-    explainer.repo && h('span', { class: 'lib-repo', title: explainer.repo }, explainer.repo),
-    text(explainer.summary) && h('span', { class: 'line lib-summary' }, explainer.summary),
+    h('span', { class: `card-title ${fitClass(explainer.title)}` }, softBreaks(text(explainer.title, explainer.slug))),
+    explainer.repo && truncatable(h('span', { class: 'lib-repo' }), explainer.repo, { mode: 'middle' }),
+    text(explainer.summary) && truncatable(h('span', { class: 'line lib-summary' }, softBreaks(explainer.summary)), explainer.summary),
     stackTags(explainer.stack),
     layerMarkers(explainer.layers),
     h('span', { class: 'card-foot' }, h('span', { class: 'lib-counts' }, countsLine(explainer.counts)), h('span', { class: 'card-open' }, 'Open')),
@@ -135,11 +135,11 @@ function highlight(value, words) {
   const parts = [];
   let cursor = 0;
   ranges.forEach(([start, end]) => {
-    if (start > cursor) parts.push(source.slice(cursor, start));
-    parts.push(h('mark', null, source.slice(start, end)));
+    if (start > cursor) parts.push(...softBreaks(source.slice(cursor, start)));
+    parts.push(h('mark', null, softBreaks(source.slice(start, end))));
     cursor = end;
   });
-  if (cursor < source.length) parts.push(source.slice(cursor));
+  if (cursor < source.length) parts.push(...softBreaks(source.slice(cursor)));
   return parts;
 }
 
@@ -153,14 +153,14 @@ function resultRow(entry, words) {
     h('span', { class: 'tag result-type' }, TYPE_LABELS[entry.type] || text(entry.type, 'Item')),
     h('span', { class: 'result-text' },
       h('span', { class: 'result-title' }, highlight(text(entry.title, 'Untitled'), words)),
-      text(entry.text) && h('span', { class: 'result-snippet' }, highlight(entry.text, words))),
+      text(entry.text) && truncatable(h('span', { class: 'result-snippet' }, highlight(entry.text, words)), entry.text)),
   ];
   return h('li', null, href ? h('a', { class: 'result-link', href }, body) : h('span', { class: 'result-link is-plain' }, body));
 }
 
 function resultGroups(groups, titles, words) {
   return [...groups.entries()].map(([slug, entries]) => h('section', { class: 'panel result-group', 'aria-label': titles.get(slug) || slug },
-    h('div', { class: 'panel-bar' }, h('span', { class: 'result-group-title', title: titles.get(slug) || slug }, titles.get(slug) || slug), h('span', null, plural(entries.length, 'match', 'matches'))),
+    h('div', { class: 'panel-bar' }, truncatable(h('span', { class: 'result-group-title' }, titles.get(slug) || slug), titles.get(slug) || slug), h('span', null, plural(entries.length, 'match', 'matches'))),
     h('ul', { class: 'rows' }, entries.map((entry) => resultRow(entry, words)))));
 }
 
@@ -200,8 +200,8 @@ function hubNav(views, explainers, links) {
     explainers.length > 0 && [h('p', { class: 'side-label' }, 'Explainers'),
       h('ul', { class: 'hub-repos' }, explainers.map((e) => {
         const href = explainerHref(e.slug);
-        const label = h('span', { class: 'nav-label' }, text(e.title, e.slug));
-        return h('li', null, href ? h('a', { href, title: text(e.title, e.slug) }, label) : label);
+        const label = truncatable(h('span', { class: 'nav-label' }, text(e.title, e.slug)), text(e.title, e.slug));
+        return h('li', null, href ? h('a', { href }, label) : label);
       }))]);
 }
 
