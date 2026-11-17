@@ -1,17 +1,21 @@
-// `library serve`: the library over http on 127.0.0.1, so the Settings view
-// can save config.json. One write endpoint, guarded by a per-run token (sent
-// in a header), the Origin and the Host. Files are read-only and never leave
-// the library folder. node:http only. Contract: references/library.md.
+// `library serve`: the library over http on 127.0.0.1, so Settings can save
+// config.json and Share can export and import. Every API call needs a
+// per-run token in a header; writes also need the right Origin; every
+// request needs the right Host (DNS rebinding). Files are read only and never
+// leave the library folder. node:http only. Contract: references/library.md.
 import { createServer } from 'node:http';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { readConfig, rebuildLibrary, writeConfig } from './library.mjs';
+import { MAX_BUNDLE_BYTES, applyImport, createBundle, parseBundle, planImport } from './bundle.mjs';
 
 export const HOST = '127.0.0.1';
 export const TOKEN_HEADER = 'x-concept-explainer-token';
 export const CONFIG_PATH = '/api/config';
-const MAX_BODY = 64 * 1024;
+export const EXPORT_PATH = '/api/export';
+export const IMPORT_PATH = '/api/import';
+const MAX_CONFIG_BODY = 64 * 1024;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -66,31 +70,99 @@ function resolveFile(root, pathname) {
   return statSync(real).isFile() ? { file: real } : { status: 404 };
 }
 
+const NON_PAGE_CSP = "default-src 'none'; frame-ancestors 'none'";
+const hashOf = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
+
+// A CSP for one built page: its own inline <script> and <style> blocks by
+// hash, Google Fonts, and fetches back to this server. Style attributes set
+// by the page's own code (CSS variables, positions) cannot be hashed, so
+// style-src-attr allows them; that permits no style elements and no script.
+export function pageCsp(html) {
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => hashOf(m[1]));
+  const styles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => hashOf(m[1]));
+  return [
+    "default-src 'none'",
+    `script-src ${scripts.join(' ') || "'none'"}`,
+    `style-src ${[...styles, 'https://fonts.googleapis.com'].join(' ')}`,
+    "style-src-attr 'unsafe-inline'",
+    'font-src https://fonts.gstatic.com',
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
 function serveFile(root, url, req, res) {
   const found = resolveFile(root, url.pathname);
   if (!found.file) return fail(res, found.status, found.status === 404 ? 'not found' : 'not allowed');
-  res.writeHead(200, { ...SAFE_HEADERS, 'content-type': TYPES[extname(found.file).toLowerCase()] || 'application/octet-stream' });
-  return res.end(req.method === 'HEAD' ? undefined : readFileSync(found.file));
+  const ext = extname(found.file).toLowerCase();
+  const body = readFileSync(found.file);
+  const csp = ext === '.html' ? pageCsp(body.toString('utf8')) : NON_PAGE_CSP;
+  res.writeHead(200, { ...SAFE_HEADERS, 'content-security-policy': csp, 'content-type': TYPES[ext] || 'application/octet-stream' });
+  return res.end(req.method === 'HEAD' ? undefined : body);
 }
 
-function readBody(req) {
+function readBody(req, max) {
   return new Promise((done) => {
     let size = 0;
     const chunks = [];
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size <= MAX_BODY) chunks.push(chunk);
+      if (size <= max) chunks.push(chunk);
     });
-    req.on('end', () => done(size > MAX_BODY ? null : Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => done(size > max ? null : Buffer.concat(chunks).toString('utf8')));
   });
 }
 
-async function saveConfig({ home, token, port }, req, res) {
-  if (!allowedOrigins(port).includes(req.headers.origin)) return fail(res, 403, 'wrong origin');
-  if (!sameToken(req.headers[TOKEN_HEADER], token)) return fail(res, 403, 'wrong or missing token');
-  if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) return fail(res, 415, 'send application/json');
-  const raw = await readBody(req);
-  if (raw === null) return fail(res, 413, `body over ${MAX_BODY} bytes`);
+const hasToken = (state, req) => sameToken(req.headers[TOKEN_HEADER], state.token);
+
+// Every write: right origin, right token, JSON, under the size cap.
+// Returns the body text, or null once it has replied with the refusal.
+async function writeBody(state, req, res, max) {
+  const refuse = (status, error) => {
+    fail(res, status, error);
+    return null;
+  };
+  if (!allowedOrigins(state.port).includes(req.headers.origin)) return refuse(403, 'wrong origin');
+  if (!hasToken(state, req)) return refuse(403, 'wrong or missing token');
+  if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) return refuse(415, 'send application/json');
+  const raw = await readBody(req, max);
+  return raw === null ? refuse(413, `body over ${max} bytes`) : raw;
+}
+
+function exportBundle(state, url, res) {
+  const list = (name) => (url.searchParams.get(name) || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const one = (name) => url.searchParams.get(name) || undefined;
+  let result;
+  try {
+    result = createBundle(state.home, { slugs: list('slugs'), type: one('type'), tag: one('tag'), stack: one('stack'), search: one('search') });
+  } catch (error) {
+    return fail(res, 400, error.message);
+  }
+  const name = `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
+  res.writeHead(200, { ...SAFE_HEADERS, 'content-type': TYPES['.json'], 'content-disposition': `attachment; filename="${name}"` });
+  return res.end(JSON.stringify(result.bundle, null, 2));
+}
+
+async function importBundle(state, url, req, res) {
+  const raw = await writeBody(state, req, res, MAX_BUNDLE_BYTES);
+  if (raw === null) return undefined;
+  let plan;
+  try {
+    plan = planImport(state.home, parseBundle(raw), { onConflict: url.searchParams.get('onConflict') || undefined });
+  } catch (error) {
+    return fail(res, 400, error.message);
+  }
+  const summary = url.searchParams.get('apply') === '1' ? applyImport(state.home, plan) : plan.summary;
+  return sendJson(res, 200, { summary });
+}
+
+async function saveConfig(state, req, res) {
+  const { home } = state;
+  const raw = await writeBody(state, req, res, MAX_CONFIG_BODY);
+  if (raw === null) return undefined;
   let changes;
   try {
     changes = JSON.parse(raw);
@@ -118,10 +190,19 @@ function handler(state) {
     } catch {
       return fail(res, 400, 'bad url');
     }
+    const failed = (error) => fail(res, 500, `${url.pathname} failed: ${error.message}`);
     if (url.pathname === CONFIG_PATH) {
-      if (req.method === 'GET') return sendJson(res, 200, { config: readConfig(state.home) });
-      if (req.method === 'POST') return saveConfig(state, req, res).catch((error) => fail(res, 500, `save failed: ${error.message}`));
+      if (req.method === 'GET') return hasToken(state, req) ? sendJson(res, 200, { config: readConfig(state.home) }) : fail(res, 403, 'wrong or missing token');
+      if (req.method === 'POST') return saveConfig(state, req, res).catch(failed);
       return fail(res, 405, 'use GET or POST');
+    }
+    if (url.pathname === EXPORT_PATH) {
+      if (req.method !== 'GET') return fail(res, 405, 'use GET');
+      return hasToken(state, req) ? exportBundle(state, url, res) : fail(res, 403, 'wrong or missing token');
+    }
+    if (url.pathname === IMPORT_PATH) {
+      if (req.method !== 'POST') return fail(res, 405, 'use POST');
+      return importBundle(state, url, req, res).catch(failed);
     }
     if (url.pathname.startsWith('/api/')) return fail(res, 404, 'not found');
     if (req.method !== 'GET' && req.method !== 'HEAD') return fail(res, 405, 'read only');
