@@ -27,3 +27,10 @@ test('macOS and Linux use open and xdg-open, and report failures', () => {
   const fail = () => { throw Object.assign(new Error('boom'), { status: 1 }); };
   assert.throws(() => openPath('a', { platform: 'linux', exec: fail }), /open a with xdg-open: boom/);
 });
+
+test('the path is made absolute first, so it can never read as an option', () => {
+  const calls = [];
+  openPath('-n --args evil.html', { platform: 'darwin', exec: (cmd, args) => calls.push(args) });
+  assert.ok(calls[0][0].startsWith('/'), calls[0][0]);
+  assert.ok(calls[0][0].endsWith('/-n --args evil.html'));
+});
