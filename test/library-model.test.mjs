@@ -107,3 +107,23 @@ test('entries carry the type, status, tags, source and the v2 counts', () => {
   assert.deepEqual(v1.tags, []);
   assert.equal(v1.source, null);
 });
+
+test('non-repo types get slugs from their repo, type and source, or their title', () => {
+  const prData = { meta: { type: 'pr', title: 'PR 512', repo: 'acme/taskflow', source: { kind: 'pr', ref: '#512', url: 'https://github.com/acme/taskflow/pull/512' } } };
+  assert.equal(baseSlugFor(prData, {}), 'acme-taskflow-pr-512');
+  const rfc = { meta: { type: 'proposal', title: 'Live updates', repo: 'acme/taskflow', source: { kind: 'doc', ref: 'docs/rfcs/0007-live-updates.md' } } };
+  assert.equal(baseSlugFor(rfc, {}), 'acme-taskflow-proposal-0007-live-updates');
+  const idea = { meta: { type: 'concept', title: 'Idempotency keys, explained', source: { kind: 'url', ref: 'x', url: 'https://example.com/a/b' } } };
+  assert.equal(baseSlugFor(idea, {}), 'idempotency-keys');
+});
+
+test('a source is the same only with the same type, and for non-repo types the same reference', () => {
+  const entries = [
+    { slug: 'acme-taskflow', type: 'repo', repo: 'acme/taskflow' },
+    { slug: 'acme-taskflow-pr-512', type: 'pr', repo: 'acme/taskflow', source: { kind: 'pr', ref: '#512' } },
+  ];
+  assert.deepEqual(chooseSlug(entries, 'acme-taskflow-pr-512', { type: 'pr', repo: 'acme/taskflow', ref: '#512' }), { slug: 'acme-taskflow-pr-512', existing: true });
+  assert.deepEqual(chooseSlug(entries, 'acme-taskflow-pr-513', { type: 'pr', repo: 'acme/taskflow', ref: '#513' }), { slug: 'acme-taskflow-pr-513', existing: false });
+  assert.deepEqual(chooseSlug(entries, 'acme-taskflow', { type: 'pr', repo: 'acme/taskflow' }), { slug: 'acme-taskflow-2', existing: false }, 'a PR never takes over the repo explainer');
+  assert.deepEqual(chooseSlug(entries, 'acme-taskflow', { repo: 'acme/taskflow' }), { slug: 'acme-taskflow', existing: true }, 'a missing type means repo');
+});
