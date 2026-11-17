@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 export const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'template');
 
 // Order matters only for readability; all modules share one function scope.
-const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'changes.js', 'lessons.js', 'settings.js', 'sections.js', 'app.js'];
-const LIBRARY_SCRIPT_ORDER = ['dom.js', 'icons.js', 'settings.js', 'library.js'];
+const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'changes.js', 'lessons.js', 'picker.js', 'settings.js', 'sections.js', 'app.js'];
+const LIBRARY_SCRIPT_ORDER = ['dom.js', 'icons.js', 'picker.js', 'settings.js', 'library.js'];
 // Stylesheets in template/styles/, joined in cascade order. A template folder
 // without styles/ (older custom templates) falls back to one styles.css.
 export const STYLE_ORDER = ['base.css', 'shell.css', 'views.css', 'diagrams.css', 'lessons.css', 'hub.css', 'kit.css', 'playful.css'];

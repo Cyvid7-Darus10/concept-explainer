@@ -36,12 +36,12 @@ function swatch([name, value, note]) {
 
 function kitSidebar(registry, version) {
   return h('aside', { class: 'side', 'aria-label': 'Sidebar' },
-    h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer')),
+    h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Concept Explainer')),
     h('div', { class: 'side-repo' }, h('b', null, 'Design kit'), h('span', { class: 'mono' }, `v${version}`)),
     h('nav', { class: 'links', 'aria-label': 'Kit' }, h('ul', null, KIT_SECTIONS.map((sec) => h('li', null,
       h('a', { href: `#${sec.id}` }, h('span', { class: 'nav-label' }, sec.nav)))))),
     h('div', { class: 'side-foot' },
-      lookControls(registry)));
+      h('div', { class: 'foot-row' }, settingsLink('#kit-settings'), themeSwitch(registry))));
 }
 
 function kitComponents() {
@@ -66,12 +66,25 @@ function kitComponents() {
     h('div', { class: 'options' },
       h('button', { class: 'option', type: 'button' }, h('span', { class: 'key' }, '1'), h('span', { class: 'option-text' }, 'Unanswered option')),
       h('button', { class: 'option', type: 'button', 'aria-checked': 'true' }, h('span', { class: 'key' }, '2'), h('span', { class: 'option-text' }, 'Selected option')),
-      h('button', { class: 'option is-correct', type: 'button' }, h('span', { class: 'key' }, '3'), h('span', { class: 'option-text' }, 'Correct')),
-      h('button', { class: 'option is-wrong', type: 'button' }, h('span', { class: 'key' }, '4'), h('span', { class: 'option-text' }, 'Wrong'))));
+      h('button', { class: 'option is-answer', type: 'button' }, h('span', { class: 'key' }, '3'), h('span', { class: 'option-text' }, 'The right answer, once shown'), h('span', { class: 'tag tag-answer' }, 'Correct answer')),
+      h('button', { class: 'option is-tried', type: 'button' }, h('span', { class: 'key' }, '4'), h('span', { class: 'option-text is-code' }, 'src/a/wrong/try.ts:12'), h('span', { class: 'option-note' }, 'Your try'))),
+    h('div', { class: 'feedback is-retry' }, h('p', { class: 'feedback-head' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), 'Not yet. Try again.'), h('p', null, 'Status is ink text with a small marker.')));
+}
+
+// The kit has no router: Settings is a section of the page.
+function kitSettings(registry) {
+  const { section } = settingsView(registry);
+  section.hidden = false;
+  section.id = 'kit-settings';
+  section.classList.add('kit-section');
+  const title = section.querySelector('h1');
+  if (title) title.replaceWith(h('h2', { id: title.id, tabindex: '-1' }, 'Settings'));
+  return section;
 }
 
 function bootGallery() {
   applyLook(readContext());
+  applyReading();
   const data = JSON.parse(document.getElementById('explainer-data').textContent);
   const kinds = list(data.kinds);
   const patterns = list(data.patterns);
@@ -79,13 +92,13 @@ function bootGallery() {
   const registry = themeRegistry();
   const app = document.getElementById('app');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
-    h('a', { class: 'brand', href: '#main', 'aria-label': 'Repo Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
-    h('div', { class: 'bar-actions' }, styleSwitch(registry), themeSwitch(registry))));
+    h('a', { class: 'brand', href: '#main', 'aria-label': 'Concept Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
+    h('div', { class: 'bar-actions' }, quickTheme(registry), h('a', { class: 'btn small', href: '#kit-settings' }, icon('settings'), 'Settings'))));
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, top, h('div', { class: 'wrap' },
     h('div', { class: 'view' },
       h('header', { class: 'view-head' },
         h('p', { class: 'eyebrow quiet' }, `Design kit · v${version}`),
-        h('h1', null, 'Repo Explainer kit'),
+        h('h1', null, 'Concept Explainer kit'),
         h('p', { class: 'view-lead' }, 'Everything an explainer is made of. Reuse these by name in your data file. Never redraw, recolour or restyle them.'),
         h('p', { class: 'kit-credit' }, `Design credit: ${DESIGN_CREDIT_KIT}`)),
       h('div', { class: 'panel kit-logo' }, brandMark()),
@@ -105,14 +118,16 @@ function bootGallery() {
 
       kitSection('kit-components', 'Components', 'All of these come from the data file. Depth is a hairline ring, never a shadow.', kitComponents()),
 
-      kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `repo-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
+      kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `concept-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
         h('div', { class: 'kit-grid kit-grid-wide' }, patterns.map((pattern) => h('article', { class: 'panel kit-pattern' },
           h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
           h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
+      kitSettings(registry),
       h('footer', { class: 'site-footer' }, h('p', null, DESIGN_CREDIT_KIT)))));
   fill(app, h('div', { class: 'app' }, kitSidebar(registry, version), main));
   app.removeAttribute('aria-busy');
   registry.paint();
+  installThemeShortcut(registry);
 }
 
-const DESIGN_CREDIT_KIT = 'The one-idea-per-step lesson flow is inspired by Brilliant. Type (Geist, Geist Mono) and the grey scale come from Geist, the Vercel design system. Repo Explainer is not affiliated with or endorsed by Brilliant or Vercel.';
+const DESIGN_CREDIT_KIT = 'The one-idea-per-step lesson flow is inspired by Brilliant. Type (Geist, Geist Mono) and the grey scale come from Geist, the Vercel design system. Concept Explainer is not affiliated with or endorsed by Brilliant or Vercel.';

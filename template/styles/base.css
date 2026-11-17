@@ -1,4 +1,4 @@
-/* Repo Explainer: a dashboard in the Geist system. See references/design-system.md.
+/* Concept Explainer: a dashboard in the Geist system. See references/design-system.md.
    Greys from Geist, one orange accent, 6px radius, hairline rings, no blurred shadows, no gradients.
    Orange means "where you are, what is done, the primary action". It never fills a large area. */
 :root {
@@ -185,3 +185,13 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 }
 @media (prefers-reduced-motion: no-preference) { .trunc-tip:not([hidden]) { animation: fade-in 120ms var(--ease); } }
 .chip-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A shortened long token: the short form (not copied), the full token for
+   screen readers and copy, and an inline hint at text size. */
+.token-visible { user-select: none; -webkit-user-select: none; }
+.token-short .trunc-hint {
+  position: relative; inset: auto; display: inline-grid; width: min(16px, 1.1em); height: min(16px, 1.1em);
+  margin-inline: 0.2em 0.05em; vertical-align: -0.15em; font-size: max(9px, 0.62em); line-height: 1;
+}
+.token-short .trunc-hint::before { inset: -4px 0; }
+.truncatable.is-truncated > .token-short .trunc-hint { display: none; }

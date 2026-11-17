@@ -75,7 +75,10 @@ function safeUrl(value) {
 // A path with soft break points after each "/", so it wraps at folder
 // boundaries. <wbr> adds no characters, so copying gives the exact path.
 function breakablePath(path) {
-  return String(path).split(/(?<=\/)/).flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
+  return String(path).split(/(?<=\/)/).flatMap((part, i) => {
+    const pieces = part.length > TOKEN_MAX ? softBreaks(part) : [part];
+    return i ? [h('wbr'), ...pieces] : pieces;
+  });
 }
 
 // A file:line citation. Long paths keep the first folder and the file name.
@@ -85,9 +88,22 @@ function fileChip(path) {
 
 // Browser storage is a per-reader convenience only: it can be missing or
 // throw (private windows, file:// rules), and the page works without it.
+// Keys were renamed from repo-explainer:* to concept-explainer:*. An old
+// value is read once, moved to the new key, and the old key removed.
+const STORE_PREFIX = 'concept-explainer:';
+const LEGACY_PREFIX = 'repo-explainer:';
+
 function readStore(key) {
   try {
-    return window.localStorage.getItem(key);
+    const value = window.localStorage.getItem(key);
+    if (value !== null || !key.startsWith(STORE_PREFIX)) return value;
+    const legacyKey = `${LEGACY_PREFIX}${key.slice(STORE_PREFIX.length)}`;
+    const legacy = window.localStorage.getItem(legacyKey);
+    if (legacy !== null) {
+      window.localStorage.setItem(key, legacy);
+      window.localStorage.removeItem(legacyKey);
+    }
+    return legacy;
   } catch (error) {
     return null;
   }
@@ -120,13 +136,15 @@ function linkPart(value) {
 
 // A small mono label: kinds, authors, PK/FK. Never coloured fills.
 function tag(label, extra = '') {
-  return truncatable(h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, label), label);
+  return truncatable(h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, softBreaks(label)), label);
 }
 
 // Display titles step down a size when their longest word is long, so an
 // identifier like AbstractSingletonProxyFactoryBean breaks cleanly.
 function fitClass(value) {
-  const longest = String(value || '').split(/\s+/).reduce((max, word) => Math.max(max, word.length), 0);
+  // Long tokens are shown shortened (softBreaks), so size by what is shown.
+  const shown = (word) => (word.length > TOKEN_MAX ? shortenToken(word).length : word.length);
+  const longest = String(value || '').split(/\s+/).reduce((max, word) => Math.max(max, shown(word)), 0);
   if (longest > 32) return 'fit-xlong';
   if (longest > 18) return 'fit-long';
   return '';
@@ -194,8 +212,8 @@ function drawPath(path, marker) {
 // ---------- Look: theme (system, light, dark) and style (clean, playful) ----------
 // Shared by the explainer, the kit and the hub. Choices are per reader and
 // live in localStorage; the page works when storage is blocked.
-const THEME_KEY = 'repo-explainer:theme';
-const STYLE_KEY = 'repo-explainer:style';
+const THEME_KEY = 'concept-explainer:theme';
+const STYLE_KEY = 'concept-explainer:style';
 const THEME_CHOICES = [
   { choice: 'system', label: 'System' },
   { choice: 'light', label: 'Light' },
@@ -303,13 +321,6 @@ function styleSwitch(registry) {
   });
 }
 
-// The sidebar and menu footer: style and theme, each with a label.
-function lookControls(registry) {
-  return [
-    h('div', { class: 'side-theme' }, h('span', { class: 'side-theme-label' }, 'Style'), styleSwitch(registry)),
-    h('div', { class: 'side-theme' }, h('span', { class: 'side-theme-label' }, 'Theme'), themeSwitch(registry)),
-  ];
-}
 
 
 // ---------- Page context (library builds) ----------
@@ -348,19 +359,68 @@ function wireSkipLink(main) {
 
 // ---------- Long names: soft breaks, truncation and the "?" hint ----------
 const SOFT_BREAK_MIN = 12;
+// Tokens longer than this (in characters, so it is deterministic) are shown
+// shortened in the middle with a "?" hint holding the full token.
+const TOKEN_MAX = 24;
+
+function breakToken(token) {
+  const marked = token
+    .replace(/([a-z])(?=[A-Z])/g, '$1\u0000')
+    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1\u0000')
+    .replace(/([/._\-:@])(?=[^\s/._\-:@])/g, '$1\u0000')
+    .replace(/([A-Za-z])(?=\d)|(\d)(?=[A-Za-z])/g, '$1$2\u0000');
+  // Never leave a piece under 3 characters on its own line ("Factory|B").
+  const parts = marked.split('\u0000').reduce((acc, part) => {
+    if (acc.length && (part.length < 3 || acc[acc.length - 1].length < 3)) return [...acc.slice(0, -1), acc[acc.length - 1] + part];
+    return [...acc, part];
+  }, []);
+  return parts.flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
+}
+
+// Keep both ends: "AbstractSingleton…Implementation", "packages/…/handler.ts",
+// "@scope/…implementation".
+function shortenToken(token) {
+  const cut = (value, keepHead, keepTail) => `${value.slice(0, keepHead)}…${value.slice(value.length - keepTail)}`;
+  if (token.includes('/')) {
+    const parts = token.split('/').filter(Boolean);
+    const first = parts[0].length > 16 ? `${parts[0].slice(0, 14)}…` : parts[0];
+    const last = parts[parts.length - 1];
+    const tail = last.length > 18 ? cut(last, 6, 10) : last;
+    return parts.length > 1 ? `${first}/…/${tail}`.replace('…/…', '…') : cut(token, 12, 10);
+  }
+  const pieces = token.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[._:-])/);
+  if (pieces.length < 3) return cut(token, 12, 10);
+  let head = '';
+  let i = 0;
+  while (i < pieces.length && head.length < 12) { head += pieces[i]; i += 1; }
+  let tail = '';
+  let j = pieces.length - 1;
+  while (j >= i && tail.length < 10) { tail = pieces[j] + tail; j -= 1; }
+  if (head.length > 18) head = head.slice(0, 16);
+  if (tail.length > 16) tail = tail.slice(tail.length - 14);
+  return head.length + tail.length + 1 < token.length ? `${head}…${tail}` : cut(token, 12, 10);
+}
+
+// The shortened token: visible short form (not read, not copied), the full
+// token for screen readers and copy, and the hint.
+function shortToken(token) {
+  return h('span', { class: 'token-short' },
+    h('span', { class: 'token-visible', 'aria-hidden': 'true' }, shortenToken(token).split('…').flatMap((part, i) => (i ? [h('wbr'), '…', ...breakToken(part)] : breakToken(part)))),
+    h('span', { class: 'sr-only token-full' }, token),
+    tokenHint(token));
+}
 
 // Text with <wbr> at natural joints of long tokens: camelCase humps
 // (fooBar, HTTPServer), after / . _ - : @, and between letters and digits.
-// overflow-wrap: anywhere in CSS stays only as the last resort.
+// Tokens over TOKEN_MAX are shortened instead. overflow-wrap: anywhere in
+// CSS stays only as the last resort.
 function softBreaks(value) {
   return String(value ?? '').split(/(\s+)/).flatMap((token) => {
     if (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token)) return [token];
-    const marked = token
-      .replace(/([a-z])(?=[A-Z])/g, '$1\u0000')
-      .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1\u0000')
-      .replace(/([/._\-:@])(?=[^\s/._\-:@])/g, '$1\u0000')
-      .replace(/([A-Za-z])(?=\d)|(\d)(?=[A-Za-z])/g, '$1$2\u0000');
-    return marked.split('\u0000').flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
+    const core = token.match(/^([("'“‘[]*)(.*?)([)"'”’\].,;:!?]*)$/);
+    const [, lead, body, trail] = core || ['', '', token, ''];
+    if (body.length > TOKEN_MAX) return [lead, shortToken(body), trail].filter(Boolean);
+    return [lead, ...breakToken(body), trail].filter((part) => part !== '');
   });
 }
 
@@ -380,7 +440,7 @@ function middleForms(full) {
   return cuts;
 }
 
-const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, count: 0 };
+const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, nestedWatch: null };
 
 function truncTip() {
   if (TRUNC.tip) return TRUNC.tip;
@@ -423,6 +483,53 @@ function hideTip() {
   TRUNC.pinned = false;
 }
 
+// The hint for a shortened token. It starts as a button; inside a link or
+// button (known only once attached) it becomes a plain marker instead.
+function tokenHint(full) {
+  const button = h('button', {
+    class: 'trunc-hint token-hint', type: 'button', 'aria-label': 'Show full name', 'aria-expanded': 'false', 'aria-describedby': 'trunc-tip',
+  }, '?');
+  wireHintButton(button, full);
+  button.dataset.full = full;
+  watchNestedHints();
+  return button;
+}
+
+function wireHintButton(button, full) {
+  button.addEventListener('mouseenter', () => showTip(button, full));
+  button.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+  button.addEventListener('focus', () => showTip(button, full));
+  button.addEventListener('blur', () => { if (!TRUNC.pinned) hideTip(); });
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (TRUNC.anchor === button && TRUNC.pinned) hideTip(); else showTip(button, full, true);
+  });
+}
+
+// A button inside a link or button is invalid: swap such token hints for
+// plain markers as soon as they are attached.
+function fixNestedHints(root) {
+  const hints = root.matches && root.matches('button.token-hint') ? [root] : [...(root.querySelectorAll ? root.querySelectorAll('button.token-hint') : [])];
+  hints.forEach((button) => {
+    const host = button.parentElement && button.parentElement.closest('a, button, [role="button"], [role="radio"], [role="option"]');
+    if (!host) return;
+    const mark = h('span', { class: 'trunc-hint token-hint', 'aria-hidden': 'true' }, '?');
+    const full = button.dataset.full;
+    mark.addEventListener('mouseenter', () => showTip(mark, full));
+    mark.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+    button.replaceWith(mark);
+  });
+}
+
+function watchNestedHints() {
+  if (TRUNC.nestedWatch || !('MutationObserver' in window)) return;
+  TRUNC.nestedWatch = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => {
+    if (node.nodeType === 1) fixNestedHints(node);
+  })));
+  TRUNC.nestedWatch.observe(document.documentElement, { childList: true, subtree: true });
+}
+
 // Inside a link or button a nested button is invalid, so the hint is a plain
 // marker there, shown on hover and when the link itself has focus.
 function truncHint(el, full) {
@@ -435,19 +542,10 @@ function truncHint(el, full) {
     host.addEventListener('blur', () => { if (TRUNC.anchor === mark) hideTip(); });
     return mark;
   }
-  TRUNC.count += 1;
   const button = h('button', {
     class: 'trunc-hint', type: 'button', 'aria-label': 'Show full name', 'aria-expanded': 'false', 'aria-describedby': 'trunc-tip',
   }, '?');
-  button.addEventListener('mouseenter', () => showTip(button, full));
-  button.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
-  button.addEventListener('focus', () => showTip(button, full));
-  button.addEventListener('blur', () => { if (!TRUNC.pinned) hideTip(); });
-  button.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (TRUNC.anchor === button && TRUNC.pinned) hideTip(); else showTip(button, full, true);
-  });
+  wireHintButton(button, full);
   return button;
 }
 

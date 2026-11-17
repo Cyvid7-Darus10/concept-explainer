@@ -96,7 +96,7 @@ function renderModels(data, mount) {
     return [
       h('div', { class: 'er-detail-head' },
         h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
-        model.summary && h('p', null, model.summary)),
+        model.summary && h('p', null, softBreaks(model.summary))),
       h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
         h('div', { class: 'er-row er-row-head', role: 'row' },
           h('span', { role: 'columnheader' }, 'Field'), h('span', { role: 'columnheader' }, 'Type'), h('span', { role: 'columnheader' }, 'Meaning')),
@@ -108,8 +108,8 @@ function renderModels(data, mount) {
           const [a, b] = edge.from === model.name ? edge.ends : [...edge.ends].reverse();
           return h('li', null,
             tag(`${a || '?'} : ${b || '?'}`),
-            h('span', null, `${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `),
-            h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, other));
+            h('span', null, softBreaks(`${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `)),
+            h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, softBreaks(other)));
         }))),
     ];
   }
@@ -150,7 +150,7 @@ function entityBox(model, index, modelNames, onSelect) {
   h('span', { class: 'entity-head' }, h('span', { class: 'node-icon' }, icon('db')), h('span', { class: 'entity-name' }, softBreaks(model.name)), h('span', { class: 'entity-count' }, `${list(model.fields).length} fields`)),
   keys.length > 0 && h('span', { class: 'entity-keys' }, keys.map((f) => {
     const b = fieldBadges(f, modelNames);
-    return h('span', { class: 'entity-key' }, h('span', { class: `key-badge ${b.isPk ? 'is-pk' : 'is-fk'}` }, b.isPk ? 'PK' : 'FK'), h('span', null, f.name));
+    return h('span', { class: 'entity-key' }, h('span', { class: `key-badge ${b.isPk ? 'is-pk' : 'is-fk'}` }, b.isPk ? 'PK' : 'FK'), h('span', null, softBreaks(f.name)));
   })));
 }
 
@@ -163,7 +163,7 @@ function fieldRow(field, modelNames, select) {
       b.isFk && h('span', { class: 'key-badge is-fk' }, 'FK'),
       b.fkTarget && h('button', { class: 'link er-fk', type: 'button', onclick: () => select(b.fkTarget) }, `→ ${b.fkTarget}`)),
     h('span', { class: 'er-type', role: 'cell' }, h('code', null, text(field.type, 'any'))),
-    h('span', { class: 'er-note', role: 'cell' }, text(field.note, '')));
+    h('span', { class: 'er-note', role: 'cell' }, softBreaks(text(field.note, ''))));
 }
 
 function relationShape(edge, grid, box) {

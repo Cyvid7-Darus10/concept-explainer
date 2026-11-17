@@ -90,18 +90,18 @@ function changeItem(change, nodeIndex, isTarget) {
       h('div', { class: 'change-top' },
         h('span', null, formatDate(change.date)),
         change.ref && (url
-          ? h('a', { class: 'link', href: safeUrl(change.url), target: '_blank', rel: 'noopener noreferrer' }, change.ref)
-          : h('span', null, change.ref)),
+          ? h('a', { class: 'link', href: safeUrl(change.url), target: '_blank', rel: 'noopener noreferrer' }, softBreaks(change.ref))
+          : h('span', null, softBreaks(change.ref))),
         tag(isAgent ? 'Agent' : 'Human', isAgent ? 'tag-agent' : 'tag-human'),
-        change.author && h('span', null, change.author),
+        change.author && h('span', null, softBreaks(change.author)),
         change.kind && tag(change.kind)),
       h('h3', null, softBreaks(change.title)),
       change.what && h('p', null, softBreaks(change.what)),
-      change.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why'), h('p', null, change.why)),
-      change.risk && h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'Risk'), h('p', null, change.risk)),
+      change.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why'), h('p', null, softBreaks(change.why))),
+      change.risk && h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'Risk'), h('p', null, softBreaks(change.risk))),
       list(change.nodes).length > 0 && h('div', { class: 'change-nodes' }, list(change.nodes).map((id) => {
         const node = nodeIndex.get(id);
-        return h('a', { class: 'chip', href: `#map/${linkPart(id)}` }, truncatable(h('span', { class: 'chip-text' }, node ? node.label : id), node ? node.label : id));
+        return h('a', { class: 'chip', href: `#map/${linkPart(id)}` }, truncatable(h('span', { class: 'chip-text' }, softBreaks(node ? node.label : id)), node ? node.label : id));
       })),
       list(change.files).length > 0 && h('div', { class: 'change-nodes' }, list(change.files).slice(0, 6).map(fileChip))));
 }

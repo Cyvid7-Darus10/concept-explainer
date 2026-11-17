@@ -121,7 +121,7 @@ function latestChanges(data) {
     h('ul', { class: 'rows' }, changes.map(({ change, key }) => h('li', null,
       h('a', { class: 'row-link', href: `#changes/${linkPart(key)}` },
         h('span', { class: 'row-date' }, formatDate(change.date)),
-        h('span', { class: 'row-title' }, change.title),
+        h('span', { class: 'row-title' }, softBreaks(change.title)),
         tag(change.authorType === 'agent' ? 'Agent' : 'Human'))))));
 }
 
@@ -132,7 +132,7 @@ function renderTree(data, mount) {
     const isDir = String(entry.path).endsWith('/');
     return h('li', { class: entry.key ? 'is-key' : '', 'data-path': entry.path },
       h('span', { class: 'path', style: `padding-left:${Math.min(depth, 4) * 18}px` }, icon(isDir ? 'folder' : 'file'), h('span', { class: 'path-text' }, breakablePath(entry.path))),
-      h('span', { class: 'note' }, entry.key && tag('Key', 'tag-key'), text(entry.note)));
+      h('span', { class: 'note' }, entry.key && tag('Key', 'tag-key'), softBreaks(text(entry.note))));
   });
   mount.append(h('div', { class: 'panel' }, h('ul', { class: 'tree' }, rows)));
   return {
@@ -148,7 +148,7 @@ function renderTree(data, mount) {
 function renderGlossary(data, mount) {
   const terms = list(data.glossary);
   const input = h('input', { class: 'search', type: 'search', placeholder: 'Search terms', 'aria-label': 'Search glossary' });
-  const items = terms.map((term) => ({ term, el: h('div', null, h('dt', null, term.term), h('dd', null, term.definition)) }));
+  const items = terms.map((term) => ({ term, el: h('div', null, h('dt', null, softBreaks(term.term)), h('dd', null, softBreaks(term.definition))) }));
   const filter = () => {
     const q = input.value.trim().toLowerCase();
     items.forEach(({ term, el }) => {
@@ -180,8 +180,8 @@ function renderRunbook(data, mount) {
         .catch(() => { copy.textContent = 'Select to copy'; });
     });
     return h('article', { class: 'panel run-item' },
-      h('div', { class: 'run-head' }, h('span', { class: 'run-n' }, padNumber(i + 1)), h('h3', null, item.label), item.command && copy),
-      item.note && h('p', { class: 'run-note' }, item.note),
+      h('div', { class: 'run-head' }, h('span', { class: 'run-n' }, padNumber(i + 1)), h('h3', null, softBreaks(item.label)), item.command && copy),
+      item.note && h('p', { class: 'run-note' }, softBreaks(item.note)),
       item.command && codeBlock(item.command, 'sh'));
   })));
 }

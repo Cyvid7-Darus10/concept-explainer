@@ -21,7 +21,7 @@ function renderConcepts(data, mount) {
       h('span', { class: 'step-count' }, `Idea ${index + 1} of ${concepts.length}`),
       h('h3', null, softBreaks(concept.title)),
       h('p', { class: 'concept-body' }, softBreaks(concept.body)),
-      concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, concept.analogy)),
+      concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, softBreaks(concept.analogy))),
       concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),
       controls,
@@ -52,7 +52,7 @@ const QUIZ_TRIES = 2;
 const PATHISH = /^[^\s]*[/\\][^\s]*$|^[\w.-]+\.(?:[a-z]{1,5})(?::\d+)?$|\(\)|=>|::/i;
 
 function quizStoreKey(meta) {
-  return `repo-explainer:quiz:${text(meta && meta.repo, meta && meta.title)}:${text(meta && meta.commit, '')}`;
+  return `concept-explainer:quiz:${text(meta && meta.repo, meta && meta.title)}:${text(meta && meta.commit, '')}`;
 }
 
 function loadQuiz(key, count) {

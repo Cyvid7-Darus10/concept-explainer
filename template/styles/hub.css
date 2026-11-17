@@ -58,3 +58,33 @@
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 3l8 8M11 3l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 .search::-webkit-search-cancel-button:hover { background-color: var(--ink); }
+.lib-item { position: relative; }
+.card-pick { position: absolute; inset-block-start: 14px; inset-inline-end: 14px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+.card-pick input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-fill); cursor: pointer; }
+.lib-card .top-row { padding-inline-end: 40px; }
+.lib-item:has(.pick-input:checked) .lib-card { box-shadow: var(--ring-accent); }
+.pick-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; font-size: 14px; color: var(--muted); }
+.pick-count { font-family: var(--mono); font-size: 13px; }
+.import-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.import-table th { padding: 6px 8px; font-family: var(--mono); font-size: 12px; font-weight: 400; text-align: start; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); box-shadow: inset 0 -1px 0 var(--line); }
+.import-table td { padding: 8px; vertical-align: top; box-shadow: inset 0 -1px 0 var(--line); overflow-wrap: anywhere; }
+.import-table .status-dot { display: inline-block; margin-inline-end: 8px; vertical-align: 1px; }
+.import-table .is-added .status-dot { background: var(--good); }
+.import-table .is-replaced .status-dot { background: var(--accent); }
+.import-table .is-rejected .status-dot { background: var(--bad); }
+
+/* Import: one unit in the control column. */
+.import-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.drop-zone {
+  display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 132px; padding: 16px; text-align: center;
+  border: var(--hair) dashed var(--faint); border-radius: var(--radius); background: var(--canvas); color: var(--body);
+}
+.drop-zone svg { width: 22px; height: 22px; margin-block-end: 4px; color: var(--muted); }
+.drop-title { font-weight: 500; color: var(--ink); }
+.drop-choose { font-size: 14px; }
+.drop-zone.is-over { border-color: var(--select); box-shadow: var(--ring-accent); }
+.drop-zone.has-file { border-style: solid; }
+.drop-picked { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 12px; margin-block-start: 8px; font-size: 14px; }
+.drop-file { font-family: var(--mono); font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+.drop-size { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.import-field { display: grid; gap: 6px; margin-block-start: 6px; }

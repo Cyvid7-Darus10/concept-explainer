@@ -3,56 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="generator" content="repo-explainer">
+<meta name="generator" content="concept-explainer">
 <meta name="color-scheme" content="light dark">
+<script data-prepaint>
+/* Reader choices before first paint, so a stored theme or style never flashes. Same keys as dom.js and settings.js. */
+try { var s = window.localStorage, r = document.documentElement, v;
+  v = (s.getItem('concept-explainer:theme') || s.getItem('repo-explainer:theme')); if (v === 'light' || v === 'dark') r.dataset.theme = v;
+  v = (s.getItem('concept-explainer:style') || s.getItem('repo-explainer:style')); if (v === 'clean' || v === 'playful') r.dataset.style = v;
+  v = (s.getItem('concept-explainer:motion') || s.getItem('repo-explainer:motion')); if (v === 'reduce') r.dataset.motion = v;
+  v = (s.getItem('concept-explainer:text') || s.getItem('repo-explainer:text')); if (v === 'large') r.dataset.text = v;
+  v = (s.getItem('concept-explainer:density') || s.getItem('repo-explainer:density')); if (v === 'compact') r.dataset.density = v;
+} catch (e) { /* storage blocked: defaults apply */ }
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect x=%222%22 y=%222%22 width=%2228%22 height=%2228%22 rx=%226%22 fill=%22%23fc5e32%22/%3E%3Cpath d=%22M10.5 11h11M10.5 11l5.5 10.5M21.5 11L16 21.5%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%221.75%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2210.5%22 cy=%2211%22 r=%222.5%22 fill=%22%23fff%22/%3E%3Ccircle cx=%2221.5%22 cy=%2211%22 r=%222.5%22 fill=%22%23fff%22/%3E%3Ccircle cx=%2216%22 cy=%2221.5%22 r=%222.5%22 fill=%22%23fff%22/%3E%3C/svg%3E">
-<title>Repo Explainer kit</title>
-<meta name="description" content="Icons, colors, components and flow patterns for Repo Explainer.">
-<meta property="og:title" content="Repo Explainer kit">
-<meta property="og:description" content="Icons, colors, components and flow patterns for Repo Explainer.">
+<title>Concept Explainer kit</title>
+<meta name="description" content="Icons, visuals, components and flow patterns for Concept Explainer.">
+<meta property="og:title" content="Concept Explainer kit">
+<meta property="og:description" content="Icons, visuals, components and flow patterns for Concept Explainer.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&family=Nunito:wght@500;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
-/* Repo Explainer: a dashboard in the Geist system. See references/design-system.md.
+/* ---- base.css ---- */
+/* Concept Explainer: a dashboard in the Geist system. See references/design-system.md.
    Greys from Geist, one orange accent, 6px radius, hairline rings, no blurred shadows, no gradients.
    Orange means "where you are, what is done, the primary action". It never fills a large area. */
 :root {
-  color-scheme: light;
-  --canvas: #fafafa;
-  --surface: #ffffff;
-  --line: #ebebeb;
-  --ink: #171717;
-  --body: #4d4d4d;
-  --muted: #666666;
-  --quiet: #8f8f8f;
-  --faint: #c9c9c9;
-  --accent: #fc5e32;
-  --accent-fill: #d2430e;
-  --accent-hover: #b83a0b;
-  --accent-text: #c2410c;
-  --good: #297a3a;
-  --bad: #cb2a2f;
-  --on-accent: #ffffff;
-  --ring: 0 0 0 1px var(--line);
-  --ring-strong: 0 0 0 1px var(--faint);
-  --ring-ink: 0 0 0 1px var(--ink);
-  --ring-accent: 0 0 0 1.5px var(--accent);
-  --hover-tint: rgb(0 0 0 / 0.04);
-  --bar-glass: rgb(250 250 250 / 0.82);
-  --radius: 6px;
+  color-scheme: light; --canvas: #fafafa; --surface: #ffffff; --line: #ebebeb; --ink: #171717; --body: #4d4d4d;
+  --muted: #666666; --quiet: #8f8f8f; --faint: #c9c9c9; --accent: #fc5e32; --accent-fill: #d2430e;
+  --accent-hover: #b83a0b; --accent-text: #c2410c; --good: #297a3a; --bad: #cb2a2f; --on-accent: #ffffff;
+  --ring: 0 0 0 1px var(--line); --ring-strong: 0 0 0 1px var(--faint); --ring-ink: 0 0 0 1px var(--ink);
+  --ring-accent: 0 0 0 1.5px var(--accent); --hover-tint: rgb(0 0 0 / 0.04);
+  --bar-glass: rgb(250 250 250 / 0.82); --radius: 6px;
   --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --tracking-label: 0.071em;
-  --gutter: clamp(16px, 4vw, 48px);
-  --content-max: 1160px;
-  --view-top: clamp(28px, 4vw, 48px);
-  --title-gap: 32px;
-  --card-pad: 24px;
-  --grid-gap: 16px;
-  --sticky-top: 80px;
-  --heads-top: 68px;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --tracking-label: 0.071em;
+  --gutter: clamp(16px, 4vw, 48px); --content-max: 1160px; --view-top: clamp(28px, 4vw, 48px);
+  --title-gap: 32px; --card-pad: 24px; --grid-gap: 16px; --sticky-top: 80px; --heads-top: 68px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  /* Skin tokens: the Playful style redefines these (end of file). */
+  --heading: var(--ink); --display: var(--ink); --link: var(--ink); --select: var(--accent);
+  --select-wash: var(--surface); --nav-current-bg: var(--canvas); --nav-current-ring: var(--ring);
+  --primary-ring: 0 0 0 0 transparent; --good-wash: var(--surface); --bad-wash: var(--surface); --hair: 1px;
+  --radius-sm: 4px; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
+  --code-ring: inset 0 0 0 var(--hair) var(--line); --code-ink: var(--body); --code-kw: var(--ink);
+  --code-cm: var(--quiet); --code-st: var(--accent-text); --mark-bg: rgb(252 94 50 / 0.16); --hint-bg: var(--surface); --hint-ring: var(--line); --hint-ink: var(--muted);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -84,6 +78,8 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
+  font-weight: var(--body-weight);
+  letter-spacing: var(--body-tracking);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -92,10 +88,10 @@ body {
 }
 h1, h2, h3, h4, p, ol, ul, dl, dd, figure { margin: 0; }
 ol, ul { padding: 0; list-style: none; }
-h1, h2, h3, h4 { font-weight: 450; color: var(--ink); text-wrap: balance; overflow-wrap: anywhere; hyphens: auto; }
+h1, h2, h3, h4 { font-weight: var(--heading-weight); color: var(--heading); text-wrap: balance; overflow-wrap: anywhere; hyphens: auto; }
 p { text-wrap: pretty; }
 b, strong { font-weight: 550; color: var(--ink); }
-a { color: var(--ink); text-decoration-thickness: from-font; text-underline-offset: 0.2em; }
+a { color: var(--link); text-decoration-thickness: from-font; text-underline-offset: 0.2em; }
 @media (hover: hover) { a:hover { text-decoration-color: var(--accent); } }
 code, pre, kbd, .mono { font-family: var(--mono); }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -118,14 +114,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .eyebrow { color: var(--ink); overflow-wrap: anywhere; }
 .eyebrow.quiet { color: var(--muted); }
 .tag {
-  display: inline-block; max-width: 100%; padding: 0 6px; border-radius: 4px; vertical-align: middle;
+  display: inline-block; max-width: 100%; padding: 0 6px; border-radius: var(--radius-sm); vertical-align: middle;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; line-height: 18px; color: var(--body);
+  background: var(--surface); box-shadow: inset 0 0 0 var(--hair) var(--line); font-size: 11px; line-height: 18px; color: var(--body);
 }
 .tag-new::before, .tag-key::before, .tag-agent::before, .tag-human::before {
   content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; vertical-align: 1px; border-radius: 1px; background: var(--accent);
 }
-.tag-agent::before, .tag-human::before { border-radius: 9999px; background: none; box-shadow: inset 0 0 0 1px var(--muted); }
+.tag-agent::before, .tag-human::before { border-radius: 9999px; background: none; box-shadow: inset 0 0 0 var(--hair) var(--muted); }
 .tag-agent::before { background: var(--muted); }
 .stack .tag, .lib-stack .tag { max-width: min(100%, 32ch); }
 .chip {
@@ -135,12 +131,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @media (hover: hover) { a.chip:hover { box-shadow: var(--ring-strong); } }
 .chip-file {
-  display: inline-block; max-width: 100%; padding: 2px 8px; border-radius: 4px; background: var(--canvas); box-shadow: inset 0 0 0 1px var(--line);
+  display: inline-block; max-width: 100%; padding: 2px 8px; border-radius: var(--radius-sm); background: var(--canvas); box-shadow: inset 0 0 0 var(--hair) var(--line);
   font-family: var(--mono); font-size: 12.5px; line-height: 20px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
 }
-.link { padding: 0; border: 0; background: none; color: var(--ink); text-align: start; text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+.link { padding: 0; border: 0; background: none; color: var(--link); text-align: start; text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
 @media (hover: hover) { .link:hover { text-decoration-color: var(--accent); } }
-.empty { padding: 24px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); text-align: center; }
+.empty { padding: 24px; border-radius: var(--radius); box-shadow: inset 0 0 0 var(--hair) var(--line); color: var(--muted); text-align: center; }
 
 /* ---------- Buttons: primary (orange), secondary (hairline), text links ---------- */
 .btn {
@@ -149,12 +145,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font: inherit; font-size: 15px; font-weight: 500; line-height: 1.2; text-decoration: none; white-space: nowrap;
   transition-property: background-color, box-shadow, color, scale; transition-duration: 150ms; transition-timing-function: var(--ease);
 }
-.btn.primary { background: var(--accent-fill); color: var(--on-accent); box-shadow: none; font-weight: 550; }
+.btn.primary { background: var(--accent-fill); color: var(--on-accent); box-shadow: var(--primary-ring); font-weight: 550; }
 .btn.small { min-height: 36px; padding: 0 12px; font-size: 14px; }
 .btn:disabled { background: var(--surface); color: var(--faint); box-shadow: var(--ring); cursor: default; }
 @media (hover: hover) {
   .btn:not(:disabled):hover { box-shadow: var(--ring-strong); }
-  .btn.primary:not(:disabled):hover { background: var(--accent-hover); box-shadow: none; }
+  .btn.primary:not(:disabled):hover { background: var(--accent-hover); box-shadow: var(--primary-ring); }
 }
 .btn:not(:disabled):active { scale: 0.97; }
 .btn[data-state="done"] { box-shadow: var(--ring-ink); }
@@ -172,6 +168,64 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .why .eyebrow { font-size: 11px; }
 .why-risk { box-shadow: inset 2px 0 0 var(--faint); }
 
+
+/* ---------- Motion (Web Animations run from dom.js; these are CSS-only touches) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .view:not([hidden]) .view-head, .view:not([hidden]) .ov-head { animation: rise-in 280ms var(--ease) both; }
+}
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Long words ----------
+   Flex and grid items refuse to shrink below their longest word, so text
+   holders in rows must opt in to breaking anywhere and to a 100% cap. */
+.link, .option, .change-top > *, .step-top > *, .step-route > *, .route-part,
+.rel li > *, .er-name > *, .entity-name, .entity-key > *, .node-label, .glossary dt, .glossary dd, .key-badge + *,
+.flow-pick-title, .card-title, .row-title, .flow-trigger > span, .tree .note, .change-top, .side-repo b, .pager-title, .map-col-head, .next-title {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.chip-file { overflow-wrap: normal; }
+.er-detail-head h3, .code-head > *, .entity-head > *, .step-route, .view-head h1, .ov-head h1 { min-width: 0; overflow-wrap: anywhere; }
+
+
+/* Single-column grids get an explicit shrinkable track: an implicit "auto" track grows to its longest path. */
+.view-body, .map-shell, .flow-player, .timeline, .change-card, .quiz, .question, .glossary-wrap, .runbook, .run-item,
+.detail-main, .detail-side, .er-detail-head, .er-rels, .kit-stack, .ov-head, .why, .feedback, .step-code, .flow-meta, .rel, .files, .options { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- Long names: the "?" hint and its tooltip (truncatable in dom.js) ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.truncatable.is-truncated { position: relative; padding-inline-end: 22px; }
+.trunc-hint {
+  position: absolute; inset-inline-end: 2px; inset-block-end: max(1px, calc((1lh - 16px) / 2));
+  display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 9999px;
+  background: var(--hint-bg); box-shadow: inset 0 0 0 var(--hair) var(--hint-ring); color: var(--hint-ink);
+  font: 500 10px/1 var(--mono); letter-spacing: 0; text-transform: none; cursor: help;
+}
+.trunc-hint::before { content: ""; position: absolute; inset: -4px; }
+@media (hover: hover) { .trunc-hint:hover { color: var(--ink); box-shadow: inset 0 0 0 var(--hair) var(--faint); } }
+button.trunc-hint:focus-visible { outline-offset: 1px; }
+.trunc-tip {
+  position: fixed; inset: auto; margin: 0; z-index: 60; max-width: min(420px, 90vw); padding: 4px 8px; border: 0; border-radius: var(--radius-sm);
+  background: var(--ink); color: var(--canvas); font: 500 12.5px/1.45 var(--sans); letter-spacing: 0; text-transform: none;
+  overflow-wrap: anywhere; white-space: normal; pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) { .trunc-tip:not([hidden]) { animation: fade-in 120ms var(--ease); } }
+.chip-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A shortened long token: the short form (not copied), the full token for
+   screen readers and copy, and an inline hint at text size. */
+.token-visible { user-select: none; -webkit-user-select: none; }
+.token-short .trunc-hint {
+  position: relative; inset: auto; display: inline-grid; width: min(16px, 1.1em); height: min(16px, 1.1em);
+  margin-inline: 0.2em 0.05em; vertical-align: -0.15em; font-size: max(9px, 0.62em); line-height: 1;
+}
+.token-short .trunc-hint::before { inset: -4px 0; }
+.truncatable.is-truncated > .token-short .trunc-hint { display: none; }
+
+/* ---- shell.css ---- */
+/* Shell: sidebar, phone bar and Menu sheet, theme and style switches. */
+
 /* ---------- Shell: sidebar on wide screens, a top bar and Menu sheet below 1024px ---------- */
 .app { min-height: 100vh; min-height: 100dvh; }
 .main-col { display: block; min-width: 0; }
@@ -185,11 +239,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (min-width: 1024px) {
   .app { display: grid; grid-template-columns: 256px minmax(0, 1fr); }
   .top { display: none; }
+  /* A fixed-height column: only the nav list scrolls, so the footer (theme and Settings) is always in view. */
   .side {
-    position: sticky; inset-block-start: 0; align-self: start; height: 100vh; height: 100dvh; overflow-y: auto;
-    display: flex; flex-direction: column; gap: 20px; padding: 20px 12px 16px 16px;
+    position: sticky; inset-block-start: 0; align-self: start; height: 100vh; height: 100dvh; overflow: hidden;
+    display: flex; flex-direction: column; gap: 16px; padding: 20px 12px 12px 16px;
     background: var(--surface); box-shadow: inset -1px 0 0 var(--line);
   }
+  .side > .links { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin-inline: -4px; padding-inline: 4px; }
+  .side > .brand, .side > .side-repo, .side > .side-foot { flex: none; }
   .side .brand { padding-inline: 8px; }
   :root { --sticky-top: 24px; --heads-top: 0px; }
 }
@@ -208,8 +265,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   content: ""; position: absolute; inset-inline-start: 8px; inset-block-start: 50%; width: 6px; height: 6px; margin-block-start: -3px;
   border-radius: 1px; background: transparent;
 }
-.links a[aria-current="page"] { background: var(--canvas); color: var(--ink); font-weight: 500; box-shadow: var(--ring); }
-.links a[aria-current="page"]::before { background: var(--accent); }
+.links a[aria-current="page"] { background: var(--nav-current-bg); color: var(--heading); font-weight: 500; box-shadow: var(--nav-current-ring); }
+.links a[aria-current="page"]::before { background: var(--select); }
 @media (hover: hover) { .links a:not([aria-current="page"]):hover { background: var(--hover-tint); color: var(--ink); } }
 .nav-label { min-width: 0; }
 .nav-count { flex: none; font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -225,21 +282,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (hover: hover) { .side-util .util:hover { background: var(--hover-tint); color: var(--ink); } }
 .side-theme { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px 2px 20px; }
 .side-theme-label { font-size: 14px; color: var(--muted); }
-.side-stamp { display: grid; padding: 0 8px 0 20px; font-family: var(--mono); font-size: 11px; color: var(--quiet); }
+.side-stamp { padding: 0 8px 0 20px; font-family: var(--mono); font-size: 11px; color: var(--quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* The theme switch: three icon buttons in a pill */
-.theme-switch { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.theme-switch { display: inline-flex; flex: none; align-items: center; gap: 2px; padding: 3px; border-radius: 9999px; background: var(--surface); box-shadow: inset 0 0 0 var(--hair) var(--line); }
 .ts-option {
   position: relative; display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 9999px;
   background: none; color: var(--muted); transition: background-color 150ms, color 150ms;
 }
 .ts-option svg { width: 16px; height: 16px; }
-.ts-option[aria-checked="true"] { background: var(--hover-tint); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.ts-option[aria-checked="true"] { background: var(--hover-tint); color: var(--ink); box-shadow: inset 0 0 0 var(--hair) var(--line); }
 @media (hover: hover) { .ts-option:hover { color: var(--ink); } }
 .ts-option:focus-visible { outline-offset: 1px; }
 .ts-option:focus-visible::after {
   content: attr(data-label); position: absolute; inset-block-end: calc(100% + 6px); inset-inline-end: 0; z-index: 5;
-  padding: 2px 8px; border-radius: 4px; background: var(--ink); color: var(--canvas); font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none;
+  padding: 2px 8px; border-radius: var(--radius-sm); background: var(--ink); color: var(--canvas); font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none;
 }
 @media (pointer: coarse) { .ts-option { width: 40px; height: 40px; } }
 
@@ -291,6 +348,75 @@ html:has(.sheet[open]) { overflow: hidden; }
   .sheet[open]::backdrop { animation: fade-in 180ms var(--ease); }
 }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+
+/* ---------- Style switch and icon sets ---------- */
+.style-switch .ts-option { width: auto; padding: 0 10px; font-size: 13px; font-weight: 500; }
+.ico-playful { display: none; }
+:root[data-style="playful"] .ico-playful { display: inline; }
+:root[data-style="playful"] .ico-clean { display: none; }
+
+/* ---------- Pickers (picker.js): option cards, segmented rows, listbox, combobox ---------- */
+.pick-group { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; }
+.pick-group.is-segmented { padding: 3px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring); }
+.pick-group.is-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 8px; width: 100%; }
+.pick-option { position: relative; min-height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: none; font-size: 14px; color: var(--muted); text-align: start; }
+.pick-group.is-segmented .pick-option[aria-checked="true"] { background: var(--canvas); color: var(--ink); font-weight: 500; box-shadow: var(--ring); }
+.pick-option.is-card { display: grid; gap: 4px; align-content: start; min-height: 72px; padding: 12px 14px 12px 30px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring); color: var(--ink); }
+.pick-option.is-card::before { content: ""; position: absolute; inset-inline-start: 12px; inset-block-start: 18px; width: 8px; height: 8px; border-radius: 9999px; box-shadow: inset 0 0 0 var(--hair) var(--faint); }
+.pick-option.is-card[aria-checked="true"] { box-shadow: var(--ring-accent); background: var(--select-wash); }
+.pick-option.is-card[aria-checked="true"]::before { background: var(--select); box-shadow: none; }
+.pick-option-label { font-size: 15px; font-weight: 500; }
+.pick-option-desc { font-size: 13px; line-height: 1.4; color: var(--muted); }
+@media (hover: hover) { .pick-option:not([aria-checked="true"]):hover { color: var(--ink); } .pick-option.is-card:not([aria-checked="true"]):hover { box-shadow: var(--ring-strong); } }
+.style-preview { display: flex; gap: 4px; align-items: flex-end; height: 34px; margin-block-end: 6px; padding: 6px; border-radius: 4px; }
+.style-preview i { display: block; flex: 1; border-radius: 2px; }
+.style-preview.is-clean { background: #fafafa; box-shadow: inset 0 0 0 1px #ebebeb; }
+.style-preview.is-clean i { height: 8px; background: #c9c9c9; }
+.style-preview.is-clean i:first-child { height: 20px; flex: 0 0 8px; background: #fc5e32; }
+.picker { position: relative; display: inline-block; max-width: 100%; }
+.picker-button {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; min-width: min(100%, 16em); max-width: 100%; padding: 0 12px;
+  border: 0; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring); font: inherit; font-size: 15px; color: var(--ink); text-align: start;
+}
+.picker-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-chevron { flex: none; width: 8px; height: 8px; margin-block-start: -4px; box-shadow: inset -1.5px -1.5px 0 currentColor; rotate: 45deg; color: var(--muted); }
+.picker-button[aria-expanded="true"] { box-shadow: var(--ring-strong); }
+.picker-button.is-compact { min-width: 0; width: 36px; min-height: 36px; padding: 0; justify-content: center; color: var(--muted); }
+.picker-button.is-compact svg { width: 16px; height: 16px; }
+@media (hover: hover) { .picker-button:hover { box-shadow: var(--ring-strong); } .picker-button.is-compact:hover { color: var(--ink); } }
+.picker-panel {
+  position: absolute; inset-block-start: calc(100% + 6px); inset-inline-start: 0; z-index: 30; display: grid; gap: 2px; min-width: max(100%, 15em); max-width: min(26em, calc(100vw - 32px));
+  padding: 4px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring-strong);
+}
+.picker-panel.is-up { inset-block-start: auto; inset-block-end: calc(100% + 6px); }
+.picker-panel.is-end { inset-inline-start: auto; inset-inline-end: 0; }
+.picker-panel:focus { outline: none; }
+.picker-option { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+.picker-option.is-active { background: var(--hover-tint); box-shadow: inset 0 0 0 var(--hair) var(--line); }
+.picker-panel:focus .picker-option.is-active, .picker-input:focus ~ .picker-panel .picker-option.is-active { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.picker-check { width: 16px; height: 16px; margin-block-start: 2px; }
+.picker-option[aria-selected="true"] .picker-check::before { content: "\2713"; display: block; font-size: 13px; line-height: 16px; text-align: center; color: var(--accent-text); }
+.picker-text { display: grid; gap: 1px; min-width: 0; }
+.picker-label { font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
+.picker-desc { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.picker-input { width: min(100%, 16em); }
+@media (max-width: 639px) {
+  /* On phones the list opens as a bottom sheet, full width and within reach. */
+  .picker > .picker-panel, .picker > .picker-panel.is-up, .picker > .picker-panel.is-end, .side .quick-theme .picker-panel, .bar .quick-theme .picker-panel {
+    position: fixed; inset: auto 0 0 0; max-width: none; min-width: 0; padding: 8px 8px max(12px, env(safe-area-inset-bottom));
+    border-radius: var(--radius) var(--radius) 0 0; z-index: 70; box-shadow: var(--ring-strong), 0 0 0 100vmax rgb(0 0 0 / 0.4);
+  }
+  .picker-option { padding: 12px; }
+}
+.foot-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.foot-row .side-util { flex: 1; min-width: 0; }
+.quick-theme .picker-panel { min-width: 11em; }
+.side .quick-theme .picker-panel { inset-block-start: auto; inset-block-end: calc(100% + 6px); }
+.bar .quick-theme .picker-panel { inset-inline-start: auto; inset-inline-end: 0; }
+
+/* ---- views.css ---- */
+/* Views: title blocks, the Overview dashboard, code blocks, display-title sizing. */
 
 /* ---------- Views: one at a time, each with the same title block ---------- */
 .view { padding-block: var(--view-top) 0; }
@@ -378,25 +504,93 @@ html:has(.sheet[open]) { overflow: hidden; }
 
 /* ---------- Code ---------- */
 pre.code {
-  margin: 0; padding: 14px 16px; border-radius: var(--radius); background: var(--canvas); box-shadow: inset 0 0 0 1px var(--line);
-  color: var(--body); font-size: 13px; line-height: 1.65; overflow-x: auto; tab-size: 2;
+  margin: 0; padding: 14px 16px; border-radius: var(--radius); background: var(--code-bg); box-shadow: var(--code-ring);
+  color: var(--code-ink); font-size: 13px; line-height: 1.65; overflow-x: auto; tab-size: 2;
 }
-pre.code .hl { color: var(--ink); font-weight: 500; }
-pre.code .cm { color: var(--quiet); font-style: italic; }
-pre.code .st { color: var(--accent-text); }
+pre.code .hl { color: var(--code-kw); font-weight: 500; }
+pre.code .cm { color: var(--code-cm); font-style: italic; }
+pre.code .st { color: var(--code-st); }
 .code-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .code-head + pre.code { margin-block-start: 8px; }
-kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--faint); font-size: 11px; color: var(--body); }
+kbd { padding: 0 5px; border-radius: var(--radius-sm); background: var(--surface); box-shadow: inset 0 0 0 var(--hair) var(--faint); font-size: 11px; color: var(--body); }
+
+
+.ov-section-head a.eyebrow { text-decoration: none; }
+@media (hover: hover) { .ov-section-head a.eyebrow:hover { color: var(--ink); } }
+
+/* Display titles with a very long word step down a size (fitClass in dom.js). */
+.ov-head h1.fit-long { font-size: clamp(24px, 1.2vw + 16px, 32px); letter-spacing: -0.03em; }
+.ov-head h1.fit-xlong { font-size: clamp(20px, 0.9vw + 14px, 26px); letter-spacing: -0.02em; }
+.card-title.fit-long, .flow-pick-title.fit-long { letter-spacing: -0.02em; }
+.card-title.fit-xlong { font-size: 18px; letter-spacing: -0.01em; }
+.map-col-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-file, .tag, .chip { min-width: 0; }
+.stack > li { min-width: 0; max-width: 100%; }
+
+/* ---------- Settings ---------- */
+.settings-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap); max-width: 880px; }
+.settings-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin: 0; padding: 8px var(--card-pad) var(--card-pad); border: 0; min-width: 0; }
+.settings-legend { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; width: 100%; padding: 14px 0 6px; float: left; }
+.settings-legend > span:first-child, .settings-legend h2 { font-size: 20px; font-weight: var(--heading-weight); letter-spacing: -0.02em; color: var(--heading); }
+.setting-row { display: grid; grid-template-columns: minmax(0, 12em) minmax(0, 1fr); align-items: center; gap: 4px 20px; padding: 12px 0; box-shadow: inset 0 1px 0 var(--line); clear: both; }
+.setting-row > :nth-child(2) { justify-self: start; max-width: 100%; }
+.setting-row .setting-hint, .setting-row .field-error { grid-column: 2; }
+.setting-row.is-wide { align-items: start; }
+.setting-label { font-weight: 500; color: var(--ink); }
+.setting-hint { font-size: 14px; color: var(--muted); }
+.setting-hint code { font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
+.setting-count { grid-column: 2; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.field-error { font-size: 14px; color: var(--ink); }
+.field-error:empty { display: none; }
+.field-error::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-inline-end: 8px; border-radius: 9999px; background: var(--bad); vertical-align: 1px; }
+.field { min-height: 40px; width: min(100%, 22em); padding: 0 12px; border: 0; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring); font: inherit; font-size: 15px; color: var(--ink); }
+textarea.field { width: 100%; min-height: 120px; padding: 10px 12px; line-height: 1.5; resize: vertical; }
+.field:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.field[aria-invalid="true"] { box-shadow: 0 0 0 var(--hair) var(--bad); }
+.toggle { width: 20px; height: 20px; margin: 0; accent-color: var(--accent-fill); }
+.multi { display: flex; flex-wrap: wrap; gap: 6px; }
+.multi-option { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border-radius: var(--radius); box-shadow: var(--ring); font-size: 14px; cursor: pointer; }
+.multi-option input { margin: 0; accent-color: var(--accent-fill); }
+.multi-option:has(input:checked) { box-shadow: var(--ring-accent); color: var(--ink); }
+.multi-option:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+.settings-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.settings-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding-block-start: 16px; box-shadow: inset 0 1px 0 var(--line); margin-block-start: 8px; }
+.settings-status { font-size: 14px; color: var(--body); }
+.settings-commands:empty { display: none; }
+.settings-commands { display: grid; gap: 8px; padding-block-start: 12px; }
+.command-list { display: grid; gap: 6px; }
+.command-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.command-list code { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--code-bg); box-shadow: var(--code-ring); color: var(--code-ink); font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .setting-row { grid-template-columns: minmax(0, 1fr); }
+  .setting-row .setting-hint, .setting-row .field-error, .setting-count { grid-column: 1; }
+}
+
+/* Reading choices from Settings (data-* on <html>, set before first paint). */
+:root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+:root[data-text="large"] body { zoom: 1.125; }
+:root[data-density="compact"] { --card-pad: 16px; --grid-gap: 10px; --view-top: 20px; --title-gap: 20px; }
+:root[data-density="compact"] .links a { min-height: 34px; }
+:root[data-density="compact"] .btn { min-height: 38px; }
+:root[data-density="compact"] .option { min-height: 40px; padding-block: 6px; }
+:root[data-density="compact"] .node { padding-block: 6px; }
+.share-row > :not(.setting-label) { grid-column: 2; }
+.share-row .settings-status:empty, .share-row .settings-commands:empty { display: none; }
+@media (max-width: 639px) { .share-row > :not(.setting-label) { grid-column: 1; } }
+
+/* ---- diagrams.css ---- */
+/* Diagrams: architecture map, flows, changes timeline, tree, data model. */
 
 /* ---------- Architecture map ---------- */
 .map-shell { display: grid; gap: var(--grid-gap); }
 .map-panel { padding: 20px; }
 .map-scroll { overflow-x: auto; overflow-y: hidden; }
-.map-canvas { position: relative; padding: 4px; min-width: calc(var(--cols) * 170px); }
+.map-canvas { position: relative; padding: 4px; }
 .map-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.map-grid { position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 48px; }
+.map-grid { position: relative; display: grid; grid-template-columns: repeat(var(--fit-cols, var(--cols)), minmax(0, 1fr)); gap: 40px; }
 .map-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .map-col-head { display: flex; align-items: flex-start; gap: 8px; font-family: var(--mono); font-size: 12px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.map-col, .layer-dot, .kit-layer { --layer: var(--layer-clean); }
 .map-col-head::before { content: ""; flex: none; width: 8px; height: 8px; margin-block-start: 5px; border-radius: 2px; background: var(--layer); }
 .node {
   position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; text-align: start;
@@ -404,7 +598,7 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
   box-shadow: var(--ring), inset 2px 0 0 var(--layer);
   transition: opacity 160ms var(--ease), box-shadow 160ms var(--ease);
 }
-.node-icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.node-icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius); box-shadow: inset 0 0 0 var(--hair) var(--line); color: var(--muted); }
 .node-icon svg { width: 18px; height: 18px; }
 .node-text { min-width: 0; }
 .node-label { display: block; font-size: 14px; font-weight: 500; line-height: 1.25; }
@@ -430,7 +624,7 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .detail-main, .detail-side { display: grid; gap: 10px; min-width: 0; align-content: start; }
 .map-detail h3 { font-size: 22px; line-height: 1.2; letter-spacing: -0.03em; }
 .map-detail p { color: var(--body); }
-.detail-icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.detail-icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius); box-shadow: inset 0 0 0 var(--hair) var(--line); color: var(--muted); }
 .detail-icon svg { width: 16px; height: 16px; }
 .detail-tech { font-family: var(--mono); font-size: 13px; }
 .detail-label { margin-block-start: 6px; font-family: var(--mono); font-size: 12px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
@@ -463,17 +657,18 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .flow-layout > * { min-width: 0; }
 /* Stacked: the step card comes first, so Continue stays in place; the diagram follows as the overview. */
 @media (max-width: 1179px) { .flow-layout > .step-card { order: -1; } }
+.flow-layout.is-stacked > .step-card { order: -1; }
 @media (min-width: 1180px) {
-  .flow-layout { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); }
-  .flow-layout > .step-card { position: sticky; inset-block-start: var(--sticky-top); }
-  .flow-layout > .step-card.is-static { position: static; }
+  .flow-layout:not(.is-stacked) { grid-template-columns: minmax(0, 1fr) 380px; }
+  .flow-layout:not(.is-stacked) > .step-card { position: sticky; inset-block-start: var(--sticky-top); }
+  .flow-layout:not(.is-stacked) > .step-card.is-static { position: static; }
 }
 .seq-wrap { overflow: clip; }
 .seq svg { display: block; }
 .seq-heads-wrap { position: sticky; inset-block-start: var(--heads-top); z-index: 1; overflow: hidden; background: var(--surface); box-shadow: inset 0 -1px 0 var(--line); }
 .seq-heads { will-change: transform; }
 .seq-body { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
-.seq-head-box { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.seq-head-box { fill: var(--surface); stroke: var(--line); stroke-width: var(--hair); rx: var(--radius); }
 .seq-head-icon { color: var(--muted); }
 .seq-head-label { font-family: var(--sans); font-size: 12.5px; font-weight: 500; fill: var(--ink); }
 .seq-lifeline { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 5; }
@@ -497,7 +692,13 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .seq-step:focus-visible .hit { stroke: var(--ink); stroke-width: 1.5; }
 .seq-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
 .seq-step .arrow, .seq-step .badge-bg, .seq-step .label { transition: stroke 200ms ease, fill 200ms ease; }
-.step-card { display: flex; flex-direction: column; gap: 16px; padding: var(--card-pad); }
+.step-card { display: flex; flex-direction: column; gap: 16px; padding: var(--card-pad); container: step-card / inline-size; }
+/* A wide step card (stacked layout) puts the code beside the words. */
+@container step-card (min-width: 760px) {
+  .step-body:has(> .step-code) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+}
+/* Code in cards wraps: no sideways scroll inside a lesson card. */
+.step-card pre.code, .concept-card pre.code { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; }
 .step-body, .step-text { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .step-code { display: grid; gap: 8px; min-width: 0; }
 .step-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -516,7 +717,7 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .step-dots button:focus-visible { outline-offset: 0; }
 .kbd-hint { font-size: 13px; color: var(--muted); }
 .flow-done { display: grid; justify-items: center; gap: 8px; padding: 24px 8px; text-align: center; }
-.flow-done .trophy { display: grid; place-items: center; width: 56px; height: 56px; margin-block-end: 8px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent-text); }
+.flow-done .trophy { display: grid; place-items: center; width: 56px; height: 56px; margin-block-end: 8px; border-radius: var(--radius); box-shadow: inset 0 0 0 var(--hair) var(--accent); color: var(--accent-text); }
 .flow-done .trophy svg { width: 28px; height: 28px; }
 .flow-done h3 { font-size: 24px; }
 .flow-done .btn-row { justify-content: center; margin-block-start: 12px; }
@@ -525,13 +726,13 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .changes-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-block-start: 8px; }
 .changes-map { margin-inline-start: auto; }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring); }
-.seg-option { min-height: 32px; padding: 0 12px; border: 0; border-radius: 4px; background: none; font-size: 14px; color: var(--muted); }
+.seg-option { min-height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: none; font-size: 14px; color: var(--muted); }
 .seg-option[aria-pressed="true"] { background: var(--canvas); color: var(--ink); font-weight: 500; box-shadow: var(--ring); }
 @media (hover: hover) { .seg-option[aria-pressed="false"]:hover { color: var(--ink); } }
 .timeline { position: relative; display: grid; gap: 12px; }
 .timeline::before { content: ""; position: absolute; inset-inline-start: 17.5px; inset-block: 12px; width: 1px; background: var(--line); }
 .change { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; }
-.change-dot { position: relative; z-index: 1; display: grid; place-items: center; width: 36px; height: 36px; margin-block-start: 14px; border-radius: var(--radius); background: var(--surface); box-shadow: inset 0 0 0 1px var(--faint); color: var(--muted); }
+.change-dot { position: relative; z-index: 1; display: grid; place-items: center; width: 36px; height: 36px; margin-block-start: 14px; border-radius: var(--radius); background: var(--surface); box-shadow: inset 0 0 0 var(--hair) var(--faint); color: var(--muted); }
 .change.is-agent .change-dot { color: var(--ink); }
 .change-dot svg { width: 18px; height: 18px; }
 .change-card { display: grid; gap: 10px; padding: 18px 20px; }
@@ -567,8 +768,8 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .entity-count { margin-inline-start: auto; font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .entity-keys { display: grid; gap: 4px; padding-block-start: 10px; box-shadow: inset 0 1px 0 var(--line); }
 .entity-key { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--body); }
-.key-badge { display: inline-grid; place-items: center; min-width: 26px; padding: 0 4px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line); font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--muted); }
-.key-badge.is-pk { box-shadow: inset 0 0 0 1px var(--faint); color: var(--ink); }
+.key-badge { display: inline-grid; place-items: center; min-width: 26px; padding: 0 4px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 var(--hair) var(--line); font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--muted); }
+.key-badge.is-pk { box-shadow: inset 0 0 0 var(--hair) var(--faint); color: var(--ink); }
 .er-canvas.has-selection .entity { opacity: 0.45; }
 .er-canvas.has-selection .entity.is-related { opacity: 1; }
 .er-canvas.has-selection .entity.is-selected { opacity: 1; box-shadow: var(--ring-accent); }
@@ -589,43 +790,61 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .er-fk { font-family: var(--mono); font-size: 12.5px; }
 .er-rels { display: grid; gap: 10px; padding: 16px var(--card-pad) 20px; box-shadow: inset 0 1px 0 var(--line); }
 
+/* ---- lessons.css ---- */
+/* Lessons: concepts, quiz, glossary, runbook; narrow-screen and print rules for every view. */
+
 /* ---------- Concepts and quiz ---------- */
 .lesson { max-width: 760px; }
 .concept-card { display: flex; flex-direction: column; gap: 14px; min-height: 280px; padding: var(--card-pad); }
 .concept-body { font-size: 17px; color: var(--body); }
 .concept-card .step-controls { margin-block-start: auto; padding-block-start: 8px; }
 .quiz { display: grid; gap: var(--grid-gap); }
-.question { display: grid; gap: 14px; padding: var(--card-pad); }
-.question h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.015em; }
 .options { display: grid; gap: 8px; }
 .option {
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 10px 14px; border: 0; border-radius: var(--radius);
   background: var(--surface); box-shadow: var(--ring); text-align: start; font-size: 15px; color: var(--ink); transition: box-shadow 150ms var(--ease);
 }
-.option .key { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--faint); font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.option .key { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 var(--hair) var(--faint); font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .option-text { min-width: 0; }
 @media (hover: hover) { .option:not(:disabled):hover { box-shadow: var(--ring-strong); } }
-.option[aria-checked="true"] { box-shadow: var(--ring-ink); }
-.option[aria-checked="true"] .key { box-shadow: inset 0 0 0 1px var(--ink); color: var(--ink); }
+.option[aria-checked="true"] { background: var(--select-wash); box-shadow: var(--ring-ink); }
+.option[aria-checked="true"] .key { box-shadow: inset 0 0 0 var(--hair) var(--ink); color: var(--ink); }
 .option:disabled { cursor: default; }
-.option.is-correct { box-shadow: 0 0 0 1px var(--good); }
-.option.is-correct .key { box-shadow: none; background: var(--good); color: var(--surface); }
-.option.is-wrong { box-shadow: 0 0 0 1px var(--bad); }
-.option.is-wrong .key { box-shadow: none; background: var(--bad); color: var(--surface); }
-.option.is-wrong .option-text { color: var(--body); text-decoration: line-through; text-decoration-color: var(--bad); }
-.feedback { display: grid; gap: 2px; padding: 2px 0 2px 14px; color: var(--body); }
-.feedback b { font-weight: 550; }
-.feedback.is-correct { box-shadow: inset 2px 0 0 var(--good); }
-.feedback.is-correct b { color: var(--good); }
-.feedback.is-wrong { box-shadow: inset 2px 0 0 var(--bad); }
-.feedback.is-wrong b { color: var(--bad); }
-.question-actions { display: flex; justify-content: flex-end; }
-.question-actions:empty { display: none; }
-.score { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 16px; padding: 18px var(--card-pad); }
-.score b { font-size: 20px; font-weight: 450; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.score .eyebrow { grid-column: 1 / -1; }
-.score .meter { grid-column: 1 / -1; }
-.score-note { grid-column: 2; grid-row: 2; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+/* ---------- Quiz: one question at a time ----------
+   Status is ink text with a small coloured marker: never a saturated chip, a coloured headline or a strike-through. */
+.quiz-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: var(--card-pad); }
+.quiz-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.quiz-reset, .quiz-reveal { font-size: 14px; color: var(--muted); }
+.quiz-q, .quiz-score { font-size: 22px; line-height: 1.25; letter-spacing: -0.03em; }
+.quiz-q:focus, .quiz-score:focus, .feedback-head:focus { outline: none; }
+.option-text.is-code { display: block; font-family: var(--mono); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.option .tag-answer { margin-inline-start: auto; flex: none; }
+.option .tag-answer::before { content: "\2713"; display: inline-block; margin-inline-end: 6px; color: var(--good); font-weight: 600; }
+.option-note { margin-inline-start: auto; flex: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.option.is-tried .key { box-shadow: none; background: none; position: relative; }
+.option.is-tried .key::after { content: ""; position: absolute; inset-block-start: -2px; inset-inline-end: -2px; width: 7px; height: 7px; border-radius: 9999px; background: var(--bad); box-shadow: 0 0 0 2px var(--surface); }
+.option.is-tried { box-shadow: var(--ring-strong); }
+.option.is-answer { box-shadow: 0 0 0 var(--hair) var(--good); background: var(--surface); }
+.option.is-answer .key { position: relative; }
+.option.is-answer .key::after { content: ""; position: absolute; inset-block-start: -2px; inset-inline-end: -2px; width: 7px; height: 7px; border-radius: 9999px; background: var(--good); box-shadow: 0 0 0 2px var(--surface); }
+.option:disabled { color: var(--ink); opacity: 1; }
+.option:disabled:not(.is-answer) { color: var(--body); }
+.quiz-live:empty { display: none; }
+.feedback { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 14px 16px; border-radius: var(--radius); background: var(--canvas); box-shadow: inset 0 0 0 var(--hair) var(--line); color: var(--body); }
+.feedback-head { display: flex; align-items: center; gap: 8px; font-weight: 550; color: var(--ink); }
+.status-dot { flex: none; width: 8px; height: 8px; border-radius: 9999px; background: var(--muted); }
+.feedback.is-right .status-dot { background: var(--good); }
+.feedback.is-retry .status-dot { background: var(--bad); }
+.feedback.is-missed .status-dot { background: var(--accent); }
+.quiz-controls .quiz-reveal { margin-inline-start: 4px; }
+.quiz-dots button.is-done:not(.is-current)::before { background: var(--faint); }
+.quiz-dots button.is-current::before { background: var(--accent); }
+.quiz-missed { display: grid; gap: 6px; }
+.quiz-missed-row { display: grid; gap: 2px; padding: 10px 0; }
+.quiz-missed-row + .quiz-missed-row { box-shadow: inset 0 1px 0 var(--line); }
+.quiz-lesson { font-size: 14px; color: var(--muted); }
+.quiz-perfect { color: var(--body); }
 
 /* ---------- Glossary and runbook ---------- */
 .glossary-wrap { display: grid; gap: var(--grid-gap); }
@@ -647,24 +866,6 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .run-n { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 .run-note { font-size: 15px; color: var(--body); }
 
-/* ---------- Motion (Web Animations run from dom.js; these are CSS-only touches) ---------- */
-@media (prefers-reduced-motion: no-preference) {
-  .view:not([hidden]) .view-head, .view:not([hidden]) .ov-head { animation: rise-in 280ms var(--ease) both; }
-}
-@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-/* ---------- Long words ----------
-   Flex and grid items refuse to shrink below their longest word, so text
-   holders in rows must opt in to breaking anywhere and to a 100% cap. */
-.link, .option, .change-top > *, .step-top > *, .step-route > *, .route-part,
-.rel li > *, .er-name > *, .entity-name, .entity-key > *, .node-label, .glossary dt, .glossary dd, .key-badge + *,
-.flow-pick-title, .card-title, .row-title, .flow-trigger > span, .tree .note, .change-top, .side-repo b, .pager-title, .map-col-head, .next-title {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  min-width: 0;
-}
-.chip-file { overflow-wrap: normal; }
-.er-detail-head h3, .code-head > *, .entity-head > *, .step-route, .view-head h1, .ov-head h1 { min-width: 0; overflow-wrap: anywhere; }
 
 /* ---------- Narrow screens ---------- */
 @media (max-width: 900px) {
@@ -685,44 +886,14 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
   .pager { grid-template-columns: minmax(0, 1fr); }
   .pager-link.is-next { text-align: start; }
   .changes-map { margin-inline-start: 0; }
-  .score { grid-template-columns: minmax(0, 1fr); }
-  .score-note { grid-column: 1; grid-row: auto; }
 }
 @media print {
   .side, .top, .sheet, .pager, .step-controls, .theme-switch { display: none !important; }
   .app { display: block; }
 }
 
-/* ---------- Kit gallery ---------- */
-.kit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); gap: 12px; }
-.kit-grid-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
-.kit-icon { display: grid; justify-items: center; gap: 10px; padding: 18px 12px 14px; text-align: center; }
-.kit-icon svg { width: 28px; height: 28px; color: var(--ink); }
-.kit-icon code, .kit-swatch code, .kit-pattern code { font-size: 12px; color: var(--muted); }
-.kit-swatch { display: grid; gap: 4px; padding: 14px; }
-.kit-swatch p { font-size: 13px; color: var(--muted); }
-.kit-chip { height: 44px; margin-block-end: 8px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line); }
-.kit-layer { display: grid; gap: 12px; padding: 16px; }
-.kit-stack { display: grid; gap: 20px; padding: var(--card-pad); }
-.kit-pattern { display: grid; gap: 8px; align-content: start; padding: 16px 20px; }
-.kit-pattern h3 { font-size: 17px; font-weight: 500; }
-.kit-pattern p { font-size: 15px; color: var(--body); }
-.kit-logo { display: grid; place-items: center; padding: 32px; }
-.kit-logo svg { width: 96px; height: 96px; }
-.kit-credit { font-size: 14px; color: var(--muted); max-width: 60ch; }
-.kit-section { display: grid; gap: var(--grid-gap); padding-block-start: 48px; }
-.kit-section > header { display: grid; gap: 8px; max-width: 46em; }
-.kit-section h2 { font-size: clamp(24px, 2.6vw, 30px); line-height: 1.1; letter-spacing: -0.045em; }
-.kit-section > header p { color: var(--body); }
-.ov-section-head a.eyebrow { text-decoration: none; }
-@media (hover: hover) { .ov-section-head a.eyebrow:hover { color: var(--ink); } }
-
-/* Single-column grids get an explicit shrinkable track: an implicit "auto" track grows to its longest path. */
-.view-body, .map-shell, .flow-player, .timeline, .change-card, .quiz, .question, .glossary-wrap, .runbook, .run-item,
-.detail-main, .detail-side, .er-detail-head, .er-rels, .kit-stack, .ov-head, .why, .feedback, .step-code, .flow-meta {
-  grid-template-columns: minmax(0, 1fr);
-}
-.kit-stack > .seg { justify-self: start; }
+/* ---- hub.css ---- */
+/* The library hub (template/js/library.js). */
 
 /* ---------- Library hub ---------- */
 .hub-search-wrap { display: grid; gap: 8px; max-width: 720px; }
@@ -774,15 +945,158 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 .view[data-view="changes"] .seg { justify-self: start; }
 .hub-view { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap); align-content: start; }
 .hub-view > .view-head { margin-block-end: 8px; }
+.result-text mark { padding: 0 1px; border-radius: 2px; background: var(--mark-bg); color: inherit; }
+/* The search clear button: a muted cross, ink on hover (not the browser's blue). */
+.search::-webkit-search-cancel-button {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; cursor: pointer; background-color: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 3l8 8M11 3l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 3l8 8M11 3l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.search::-webkit-search-cancel-button:hover { background-color: var(--ink); }
+.lib-item { position: relative; }
+.card-pick { position: absolute; inset-block-start: 14px; inset-inline-end: 14px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+.card-pick input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-fill); cursor: pointer; }
+.lib-card .top-row { padding-inline-end: 40px; }
+.lib-item:has(.pick-input:checked) .lib-card { box-shadow: var(--ring-accent); }
+.pick-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; font-size: 14px; color: var(--muted); }
+.pick-count { font-family: var(--mono); font-size: 13px; }
+.import-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.import-table th { padding: 6px 8px; font-family: var(--mono); font-size: 12px; font-weight: 400; text-align: start; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); box-shadow: inset 0 -1px 0 var(--line); }
+.import-table td { padding: 8px; vertical-align: top; box-shadow: inset 0 -1px 0 var(--line); overflow-wrap: anywhere; }
+.import-table .status-dot { display: inline-block; margin-inline-end: 8px; vertical-align: 1px; }
+.import-table .is-added .status-dot { background: var(--good); }
+.import-table .is-replaced .status-dot { background: var(--accent); }
+.import-table .is-rejected .status-dot { background: var(--bad); }
 
-/* Display titles with a very long word step down a size (fitClass in dom.js). */
-.ov-head h1.fit-long { font-size: clamp(24px, 1.2vw + 16px, 32px); letter-spacing: -0.03em; }
-.ov-head h1.fit-xlong { font-size: clamp(20px, 0.9vw + 14px, 26px); letter-spacing: -0.02em; }
-.card-title.fit-long, .flow-pick-title.fit-long { letter-spacing: -0.02em; }
-.card-title.fit-xlong { font-size: 18px; letter-spacing: -0.01em; }
-.map-col-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip-file, .tag, .chip { min-width: 0; }
-.stack > li { min-width: 0; max-width: 100%; }
+/* Import: one unit in the control column. */
+.import-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.drop-zone {
+  display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 132px; padding: 16px; text-align: center;
+  border: var(--hair) dashed var(--faint); border-radius: var(--radius); background: var(--canvas); color: var(--body);
+}
+.drop-zone svg { width: 22px; height: 22px; margin-block-end: 4px; color: var(--muted); }
+.drop-title { font-weight: 500; color: var(--ink); }
+.drop-choose { font-size: 14px; }
+.drop-zone.is-over { border-color: var(--select); box-shadow: var(--ring-accent); }
+.drop-zone.has-file { border-style: solid; }
+.drop-picked { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 12px; margin-block-start: 8px; font-size: 14px; }
+.drop-file { font-family: var(--mono); font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+.drop-size { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.import-field { display: grid; gap: 6px; margin-block-start: 6px; }
+
+/* ---- kit.css ---- */
+/* The design kit page (template/js/gallery.js). */
+
+/* ---------- Kit gallery ---------- */
+.kit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); gap: 12px; }
+.kit-grid-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.kit-icon { display: grid; justify-items: center; gap: 10px; padding: 18px 12px 14px; text-align: center; }
+.kit-icon svg { width: 28px; height: 28px; color: var(--ink); }
+.kit-icon code, .kit-swatch code, .kit-pattern code { font-size: 12px; color: var(--muted); }
+.kit-swatch { display: grid; gap: 4px; padding: 14px; }
+.kit-swatch p { font-size: 13px; color: var(--muted); }
+.kit-chip { height: 44px; margin-block-end: 8px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 var(--hair) var(--line); }
+.kit-layer { display: grid; gap: 12px; padding: 16px; }
+.kit-stack { display: grid; gap: 20px; padding: var(--card-pad); }
+.kit-pattern { display: grid; gap: 8px; align-content: start; padding: 16px 20px; }
+.kit-pattern h3 { font-size: 17px; font-weight: 500; }
+.kit-pattern p { font-size: 15px; color: var(--body); }
+.kit-logo { display: grid; place-items: center; padding: 32px; }
+.kit-logo svg { width: 96px; height: 96px; }
+.kit-credit { font-size: 14px; color: var(--muted); max-width: 60ch; }
+.kit-section { display: grid; gap: var(--grid-gap); padding-block-start: 48px; }
+.kit-section > header { display: grid; gap: 8px; max-width: 46em; }
+.kit-section h2 { font-size: clamp(24px, 2.6vw, 30px); line-height: 1.1; letter-spacing: -0.045em; }
+.kit-section > header p { color: var(--body); }
+.kit-stack > .seg { justify-self: start; }
+
+/* ---- playful.css ---- */
+/* ================================================================
+   Playful style: the original look (inspired by Duolingo's design
+   language; not affiliated). Same layout and components; only the
+   tokens, type and the pressable edge change. data-style="playful".
+   ================================================================ */
+:root[data-style="playful"] {
+  color-scheme: light;
+  --canvas: #ffffff; --surface: #ffffff; --line: #e5e5e5; --ink: #3c3c3c; --body: #4b4b4b;
+  --muted: #757575; --quiet: #afafaf; --faint: #afafaf;
+  --accent: #58cc02; --accent-fill: #58cc02; --accent-hover: #61e002; --accent-edge: #58a700; --accent-text: #3c7d00;
+  --on-accent: #ffffff; --good: #3c7d00; --bad: #cc3333; --good-wash: #d7ffb8; --bad-wash: #ffdfe0;
+  --heading: #042c60; --display: #58a700; --link: #1479b8;
+  --select: #1cb0f6; --select-wash: #ddf4ff; --nav-current-bg: #ddf4ff;
+  --hover-tint: rgb(0 0 0 / 0.04); --bar-glass: rgb(255 255 255 / 0.9);
+  --code-bg: #000437; --mark-bg: #d7ffb8; --hint-bg: #ddf4ff; --hint-ring: #1cb0f6; --hint-ink: #1479b8; --code-ring: 0 0 0 0 transparent; --code-ink: #e8ecff; --code-kw: #a5ed6e; --code-cm: #8a90c2; --code-st: #ffd66b;
+  --hair: 2px; --radius: 12px; --radius-sm: 8px;
+  --sans: "Nunito", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --body-weight: 500; --body-tracking: 0.02em; --heading-weight: 800; --tracking-label: 0.06em;
+  /* Pressable edge: a 2px border with a 4px bottom, drawn as unblurred rings. */
+  --ring: 0 0 0 2px var(--line), 0 2px 0 2px var(--line);
+  --ring-strong: 0 0 0 2px var(--faint), 0 2px 0 2px var(--faint);
+  --ring-ink: 0 0 0 2px var(--select), 0 2px 0 2px var(--select);
+  --ring-accent: 0 0 0 2px var(--select), 0 2px 0 2px var(--select);
+  --nav-current-ring: 0 0 0 2px var(--select);
+  --primary-ring: 0 0 0 2px var(--accent-edge), 0 2px 0 2px var(--accent-edge);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-style="playful"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #131f24; --surface: #202f36; --line: #37464f; --ink: #f1f7fb; --body: #dce6ec;
+    --muted: #a7bac4; --quiet: #8fa3ad; --faint: #52656d;
+    --accent: #93d333; --accent-fill: #93d333; --accent-hover: #a5ed6e; --accent-edge: #79b933; --accent-text: #93d333;
+    --on-accent: #131f24; --good: #93d333; --bad: #ff7878; --good-wash: #2b4022; --bad-wash: #4a2a2e;
+    --heading: #f1f7fb; --display: #93d333; --link: #49c0f8;
+    --select: #49c0f8; --select-wash: #1a3a4a; --nav-current-bg: #1a3a4a;
+    --hover-tint: rgb(255 255 255 / 0.06); --bar-glass: rgb(19 31 36 / 0.88);
+    --code-bg: #0b1418; --mark-bg: #2b4022; --hint-bg: #1a3a4a; --hint-ring: #49c0f8; --hint-ink: #49c0f8;
+  }
+}
+:root[data-style="playful"][data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #131f24; --surface: #202f36; --line: #37464f; --ink: #f1f7fb; --body: #dce6ec;
+  --muted: #a7bac4; --quiet: #8fa3ad; --faint: #52656d;
+  --accent: #93d333; --accent-fill: #93d333; --accent-hover: #a5ed6e; --accent-edge: #79b933; --accent-text: #93d333;
+  --on-accent: #131f24; --good: #93d333; --bad: #ff7878; --good-wash: #2b4022; --bad-wash: #4a2a2e;
+  --heading: #f1f7fb; --display: #93d333; --link: #49c0f8;
+  --select: #49c0f8; --select-wash: #1a3a4a; --nav-current-bg: #1a3a4a;
+  --hover-tint: rgb(255 255 255 / 0.06); --bar-glass: rgb(19 31 36 / 0.88);
+  --code-bg: #0b1418; --mark-bg: #2b4022; --hint-bg: #1a3a4a; --hint-ring: #49c0f8; --hint-ink: #49c0f8;
+}
+:root[data-style="playful"] .map-col, :root[data-style="playful"] .layer-dot, :root[data-style="playful"] .kit-layer { --layer: var(--layer-fun); }
+
+/* Type: Nunito, heavy headings, labels in the body face. */
+:root[data-style="playful"] :is(.eyebrow, .panel-bar, .side-label, .step-count, .tag, .top-row, .glance-grid dt, .map-col-head, .map-legend, .detail-label, .er-row-head) {
+  font-family: var(--sans); font-weight: 800;
+}
+:root[data-style="playful"] :is(.view-head h1, .ov-head h1) { color: var(--display); font-weight: 900; letter-spacing: -0.02em; }
+:root[data-style="playful"] :is(h2, h3, .card-title, .next-title, .pager-title, .flow-pick-title, .result-title, .row-title, .prog-done, .glance-grid dd, .score b, .node-label, .entity-name, .side-repo b) {
+  font-weight: 800; letter-spacing: -0.01em;
+}
+:root[data-style="playful"] .links a { font-weight: 700; }
+:root[data-style="playful"] .link, :root[data-style="playful"] .panel-bar a { font-weight: 800; text-decoration: none; }
+:root[data-style="playful"] .tag { padding: 0 8px; }
+:root[data-style="playful"] .brand .name { font-family: var(--sans); font-weight: 900; font-size: 17px; letter-spacing: -0.01em; color: var(--accent-edge); }
+
+/* Buttons: uppercase, heavy, pressable. The 4px bottom collapses on press. */
+:root[data-style="playful"] .btn { min-height: 46px; padding-inline: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px; }
+:root[data-style="playful"] .btn.small { min-height: 36px; padding-inline: 14px; font-size: 13px; }
+:root[data-style="playful"] .btn.primary { font-weight: 800; }
+:root[data-style="playful"] :is(.btn, .option, .flow-pick, .pager-link, a.card, .facet, .node, .entity):not(:disabled):active {
+  translate: 0 2px; scale: none; box-shadow: 0 0 0 2px var(--line);
+}
+:root[data-style="playful"] .btn.primary:not(:disabled):active { box-shadow: 0 0 0 2px var(--accent-edge); }
+:root[data-style="playful"] .btn:disabled { box-shadow: 0 0 0 2px var(--line); }
+:root[data-style="playful"] .node { box-shadow: var(--ring), inset 3px 0 0 var(--layer); }
+:root[data-style="playful"] .seq-step.is-current .badge-num { fill: var(--on-accent); }
+:root[data-style="playful"] .step-dots button::before { height: 8px; inset-block-start: 6px; }
+:root[data-style="playful"] .meter { height: 12px; }
+:root[data-style="playful"] :focus-visible { outline-color: var(--select); }
+:root[data-style="playful"] .card:hover { translate: none; }
+
+/* The Playful swatch on the Style card in Settings, shown in both styles. */
+.style-preview.is-playful { background: #ffffff; box-shadow: inset 0 0 0 2px #e5e5e5; }
+.style-preview.is-playful i { height: 12px; border-radius: 6px; background: #1cb0f6; }
+.style-preview.is-playful i:first-child { height: 20px; background: #58cc02; box-shadow: 0 2px 0 0 #58a700; }
 
 </style>
 </head>
@@ -848,8 +1162,9 @@ function truncate(value, max) {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
+// The device setting, or the reader's own Motion choice in Settings.
 function reducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return document.documentElement.dataset.motion === 'reduce' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function byId(items) {
@@ -872,18 +1187,35 @@ function safeUrl(value) {
 // A path with soft break points after each "/", so it wraps at folder
 // boundaries. <wbr> adds no characters, so copying gives the exact path.
 function breakablePath(path) {
-  return String(path).split(/(?<=\/)/).flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
+  return String(path).split(/(?<=\/)/).flatMap((part, i) => {
+    const pieces = part.length > TOKEN_MAX ? softBreaks(part) : [part];
+    return i ? [h('wbr'), ...pieces] : pieces;
+  });
 }
 
+// A file:line citation. Long paths keep the first folder and the file name.
 function fileChip(path) {
-  return h('span', { class: 'chip-file', title: path }, path);
+  return truncatable(h('span', { class: 'chip-file' }), path, { mode: 'middle' });
 }
 
 // Browser storage is a per-reader convenience only: it can be missing or
 // throw (private windows, file:// rules), and the page works without it.
+// Keys were renamed from repo-explainer:* to concept-explainer:*. An old
+// value is read once, moved to the new key, and the old key removed.
+const STORE_PREFIX = 'concept-explainer:';
+const LEGACY_PREFIX = 'repo-explainer:';
+
 function readStore(key) {
   try {
-    return window.localStorage.getItem(key);
+    const value = window.localStorage.getItem(key);
+    if (value !== null || !key.startsWith(STORE_PREFIX)) return value;
+    const legacyKey = `${LEGACY_PREFIX}${key.slice(STORE_PREFIX.length)}`;
+    const legacy = window.localStorage.getItem(legacyKey);
+    if (legacy !== null) {
+      window.localStorage.setItem(key, legacy);
+      window.localStorage.removeItem(legacyKey);
+    }
+    return legacy;
   } catch (error) {
     return null;
   }
@@ -916,13 +1248,15 @@ function linkPart(value) {
 
 // A small mono label: kinds, authors, PK/FK. Never coloured fills.
 function tag(label, extra = '') {
-  return h('span', { class: `tag${extra ? ` ${extra}` : ''}`, title: String(label) }, label);
+  return truncatable(h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, softBreaks(label)), label);
 }
 
 // Display titles step down a size when their longest word is long, so an
 // identifier like AbstractSingletonProxyFactoryBean breaks cleanly.
 function fitClass(value) {
-  const longest = String(value || '').split(/\s+/).reduce((max, word) => Math.max(max, word.length), 0);
+  // Long tokens are shown shortened (softBreaks), so size by what is shown.
+  const shown = (word) => (word.length > TOKEN_MAX ? shortenToken(word).length : word.length);
+  const longest = String(value || '').split(/\s+/).reduce((max, word) => Math.max(max, shown(word)), 0);
   if (longest > 32) return 'fit-xlong';
   if (longest > 18) return 'fit-long';
   return '';
@@ -987,13 +1321,21 @@ function drawPath(path, marker) {
   };
 }
 
-// ---------- Theme: system, light, dark. Shared by the explainer and the kit. ----------
-const THEME_KEY = 'repo-explainer:theme';
+// ---------- Look: theme (system, light, dark) and style (clean, playful) ----------
+// Shared by the explainer, the kit and the hub. Choices are per reader and
+// live in localStorage; the page works when storage is blocked.
+const THEME_KEY = 'concept-explainer:theme';
+const STYLE_KEY = 'concept-explainer:style';
 const THEME_CHOICES = [
   { choice: 'system', label: 'System' },
   { choice: 'light', label: 'Light' },
   { choice: 'dark', label: 'Dark' },
 ];
+const STYLE_CHOICES = [
+  { choice: 'clean', label: 'Clean' },
+  { choice: 'playful', label: 'Playful' },
+];
+let pageDefaultStyle = 'clean';
 
 function storedTheme() {
   const value = readStore(THEME_KEY);
@@ -1007,47 +1349,90 @@ function applyTheme(choice) {
   else delete root.dataset.theme;
 }
 
-function themeSwitch(registry) {
-  const buttons = THEME_CHOICES.map((option, index) => h('button', {
-    class: 'ts-option', type: 'button', role: 'radio', 'aria-label': `${option.label} theme`, title: `${option.label} theme`, 'data-label': option.label,
+// The page default comes from the build (context.style); a reader's own
+// choice wins over it.
+function setDefaultStyle(value) {
+  pageDefaultStyle = value === 'playful' ? 'playful' : 'clean';
+}
+
+function storedStyle() {
+  const value = readStore(STYLE_KEY);
+  return STYLE_CHOICES.some((t) => t.choice === value) ? value : pageDefaultStyle;
+}
+
+function applyStyle(choice) {
+  document.documentElement.dataset.style = choice === 'playful' ? 'playful' : 'clean';
+}
+
+function applyLook(context) {
+  setDefaultStyle(context && context.style);
+  applyTheme(storedTheme());
+  applyStyle(storedStyle());
+}
+
+// One registry per page repaints every switch (sidebar and menu copies).
+function themeRegistry() {
+  const switches = [];
+  const listeners = [];
+  return {
+    add: (entry) => switches.push(entry),
+    onChange: (fn) => listeners.push(fn),
+    paint: () => {
+      switches.forEach(({ buttons, choices, read }) => {
+        const picked = read();
+        buttons.forEach((button, i) => {
+          const on = choices[i].choice === picked;
+          button.setAttribute('aria-checked', String(on));
+          button.tabIndex = on ? 0 : -1;
+        });
+      });
+    },
+    changed: () => {
+      listeners.forEach((fn) => fn());
+      // A style switch changes fonts and paddings: re-measure cut text.
+      if (typeof recheckTruncation === 'function') window.requestAnimationFrame(recheckTruncation);
+    },
+  };
+}
+
+// A radio group of buttons; arrow keys move and choose, one tab stop.
+function choiceSwitch(registry, { choices, read, write, label, className, withIcons }) {
+  const choose = (choice) => {
+    write(choice);
+    registry.paint();
+    registry.changed();
+  };
+  const buttons = choices.map((option, index) => h('button', {
+    class: 'ts-option', type: 'button', role: 'radio', 'data-label': option.label,
+    'aria-label': withIcons ? `${option.label} ${label.toLowerCase()}` : null, title: withIcons ? `${option.label} ${label.toLowerCase()}` : null,
     onclick: () => choose(option.choice),
     onkeydown: (event) => {
       const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
       if (!step) return;
       event.preventDefault();
-      const next = THEME_CHOICES[(index + step + THEME_CHOICES.length) % THEME_CHOICES.length];
-      choose(next.choice);
-      registry.focus(next.choice, event.currentTarget.parentElement);
+      const next = (index + step + choices.length) % choices.length;
+      choose(choices[next].choice);
+      buttons[next].focus();
     },
-  }, icon(option.choice)));
-  const el = h('div', { class: 'theme-switch', role: 'radiogroup', 'aria-label': 'Colour theme' }, buttons);
-  function choose(choice) {
-    writeStore(THEME_KEY, choice);
-    applyTheme(choice);
-    registry.paint();
-  }
-  registry.add(el);
-  return el;
+  }, withIcons ? icon(option.choice) : option.label));
+  registry.add({ buttons, choices, read });
+  return h('div', { class: className, role: 'radiogroup', 'aria-label': label }, buttons);
 }
 
-function themeRegistry() {
-  const groups = [];
-  return {
-    add: (el) => groups.push(el),
-    paint: () => {
-      const picked = storedTheme();
-      groups.forEach((group) => [...group.children].forEach((button, i) => {
-        const on = THEME_CHOICES[i].choice === picked;
-        button.setAttribute('aria-checked', String(on));
-        button.tabIndex = on ? 0 : -1;
-      }));
-    },
-    focus: (choice, group) => {
-      const index = THEME_CHOICES.findIndex((t) => t.choice === choice);
-      if (group && group.children[index]) group.children[index].focus();
-    },
-  };
+function themeSwitch(registry) {
+  return choiceSwitch(registry, {
+    choices: THEME_CHOICES, read: storedTheme, label: 'Theme', className: 'theme-switch', withIcons: true,
+    write: (choice) => { writeStore(THEME_KEY, choice); applyTheme(choice); },
+  });
 }
+
+function styleSwitch(registry) {
+  return choiceSwitch(registry, {
+    choices: STYLE_CHOICES, read: storedStyle, label: 'Style', className: 'theme-switch style-switch', withIcons: false,
+    write: (choice) => { writeStore(STYLE_KEY, choice); applyStyle(choice); },
+  });
+}
+
 
 
 // ---------- Page context (library builds) ----------
@@ -1082,6 +1467,273 @@ function wireSkipLink(main) {
   });
 }
 
+
+
+// ---------- Long names: soft breaks, truncation and the "?" hint ----------
+const SOFT_BREAK_MIN = 12;
+// Tokens longer than this (in characters, so it is deterministic) are shown
+// shortened in the middle with a "?" hint holding the full token.
+const TOKEN_MAX = 24;
+
+function breakToken(token) {
+  const marked = token
+    .replace(/([a-z])(?=[A-Z])/g, '$1\u0000')
+    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1\u0000')
+    .replace(/([/._\-:@])(?=[^\s/._\-:@])/g, '$1\u0000')
+    .replace(/([A-Za-z])(?=\d)|(\d)(?=[A-Za-z])/g, '$1$2\u0000');
+  // Never leave a piece under 3 characters on its own line ("Factory|B").
+  const parts = marked.split('\u0000').reduce((acc, part) => {
+    if (acc.length && (part.length < 3 || acc[acc.length - 1].length < 3)) return [...acc.slice(0, -1), acc[acc.length - 1] + part];
+    return [...acc, part];
+  }, []);
+  return parts.flatMap((part, i) => (i ? [h('wbr'), part] : [part]));
+}
+
+// Keep both ends: "AbstractSingleton…Implementation", "packages/…/handler.ts",
+// "@scope/…implementation".
+function shortenToken(token) {
+  const cut = (value, keepHead, keepTail) => `${value.slice(0, keepHead)}…${value.slice(value.length - keepTail)}`;
+  if (token.includes('/')) {
+    const parts = token.split('/').filter(Boolean);
+    const first = parts[0].length > 16 ? `${parts[0].slice(0, 14)}…` : parts[0];
+    const last = parts[parts.length - 1];
+    const tail = last.length > 18 ? cut(last, 6, 10) : last;
+    return parts.length > 1 ? `${first}/…/${tail}`.replace('…/…', '…') : cut(token, 12, 10);
+  }
+  const pieces = token.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[._:-])/);
+  if (pieces.length < 3) return cut(token, 12, 10);
+  let head = '';
+  let i = 0;
+  while (i < pieces.length && head.length < 12) { head += pieces[i]; i += 1; }
+  let tail = '';
+  let j = pieces.length - 1;
+  while (j >= i && tail.length < 10) { tail = pieces[j] + tail; j -= 1; }
+  if (head.length > 18) head = head.slice(0, 16);
+  if (tail.length > 16) tail = tail.slice(tail.length - 14);
+  return head.length + tail.length + 1 < token.length ? `${head}…${tail}` : cut(token, 12, 10);
+}
+
+// The shortened token: visible short form (not read, not copied), the full
+// token for screen readers and copy, and the hint.
+function shortToken(token) {
+  return h('span', { class: 'token-short' },
+    h('span', { class: 'token-visible', 'aria-hidden': 'true' }, shortenToken(token).split('…').flatMap((part, i) => (i ? [h('wbr'), '…', ...breakToken(part)] : breakToken(part)))),
+    h('span', { class: 'sr-only token-full' }, token),
+    tokenHint(token));
+}
+
+// Text with <wbr> at natural joints of long tokens: camelCase humps
+// (fooBar, HTTPServer), after / . _ - : @, and between letters and digits.
+// Tokens over TOKEN_MAX are shortened instead. overflow-wrap: anywhere in
+// CSS stays only as the last resort.
+function softBreaks(value) {
+  return String(value ?? '').split(/(\s+)/).flatMap((token) => {
+    if (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token)) return [token];
+    const core = token.match(/^([("'“‘[]*)(.*?)([)"'”’\].,;:!?]*)$/);
+    const [, lead, body, trail] = core || ['', '', token, ''];
+    if (body.length > TOKEN_MAX) return [lead, shortToken(body), trail].filter(Boolean);
+    return [lead, ...breakToken(body), trail].filter((part) => part !== '');
+  });
+}
+
+// Shorter forms of a path or slug, longest first: keep the first segment and
+// the file name with its :line; for a plain slug keep the start and the end.
+function middleForms(full) {
+  const parts = full.split('/');
+  if (parts.length > 2) {
+    const tails = Array.from({ length: parts.length - 2 }, (_, i) => parts.slice(parts.length - 1 - (parts.length - 3 - i)).join('/'));
+    return [...tails.map((tail) => `${parts[0]}/…/${tail}`), `…/${parts[parts.length - 1]}`];
+  }
+  const cuts = [];
+  for (let keep = full.length - 4; keep > 8; keep -= Math.max(2, Math.round(keep / 8))) {
+    const head = Math.ceil(keep * 0.4);
+    cuts.push(`${full.slice(0, head)}…${full.slice(full.length - (keep - head))}`);
+  }
+  return cuts;
+}
+
+const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, nestedWatch: null };
+
+function truncTip() {
+  if (TRUNC.tip) return TRUNC.tip;
+  const tip = h('div', { class: 'trunc-tip', id: 'trunc-tip', role: 'tooltip', hidden: true });
+  if (typeof tip.showPopover === 'function') tip.setAttribute('popover', 'manual');
+  document.body.append(tip);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') hideTip(); });
+  document.addEventListener('pointerdown', (event) => {
+    if (TRUNC.anchor && !TRUNC.anchor.contains(event.target)) hideTip();
+  });
+  window.addEventListener('scroll', () => { if (!TRUNC.pinned) hideTip(); }, { passive: true });
+  TRUNC.tip = tip;
+  return tip;
+}
+
+function showTip(anchor, full, pinned = false) {
+  const tip = truncTip();
+  tip.textContent = full;
+  tip.hidden = false;
+  if (tip.showPopover && !tip.matches(':popover-open')) tip.showPopover();
+  const box = anchor.getBoundingClientRect();
+  const width = Math.min(tip.offsetWidth, window.innerWidth - 16);
+  const left = Math.min(Math.max(8, box.left + box.width / 2 - width / 2), window.innerWidth - width - 8);
+  const below = box.bottom + 6 + tip.offsetHeight <= window.innerHeight - 8;
+  tip.style.left = `${left}px`;
+  tip.style.top = `${below ? box.bottom + 6 : Math.max(8, box.top - 6 - tip.offsetHeight)}px`;
+  if (TRUNC.anchor && TRUNC.anchor !== anchor) TRUNC.anchor.setAttribute('aria-expanded', 'false');
+  TRUNC.anchor = anchor;
+  TRUNC.pinned = pinned;
+  if (anchor.tagName === 'BUTTON') anchor.setAttribute('aria-expanded', 'true');
+}
+
+function hideTip() {
+  const tip = TRUNC.tip;
+  if (!tip || tip.hidden) return;
+  if (tip.hidePopover && tip.matches(':popover-open')) tip.hidePopover();
+  tip.hidden = true;
+  if (TRUNC.anchor && TRUNC.anchor.tagName === 'BUTTON') TRUNC.anchor.setAttribute('aria-expanded', 'false');
+  TRUNC.anchor = null;
+  TRUNC.pinned = false;
+}
+
+// The hint for a shortened token. It starts as a button; inside a link or
+// button (known only once attached) it becomes a plain marker instead.
+function tokenHint(full) {
+  const button = h('button', {
+    class: 'trunc-hint token-hint', type: 'button', 'aria-label': 'Show full name', 'aria-expanded': 'false', 'aria-describedby': 'trunc-tip',
+  }, '?');
+  wireHintButton(button, full);
+  button.dataset.full = full;
+  watchNestedHints();
+  return button;
+}
+
+function wireHintButton(button, full) {
+  button.addEventListener('mouseenter', () => showTip(button, full));
+  button.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+  button.addEventListener('focus', () => showTip(button, full));
+  button.addEventListener('blur', () => { if (!TRUNC.pinned) hideTip(); });
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (TRUNC.anchor === button && TRUNC.pinned) hideTip(); else showTip(button, full, true);
+  });
+}
+
+// A button inside a link or button is invalid: swap such token hints for
+// plain markers as soon as they are attached.
+function fixNestedHints(root) {
+  const hints = root.matches && root.matches('button.token-hint') ? [root] : [...(root.querySelectorAll ? root.querySelectorAll('button.token-hint') : [])];
+  hints.forEach((button) => {
+    const host = button.parentElement && button.parentElement.closest('a, button, [role="button"], [role="radio"], [role="option"]');
+    if (!host) return;
+    const mark = h('span', { class: 'trunc-hint token-hint', 'aria-hidden': 'true' }, '?');
+    const full = button.dataset.full;
+    mark.addEventListener('mouseenter', () => showTip(mark, full));
+    mark.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+    button.replaceWith(mark);
+  });
+}
+
+function watchNestedHints() {
+  if (TRUNC.nestedWatch || !('MutationObserver' in window)) return;
+  TRUNC.nestedWatch = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => {
+    if (node.nodeType === 1) fixNestedHints(node);
+  })));
+  TRUNC.nestedWatch.observe(document.documentElement, { childList: true, subtree: true });
+}
+
+// Inside a link or button a nested button is invalid, so the hint is a plain
+// marker there, shown on hover and when the link itself has focus.
+function truncHint(el, full) {
+  const host = el.parentElement && el.parentElement.closest('a, button, [role="button"]');
+  if (host) {
+    const mark = h('span', { class: 'trunc-hint', 'aria-hidden': 'true' }, '?');
+    mark.addEventListener('mouseenter', () => showTip(mark, full));
+    mark.addEventListener('mouseleave', () => { if (!TRUNC.pinned) hideTip(); });
+    host.addEventListener('focus', () => { if (mark.isConnected) showTip(mark, full); });
+    host.addEventListener('blur', () => { if (TRUNC.anchor === mark) hideTip(); });
+    return mark;
+  }
+  const button = h('button', {
+    class: 'trunc-hint', type: 'button', 'aria-label': 'Show full name', 'aria-expanded': 'false', 'aria-describedby': 'trunc-tip',
+  }, '?');
+  wireHintButton(button, full);
+  return button;
+}
+
+function isCut(el) {
+  return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight + 1;
+}
+
+// Exact width of the visible text against the content box: CSS ellipsis
+// appears at any sub-pixel overflow, which rounded scrollWidth can miss.
+function textFits(el, span) {
+  const style = getComputedStyle(el);
+  // Fractional widths: clientWidth rounds and would call an exact fit a cut.
+  const room = el.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
+  // Ellipsis shows on any real overflow; a box sized to its text is equal.
+  return span.getBoundingClientRect().width <= room + 0.05;
+}
+
+function checkTruncation(el) {
+  const state = el.__trunc;
+  if (!state || !el.isConnected || !el.getClientRects().length) return;
+  el.classList.remove('is-truncated');
+  if (state.hint) state.hint.remove();
+  if (state.mode === 'middle') state.visible.textContent = state.full;
+  let cut = state.mode === 'middle' ? !textFits(el, state.visible) : isCut(el);
+  if (cut) {
+    el.classList.add('is-truncated');
+    if (state.mode === 'middle') {
+      const forms = middleForms(state.full);
+      const fits = forms.find((form) => { state.visible.textContent = form; return textFits(el, state.visible); });
+      if (!fits) state.visible.textContent = forms[forms.length - 1] || state.full;
+    }
+    cut = true;
+    state.hint = state.hint || truncHint(el, state.full);
+    el.append(state.hint);
+  }
+  el.dataset.truncated = String(cut);
+}
+
+/**
+ * Mark an element whose text may be cut (CSS ellipsis or line clamp, or
+ * mode "middle" for paths). A "?" hint with the full text appears only while
+ * the text is really cut.
+ */
+function truncatable(el, full, { mode = 'end' } = {}) {
+  const text = String(full ?? '');
+  el.removeAttribute('title');
+  el.classList.add('truncatable');
+  if (mode === 'middle') {
+    const visible = h('span', { class: 'trunc-visible', 'aria-hidden': 'true' }, text);
+    fill(el, visible, h('span', { class: 'sr-only' }, text));
+    el.__trunc = { full: text, mode, visible, hint: null };
+  } else {
+    el.__trunc = { full: text, mode, hint: null };
+  }
+  if (!TRUNC.observer && 'ResizeObserver' in window) {
+    TRUNC.observer = new ResizeObserver((entries) => entries.forEach((entry) => checkTruncation(entry.target)));
+    // Web fonts load after first render; widths change when they land.
+    if (document.fonts) {
+      document.fonts.ready.then(recheckTruncation);
+      document.fonts.addEventListener('loadingdone', recheckTruncation);
+    }
+  }
+  TRUNC.watched.add(el);
+  if (TRUNC.observer) TRUNC.observer.observe(el);
+  return el;
+}
+
+// Re-check every watched element, for example after a style switch.
+function recheckTruncation() {
+  TRUNC.watched.forEach((el) => {
+    if (!el.isConnected) TRUNC.watched.delete(el);
+    else checkTruncation(el);
+  });
+}
+
 // ---- icons.js ----
 // Hairline icons for each component kind: one stroke weight, no fills,
 // drawn in currentColor so they follow the text colour and the theme.
@@ -1102,8 +1754,19 @@ const LAYER_MARKERS = {
 const PALETTE = Object.fromEntries(Object.entries(LAYER_MARKERS)
   .map(([name, hex]) => [name, { ink: hex, wash: hex, text: hex }]));
 
+// The Playful style shows the original saturated layer colours.
+const PLAYFUL_LAYERS = {
+  green: '#58cc02', blue: '#1cb0f6', navy: '#042c60', midnight: '#000437', yellow: '#ffc800', pink: '#ff86d0',
+};
+
 function paletteFor(name) {
   return PALETTE[name] || PALETTE.green;
+}
+
+// Inline custom properties for a layer marker; CSS picks one per style.
+function layerStyle(name) {
+  const key = PALETTE[name] ? name : 'green';
+  return `--layer-clean:${PALETTE[key].ink};--layer-fun:${PLAYFUL_LAYERS[key]}`;
 }
 
 const ICON_SHAPES = {
@@ -1194,6 +1857,16 @@ const ICON_SHAPES = {
   dark: () => [
     s('path', { d: 'M19.2 14.4A7.8 7.8 0 019.6 4.8a7.8 7.8 0 109.6 9.6z' }),
   ],
+  settings: () => [
+    s('circle', { cx: 12, cy: 12, r: 3 }),
+    s('path', { d: 'M12 2.8l1.6 2.3 2.7-.6.6 2.7 2.3 1.6-1.2 2.5 1.2 2.5-2.3 1.6-.6 2.7-2.7-.6L12 21.2l-1.6-2.3-2.7.6-.6-2.7-2.3-1.6 1.2-2.5-1.2-2.5 2.3-1.6.6-2.7 2.7.6z' }),
+  ],
+  download: () => [
+    s('path', { d: 'M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14' }),
+  ],
+  upload: () => [
+    s('path', { d: 'M12 15.5V4.5M7.5 9L12 4.5 16.5 9M5 19.5h14' }),
+  ],
   library_shelf: () => [
     s('rect', { x: 3.5, y: 3.5, width: 7, height: 7, rx: 1 }),
     s('rect', { x: 13.5, y: 3.5, width: 7, height: 7, rx: 1 }),
@@ -1202,24 +1875,148 @@ const ICON_SHAPES = {
   ],
 };
 
+// The Playful set: flat, filled shapes on a 32 grid (the original kit).
+const PLAYFUL_SHAPES = {
+  user: () => [
+    s('circle', { cx: 16, cy: 11, r: 6, fill: '#ffc800' }),
+    s('path', { d: 'M5 29c0-6.5 4.9-11 11-11s11 4.5 11 11z', fill: '#1cb0f6' }),
+  ],
+  ui: () => [
+    s('rect', { x: 3, y: 5, width: 26, height: 22, rx: 4, fill: '#1cb0f6' }),
+    s('rect', { x: 6, y: 11, width: 20, height: 13, rx: 2, fill: '#fff' }),
+    s('circle', { cx: 7.5, cy: 8, r: 1.3, fill: '#fff' }),
+    s('circle', { cx: 11.5, cy: 8, r: 1.3, fill: '#fff' }),
+    s('rect', { x: 9, y: 14, width: 9, height: 3, rx: 1.5, fill: '#58cc02' }),
+    s('rect', { x: 9, y: 19, width: 14, height: 2, rx: 1, fill: '#e5e5e5' }),
+  ],
+  mobile: () => [
+    s('rect', { x: 8, y: 2, width: 16, height: 28, rx: 4, fill: '#042c60' }),
+    s('rect', { x: 10.5, y: 6, width: 11, height: 18, rx: 2, fill: '#fff' }),
+    s('rect', { x: 12.5, y: 9, width: 7, height: 3, rx: 1.5, fill: '#58cc02' }),
+    s('circle', { cx: 16, cy: 27, r: 1.3, fill: '#fff' }),
+  ],
+  api: () => [
+    s('rect', { x: 4, y: 9, width: 24, height: 14, rx: 7, fill: '#58cc02' }),
+    s('rect', { x: 9, y: 4, width: 3, height: 6, rx: 1.5, fill: '#58a700' }),
+    s('rect', { x: 20, y: 4, width: 3, height: 6, rx: 1.5, fill: '#58a700' }),
+    s('path', { d: 'M11 16h10M18 13l3 3-3 3', stroke: '#fff', 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    s('rect', { x: 14.5, y: 23, width: 3, height: 6, rx: 1.5, fill: '#58a700' }),
+  ],
+  service: () => [
+    s('path', { d: 'M16 2l12 7v14l-12 7-12-7V9z', fill: '#042c60' }),
+    s('circle', { cx: 16, cy: 16, r: 5.5, fill: '#fff' }),
+    s('circle', { cx: 16, cy: 16, r: 2.5, fill: '#58cc02' }),
+  ],
+  db: () => [
+    s('path', { d: 'M5 8v16c0 2.8 4.9 5 11 5s11-2.2 11-5V8z', fill: '#1cb0f6' }),
+    s('ellipse', { cx: 16, cy: 8, rx: 11, ry: 5, fill: '#ddf4ff', stroke: '#1cb0f6', 'stroke-width': 2 }),
+    s('path', { d: 'M5 16c0 2.8 4.9 5 11 5s11-2.2 11-5', stroke: '#fff', 'stroke-width': 2, fill: 'none' }),
+  ],
+  queue: () => [
+    s('rect', { x: 3, y: 9, width: 7, height: 14, rx: 3, fill: '#ff86d0' }),
+    s('rect', { x: 12.5, y: 9, width: 7, height: 14, rx: 3, fill: '#ff86d0', opacity: 0.75 }),
+    s('rect', { x: 22, y: 9, width: 7, height: 14, rx: 3, fill: '#ff86d0', opacity: 0.45 }),
+  ],
+  cache: () => [
+    s('circle', { cx: 16, cy: 16, r: 13, fill: '#fff5d3' }),
+    s('path', { d: 'M18 4L8 18h7l-2 10 11-15h-7z', fill: '#ffc800', stroke: '#a56d00', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }),
+  ],
+  external: () => [
+    s('path', { d: 'M9 25a6 6 0 01-.8-11.9A8 8 0 0123.6 11 6.5 6.5 0 0124 25z', fill: '#1cb0f6' }),
+    s('path', { d: 'M12 19h8', stroke: '#fff', 'stroke-width': 2.5, 'stroke-linecap': 'round' }),
+  ],
+  job: () => [
+    s('circle', { cx: 16, cy: 16, r: 13, fill: '#58cc02' }),
+    s('circle', { cx: 16, cy: 16, r: 9.5, fill: '#fff' }),
+    s('path', { d: 'M16 10v6.5l4 2.5', stroke: '#042c60', 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round' }),
+  ],
+  cli: () => [
+    s('rect', { x: 3, y: 5, width: 26, height: 22, rx: 4, fill: '#000437' }),
+    s('path', { d: 'M8 12l4 4-4 4', stroke: '#a5ed6e', 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    s('path', { d: 'M15 21h8', stroke: '#fff', 'stroke-width': 2.5, 'stroke-linecap': 'round' }),
+  ],
+  auth: () => [
+    s('path', { d: 'M10 14v-3a6 6 0 0112 0v3', stroke: '#042c60', 'stroke-width': 3, fill: 'none' }),
+    s('rect', { x: 6, y: 13, width: 20, height: 16, rx: 4, fill: '#ffc800' }),
+    s('circle', { cx: 16, cy: 20, r: 2.5, fill: '#042c60' }),
+    s('rect', { x: 15, y: 21, width: 2, height: 4, rx: 1, fill: '#042c60' }),
+  ],
+  storage: () => [
+    s('path', { d: 'M3 9a3 3 0 013-3h7l3 3h10a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3z', fill: '#ffc800' }),
+    s('rect', { x: 3, y: 12, width: 26, height: 15, rx: 3, fill: '#ffd84d' }),
+  ],
+  library: () => [
+    s('rect', { x: 4, y: 5, width: 7, height: 23, rx: 2, fill: '#58cc02' }),
+    s('rect', { x: 12.5, y: 8, width: 7, height: 20, rx: 2, fill: '#1cb0f6' }),
+    s('rect', { x: 21, y: 4, width: 7, height: 24, rx: 2, fill: '#ff86d0', transform: 'rotate(8 24.5 16)' }),
+  ],
+  folder: () => [
+    s('path', { d: 'M3 9a3 3 0 013-3h7l3 3h10a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3z', fill: '#1cb0f6' }),
+  ],
+  file: () => [
+    s('path', { d: 'M8 3h11l6 6v19a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1z', fill: '#e5e5e5' }),
+    s('path', { d: 'M19 3v6h6', fill: '#cfcfcf' }),
+  ],
+  robot: () => [
+    s('rect', { x: 6, y: 9, width: 20, height: 17, rx: 5, fill: '#1cb0f6' }),
+    s('circle', { cx: 12, cy: 17, r: 2.5, fill: '#fff' }),
+    s('circle', { cx: 20, cy: 17, r: 2.5, fill: '#fff' }),
+    s('rect', { x: 15, y: 3, width: 2, height: 6, fill: '#042c60' }),
+    s('circle', { cx: 16, cy: 3, r: 2, fill: '#ffc800' }),
+  ],
+  trophy: () => [
+    s('path', { d: 'M9 4h14v7a7 7 0 01-14 0z', fill: '#ffc800' }),
+    s('path', { d: 'M9 6H5a4 4 0 004 6M23 6h4a4 4 0 01-4 6', stroke: '#ffc800', 'stroke-width': 2.5, fill: 'none' }),
+    s('rect', { x: 14, y: 17, width: 4, height: 6, fill: '#a56d00' }),
+    s('rect', { x: 9, y: 23, width: 14, height: 5, rx: 2, fill: '#58cc02' }),
+  ],
+};
+
 const KIND_ALIASES = { frontend: 'ui', web: 'ui', page: 'ui', server: 'service', worker: 'job', cron: 'job', database: 'db', bucket: 'storage', thirdparty: 'external', package: 'library' };
+
+// In a page, each icon carries both sets and the style picks one in CSS, so
+// switching style needs no re-render. Exported files (no document) get the
+// hairline set only.
+const HAS_DOCUMENT = typeof document !== 'undefined';
 
 function icon(kind, attrs = {}) {
   const key = ICON_SHAPES[kind] ? kind : KIND_ALIASES[kind] || 'service';
+  const clean = ICON_SHAPES[key]();
+  const playful = PLAYFUL_SHAPES[key];
+  const children = HAS_DOCUMENT && playful
+    ? [s('g', { class: 'ico-clean' }, clean), s('g', { class: 'ico-playful', transform: 'scale(0.75)', stroke: 'none' }, playful())]
+    : clean;
   return s('svg', {
     viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5,
     'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', ...attrs,
-  }, ICON_SHAPES[key]());
+  }, children);
 }
 
 // The mark: an orange tile holding a tiny three-part map, drawn as hairlines.
-function brandMark() {
-  return s('svg', { viewBox: '0 0 32 32', 'aria-hidden': 'true', focusable: 'false', class: 'brand-mark' },
+// Playful pages show the original green tile instead.
+function brandMarkClean() {
+  return [
     s('rect', { class: 'brand-mark-tile', x: 2, y: 2, width: 28, height: 28, rx: 6, fill: '#fc5e32' }),
     s('path', { d: 'M10.5 11h11M10.5 11l5.5 10.5M21.5 11L16 21.5', fill: 'none', stroke: '#ffffff', 'stroke-width': 1.75, 'stroke-linecap': 'round' }),
     s('circle', { cx: 10.5, cy: 11, r: 2.5, fill: '#ffffff' }),
     s('circle', { cx: 21.5, cy: 11, r: 2.5, fill: '#ffffff' }),
-    s('circle', { cx: 16, cy: 21.5, r: 2.5, fill: '#ffffff' }));
+    s('circle', { cx: 16, cy: 21.5, r: 2.5, fill: '#ffffff' }),
+  ];
+}
+
+function brandMarkPlayful() {
+  return [
+    s('rect', { x: 2, y: 2, width: 28, height: 28, rx: 9, fill: '#58cc02' }),
+    s('path', { d: 'M9 21l5-10 4 7 2-3 3 6', stroke: '#fff', 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    s('circle', { cx: 23, cy: 11, r: 2.5, fill: '#ffc800' }),
+  ];
+}
+
+function brandMark() {
+  const children = HAS_DOCUMENT
+    ? [s('g', { class: 'ico-clean' }, brandMarkClean()), s('g', { class: 'ico-playful' }, brandMarkPlayful())]
+    : brandMarkClean();
+  return s('svg', { viewBox: '0 0 32 32', 'aria-hidden': 'true', focusable: 'false', class: 'brand-mark' }, children);
 }
 
 // ---- map.js ----
@@ -1289,14 +2086,14 @@ function renderMap(data, mount) {
     const flows = list(data.flows).filter((flow) => list(flow.steps).some((st) => st.from === node.id || st.to === node.id));
     return [h('div', { class: 'detail-main' },
       h('div', { class: 'step-top' }, h('span', { class: 'detail-icon' }, icon(node.kind)), tag(text(layer && layer.label, node.layer), 'tag-layer'), node.kind && tag(node.kind)),
-      h('h3', null, node.label),
-      h('p', null, text(node.summary, 'No summary yet.')),
-      node.tech && h('p', { class: 'detail-tech' }, node.tech),
+      h('h3', null, softBreaks(node.label)),
+      h('p', null, softBreaks(text(node.summary, 'No summary yet.'))),
+      node.tech && h('p', { class: 'detail-tech' }, softBreaks(node.tech)),
       list(node.files).length > 0 && [h('div', { class: 'detail-label' }, 'Lives in'), h('div', { class: 'files' }, list(node.files).map(fileChip))]),
     h('div', { class: 'detail-side' },
       links.length > 0 && [h('div', { class: 'detail-label' }, 'Talks to'), h('ul', { class: 'rel' }, links.map((edge) => relationItem(edge, node.id)))],
       flows.length > 0 && [h('div', { class: 'detail-label' }, 'Shows up in'), h('ul', { class: 'rel' }, flows.map((flow) => h('li', null,
-        h('a', { class: 'link', href: `#flows/${linkPart(flow.id)}` }, flow.title))))]),
+        h('a', { class: 'link', href: `#flows/${linkPart(flow.id)}` }, softBreaks(flow.title)))))]),
     ];
   }
 
@@ -1305,7 +2102,7 @@ function renderMap(data, mount) {
     const other = nodeIndex.get(otherId);
     const direction = edge.from === selfId ? '→' : '←';
     return h('li', null, h('span', { class: 'arrow-glyph' }, direction),
-      h('button', { class: 'link', type: 'button', onclick: () => select(otherId) }, other ? other.label : otherId),
+      h('button', { class: 'link', type: 'button', onclick: () => select(otherId) }, softBreaks(other ? other.label : otherId)),
       edge.label && tag(edge.label));
   }
 
@@ -1328,9 +2125,11 @@ function renderMap(data, mount) {
     const d = connectorPath(a, b);
     const key = `${edge.from}→${edge.to}`;
     const mid = { x: (a.cx + b.cx) / 2, y: (a.cy + b.cy) / 2 };
+    // No label when the boxes almost touch: it would sit on top of them.
+    const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
     return s('g', { 'data-edge': key },
       s('path', { class: `edge${edge.kind === 'async' ? ' is-async' : ''}`, d, 'marker-end': 'url(#map-arrow)' }),
-      edge.label && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
+      edge.label && gap > 36 && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
   }
 
   function showChanges() {
@@ -1354,8 +2153,15 @@ function renderMap(data, mount) {
       h('span', null, h('i', { class: 'dash' }), 'Async / events'),
       changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently')),
   );
-  const redraw = () => window.requestAnimationFrame(drawEdges);
-  new ResizeObserver(redraw).observe(canvas);
+  // As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto
+  // the next row, so the map never scrolls sideways.
+  const fitColumns = () => {
+    const width = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+    const fit = Math.max(1, Math.min(layers.length, Math.floor((width + MAP_GAP) / (MAP_MIN_COL + MAP_GAP))));
+    if (canvas.style.getPropertyValue('--fit-cols') !== String(fit)) canvas.style.setProperty('--fit-cols', String(fit));
+  };
+  const redraw = () => window.requestAnimationFrame(() => { fitColumns(); drawEdges(); });
+  new ResizeObserver(redraw).observe(canvas.parentElement || canvas);
   if (document.fonts) document.fonts.ready.then(redraw);
   return {
     open([id] = []) {
@@ -1366,17 +2172,19 @@ function renderMap(data, mount) {
   };
 }
 
+const MAP_MIN_COL = 150;
+const MAP_GAP = 40;
+
 function mapColumn(layer, nodes, changedIds, onSelect) {
-  const colors = paletteFor(layer.color);
   const layerNodes = nodes.filter((node) => node.layer === layer.id);
-  return h('div', { class: 'map-col', style: `--layer:${colors.ink}` },
-    h('div', { class: 'map-col-head', title: layer.label }, h('span', { class: 'map-col-name' }, layer.label)),
+  return h('div', { class: 'map-col', style: layerStyle(layer.color) },
+    h('div', { class: 'map-col-head' }, truncatable(h('span', { class: 'map-col-name' }, softBreaks(layer.label)), layer.label)),
     layerNodes.map((node) => h('button', {
       class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),
     },
     changedIds.has(node.id) && h('span', { class: 'node-badge tag tag-new' }, 'New'),
     h('span', { class: 'node-icon' }, icon(node.kind)),
-    h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, node.label), node.tech && h('span', { class: 'node-tech' }, node.tech)))));
+    h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, softBreaks(node.label)), node.tech && truncatable(h('span', { class: 'node-tech' }, softBreaks(node.tech)), node.tech)))));
 }
 
 function relativeRect(el, box) {
@@ -1510,8 +2318,8 @@ function renderModels(data, mount) {
     const rels = edges.filter((e) => e.from === model.name || e.to === model.name);
     return [
       h('div', { class: 'er-detail-head' },
-        h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), model.name),
-        model.summary && h('p', null, model.summary)),
+        h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
+        model.summary && h('p', null, softBreaks(model.summary))),
       h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
         h('div', { class: 'er-row er-row-head', role: 'row' },
           h('span', { role: 'columnheader' }, 'Field'), h('span', { role: 'columnheader' }, 'Type'), h('span', { role: 'columnheader' }, 'Meaning')),
@@ -1523,8 +2331,8 @@ function renderModels(data, mount) {
           const [a, b] = edge.from === model.name ? edge.ends : [...edge.ends].reverse();
           return h('li', null,
             tag(`${a || '?'} : ${b || '?'}`),
-            h('span', null, `${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `),
-            h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, other));
+            h('span', null, softBreaks(`${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `)),
+            h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, softBreaks(other)));
         }))),
     ];
   }
@@ -1562,10 +2370,10 @@ function entityBox(model, index, modelNames, onSelect) {
     class: 'entity', type: 'button', 'data-entity': model.name, 'aria-pressed': 'false',
     style: `grid-column:${col} / span 2;grid-row:${row + 1}`, onclick: onSelect,
   },
-  h('span', { class: 'entity-head' }, h('span', { class: 'node-icon' }, icon('db')), h('span', { class: 'entity-name' }, model.name), h('span', { class: 'entity-count' }, `${list(model.fields).length} fields`)),
+  h('span', { class: 'entity-head' }, h('span', { class: 'node-icon' }, icon('db')), h('span', { class: 'entity-name' }, softBreaks(model.name)), h('span', { class: 'entity-count' }, `${list(model.fields).length} fields`)),
   keys.length > 0 && h('span', { class: 'entity-keys' }, keys.map((f) => {
     const b = fieldBadges(f, modelNames);
-    return h('span', { class: 'entity-key' }, h('span', { class: `key-badge ${b.isPk ? 'is-pk' : 'is-fk'}` }, b.isPk ? 'PK' : 'FK'), h('span', null, f.name));
+    return h('span', { class: 'entity-key' }, h('span', { class: `key-badge ${b.isPk ? 'is-pk' : 'is-fk'}` }, b.isPk ? 'PK' : 'FK'), h('span', null, softBreaks(f.name)));
   })));
 }
 
@@ -1578,7 +2386,7 @@ function fieldRow(field, modelNames, select) {
       b.isFk && h('span', { class: 'key-badge is-fk' }, 'FK'),
       b.fkTarget && h('button', { class: 'link er-fk', type: 'button', onclick: () => select(b.fkTarget) }, `→ ${b.fkTarget}`)),
     h('span', { class: 'er-type', role: 'cell' }, h('code', null, text(field.type, 'any'))),
-    h('span', { class: 'er-note', role: 'cell' }, text(field.note, '')));
+    h('span', { class: 'er-note', role: 'cell' }, softBreaks(text(field.note, ''))));
 }
 
 function relationShape(edge, grid, box) {
@@ -1610,6 +2418,8 @@ function relationShape(edge, grid, box) {
 const SEQ = { minCol: 130, maxCol: 220, head: 64, top: 40, row: 58, pad: 20 };
 const DASHED_KINDS = new Set(['response', 'async']);
 const FLOW_SIDE_BY_SIDE = '(min-width: 1180px)';
+const FLOW_CARD_WIDTH = 380;
+const LABEL_CHAR = 6.6;
 
 function renderFlows(data, mount) {
   const flows = list(data.flows);
@@ -1630,11 +2440,21 @@ function renderFlows(data, mount) {
     if (headsWrap.firstElementChild) headsWrap.firstElementChild.style.transform = `translateX(${-bodyWrap.scrollLeft}px)`;
   }, { passive: true });
   const panel = h('div', { class: 'panel step-card', 'aria-live': 'polite' });
-  const root = h('div', { class: 'flow-player' }, picker, meta, h('div', { class: 'flow-layout' }, seqWrap, panel));
+  const layout = h('div', { class: 'flow-layout' }, seqWrap, panel);
+  const root = h('div', { class: 'flow-player' }, picker, meta, layout);
+  // Side by side only when the widest flow fits beside the step card without
+  // sideways scrolling; otherwise the card comes first and the diagram gets
+  // the full width. Decided for the whole page, so flows do not jump around.
+  const widest = Math.max(...flows.map((f) => flowActors(list(f.steps)).length), 1);
+  const fitsBeside = () => window.matchMedia(FLOW_SIDE_BY_SIDE).matches
+    && root.clientWidth - FLOW_CARD_WIDTH - 16 >= widest * SEQ.minCol + SEQ.pad * 2;
   let lastWidth = 0;
   new ResizeObserver(() => {
-    if (Math.abs(seqWrap.clientWidth - lastWidth) > 24) { lastWidth = seqWrap.clientWidth; render(); }
-  }).observe(seqWrap);
+    if (Math.abs(root.clientWidth - lastWidth) <= 24) return;
+    lastWidth = root.clientWidth;
+    layout.classList.toggle('is-stacked', !fitsBeside());
+    render();
+  }).observe(root);
   // The step card follows the reader only while it fits on screen: no inner scroll areas.
   new ResizeObserver(() => {
     panel.classList.toggle('is-static', panel.offsetHeight > window.innerHeight - 96);
@@ -1661,10 +2481,10 @@ function renderFlows(data, mount) {
       onclick: () => setState({ flowIndex: i, stepIndex: 0, finished: false }),
     },
     h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
-    h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, f.title)))));
+    h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title))))));
     fill(meta,
-      flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, flow.trigger)),
-      flow.summary && h('p', { class: 'flow-summary' }, flow.summary));
+      flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
+      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)));
     const diagram = sequenceDiagram(flow, nodeIndex, state.finished ? list(flow.steps).length : state.stepIndex, go, bodyWrap.clientWidth);
     fill(headsWrap, diagram.heads);
     fill(bodyWrap, diagram.body);
@@ -1677,7 +2497,7 @@ function renderFlows(data, mount) {
     }
     if (animate) slideIn(panel.firstElementChild, state.direction);
     // Stacked layouts keep the reader at the Continue button instead.
-    if (animate && !state.finished && window.matchMedia(FLOW_SIDE_BY_SIDE).matches) revealCurrentStep(diagram.body);
+    if (animate && !state.finished && !layout.classList.contains('is-stacked')) revealCurrentStep(diagram.body);
     if (animate && state.finished) pop(panel.querySelector('.trophy'));
   }
 
@@ -1692,12 +2512,12 @@ function renderFlows(data, mount) {
         h('span', { class: 'step-count' }, `Step ${state.stepIndex + 1} of ${steps.length}`),
         step.kind && tag(step.kind, `tag-${step.kind}`)),
       h('div', { class: 'step-route' },
-        h('span', { class: 'route-part' }, from && icon(from.kind), text(from && from.label, step.from)),
+        h('span', { class: 'route-part' }, from && icon(from.kind), softBreaks(text(from && from.label, step.from))),
         h('span', { class: 'arrow-glyph', 'aria-hidden': 'true' }, step.from === step.to ? '↺' : '→'),
-        step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), text(to && to.label, step.to))),
-      h('h3', null, step.label),
-      step.detail && h('p', null, step.detail),
-      step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, step.why))),
+        step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), softBreaks(text(to && to.label, step.to)))),
+      h('h3', null, softBreaks(step.label)),
+      step.detail && h('p', null, softBreaks(step.detail)),
+      step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
       (step.file || step.code) && h('div', { class: 'step-code' },
         step.file && h('div', { class: 'code-head' }, fileChip(step.file)),
         step.code && codeBlock(step.code, step.lang))),
@@ -1716,7 +2536,7 @@ function renderFlows(data, mount) {
     return [h('div', { class: 'flow-done' },
       h('span', { class: 'trophy' }, icon('trophy')),
       h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
-      h('h3', null, flow.title),
+      h('h3', null, softBreaks(flow.title)),
       h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
@@ -1797,7 +2617,11 @@ function sequenceStep(step, i, currentIndex, xOf, width, go, col) {
   const d = self
     ? `M${x1},${y} h44 v18 h-40`
     : `M${x1 + dir * 12},${y} L${x2 - dir * 8},${y}`;
-  const labelX = self ? x1 + 52 : (x1 + x2) / 2;
+  // A label may run past a short hop, but always stays inside the diagram.
+  const room = self ? width - (x1 + 52) - SEQ.pad : Math.max(Math.abs(x2 - x1), col * 1.6) - 12;
+  const label = truncate(step.label, Math.max(10, Math.floor(room / LABEL_CHAR)));
+  const half = (label.length * LABEL_CHAR) / 2;
+  const labelX = self ? x1 + 52 : Math.min(Math.max((x1 + x2) / 2, half + 6), width - half - 6);
   const group = s('g', {
     class: `seq-step ${status}${DASHED_KINDS.has(step.kind) ? ' is-dashed' : ''}`,
     role: 'button', tabindex: '0', 'aria-label': `Step ${i + 1}: ${step.label}`,
@@ -1810,8 +2634,7 @@ function sequenceStep(step, i, currentIndex, xOf, width, go, col) {
     : { class: 'arrow', d, 'marker-end': `url(#seq-arrow-${status})` }),
   s('circle', { class: 'badge-bg', cx: x1, cy: y, r: 10 }),
   s('text', { class: 'badge-num', x: x1, y: y + 3.5, 'text-anchor': 'middle' }, String(i + 1)),
-  s('text', { class: 'label', x: labelX, y: y - 10, 'text-anchor': self ? 'start' : 'middle' },
-    truncate(step.label, Math.max(14, Math.floor(((self ? col : Math.abs(x2 - x1)) - 16) / 6.6))), s('title', null, step.label)));
+  s('text', { class: 'label', x: labelX, y: y - 10, 'text-anchor': self ? 'start' : 'middle' }, label, s('title', null, step.label)));
 
   if (i === 0) group.prepend(seqMarkers());
   if (status === 'is-current' && !reducedMotion()) {
@@ -1942,18 +2765,18 @@ function changeItem(change, nodeIndex, isTarget) {
       h('div', { class: 'change-top' },
         h('span', null, formatDate(change.date)),
         change.ref && (url
-          ? h('a', { class: 'link', href: safeUrl(change.url), target: '_blank', rel: 'noopener noreferrer' }, change.ref)
-          : h('span', null, change.ref)),
+          ? h('a', { class: 'link', href: safeUrl(change.url), target: '_blank', rel: 'noopener noreferrer' }, softBreaks(change.ref))
+          : h('span', null, softBreaks(change.ref))),
         tag(isAgent ? 'Agent' : 'Human', isAgent ? 'tag-agent' : 'tag-human'),
-        change.author && h('span', null, change.author),
+        change.author && h('span', null, softBreaks(change.author)),
         change.kind && tag(change.kind)),
-      h('h3', null, change.title),
-      change.what && h('p', null, change.what),
-      change.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why'), h('p', null, change.why)),
-      change.risk && h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'Risk'), h('p', null, change.risk)),
+      h('h3', null, softBreaks(change.title)),
+      change.what && h('p', null, softBreaks(change.what)),
+      change.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why'), h('p', null, softBreaks(change.why))),
+      change.risk && h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'Risk'), h('p', null, softBreaks(change.risk))),
       list(change.nodes).length > 0 && h('div', { class: 'change-nodes' }, list(change.nodes).map((id) => {
         const node = nodeIndex.get(id);
-        return h('a', { class: 'chip', href: `#map/${linkPart(id)}`, title: node ? node.label : id }, node ? node.label : id);
+        return h('a', { class: 'chip', href: `#map/${linkPart(id)}` }, truncatable(h('span', { class: 'chip-text' }, softBreaks(node ? node.label : id)), node ? node.label : id));
       })),
       list(change.files).length > 0 && h('div', { class: 'change-nodes' }, list(change.files).slice(0, 6).map(fileChip))));
 }
@@ -1965,7 +2788,7 @@ function formatDate(value) {
 }
 
 // ---- lessons.js ----
-// Chapters: key concepts (one idea per card) and the check-yourself quiz.
+// Chapter: key concepts, one idea per card. (The quiz follows.)
 function renderConcepts(data, mount) {
   const concepts = list(data.concepts);
   if (!concepts.length) return null;
@@ -1986,9 +2809,9 @@ function renderConcepts(data, mount) {
     const concept = concepts[index];
     fill(card,
       h('span', { class: 'step-count' }, `Idea ${index + 1} of ${concepts.length}`),
-      h('h3', null, concept.title),
-      h('p', { class: 'concept-body' }, concept.body),
-      concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, concept.analogy)),
+      h('h3', null, softBreaks(concept.title)),
+      h('p', { class: 'concept-body' }, softBreaks(concept.body)),
+      concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, softBreaks(concept.analogy))),
       concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),
       controls,
@@ -2011,73 +2834,1162 @@ function renderConcepts(data, mount) {
   };
 }
 
-function renderQuiz(data, mount) {
-  const questions = list(data.quiz);
-  if (!questions.length) return null;
-  let results = {};
-  const bar = h('span');
-  const label = h('b');
-  const note = h('span', { class: 'score-note' });
-  const score = h('div', { class: 'panel score', 'aria-live': 'polite' },
-    h('p', { class: 'eyebrow quiet' }, 'Score'), label, h('div', { class: 'meter', 'aria-hidden': 'true' }, bar), note);
+// Chapter: check yourself. One question at a time, Brilliant pacing: pick an
+// answer, then Check. A wrong first try says "Not yet" and lets you retry; a
+// second wrong try (or Show answer) reveals the answer and the reason.
+// Answers are remembered per explainer in this browser only.
+const QUIZ_TRIES = 2;
+const PATHISH = /^[^\s]*[/\\][^\s]*$|^[\w.-]+\.(?:[a-z]{1,5})(?::\d+)?$|\(\)|=>|::/i;
 
-  function paint() {
-    const right = Object.values(results).filter(Boolean).length;
-    const answered = Object.keys(results).length;
-    label.textContent = `${right} of ${questions.length} correct`;
-    bar.style.setProperty('--share', String(right / questions.length));
-    note.textContent = answered < questions.length ? `${questions.length - answered} left` : right === questions.length ? 'Perfect score.' : 'Nice work.';
+function quizStoreKey(meta) {
+  return `concept-explainer:quiz:${text(meta && meta.repo, meta && meta.title)}:${text(meta && meta.commit, '')}`;
+}
+
+function loadQuiz(key, count) {
+  try {
+    const saved = JSON.parse(readStore(key) || 'null');
+    if (!saved || !Array.isArray(saved.answers)) return null;
+    return { index: Math.min(Math.max(0, saved.index | 0), count), answers: saved.answers.slice(0, count) };
+  } catch (error) {
+    return null;
   }
+}
 
-  function record(index, correct) {
-    results = { ...results, [index]: correct };
-    paint();
-  }
-
-  paint();
-  mount.append(h('div', { class: 'lesson quiz' }, questions.map((q, i) => questionCard(q, i, record)), score));
+// Where a question is taught: a node or flow named in the question, the
+// right option or the explanation; a cited path that belongs to a node.
+function quizLesson(question, data) {
+  const hay = [question.question, question.explain, list(question.options)[question.answer]].map((v) => text(v)).join(' ').toLowerCase();
+  if (!hay) return null;
+  const node = list(data.nodes).find((n) => (n.label && hay.includes(String(n.label).toLowerCase()))
+    || list(n.files).some((f) => hay.includes(String(f).replace(/:\d+.*$/, '').toLowerCase())));
+  if (node) return { href: `#map/${linkPart(node.id)}`, label: node.label };
+  const flow = list(data.flows).find((f) => f.title && hay.includes(String(f.title).toLowerCase()));
+  if (flow) return { href: `#flows/${linkPart(flow.id)}`, label: flow.title };
+  const concept = list(data.concepts).findIndex((c) => c.title && hay.includes(String(c.title).toLowerCase()));
+  if (concept >= 0) return { href: `#concepts/${concept}`, label: data.concepts[concept].title };
   return null;
 }
 
-function questionCard(question, index, record) {
-  const options = list(question.options);
-  let picked = null;
-  const optionEls = options.map((option, i) => h('button', {
-    class: 'option', type: 'button', role: 'radio', 'aria-checked': 'false',
-    onclick: () => pick(i),
-  }, h('span', { class: 'key' }, String(i + 1)), h('span', { class: 'option-text' }, option)));
-  const check = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: grade }, 'Check');
-  const feedback = h('div', { 'aria-live': 'polite' });
+function optionLabel(option) {
+  const value = String(option);
+  if (PATHISH.test(value.trim())) {
+    return truncatable(h('span', { class: 'option-text is-code' }), value, { mode: 'middle' });
+  }
+  return h('span', { class: 'option-text' }, softBreaks(value));
+}
 
-  function pick(i) {
-    picked = i;
-    optionEls.forEach((el, j) => el.setAttribute('aria-checked', String(j === i)));
-    check.disabled = false;
+function renderQuiz(data, mount) {
+  const questions = list(data.quiz);
+  if (!questions.length) return null;
+  const key = quizStoreKey(data.meta);
+  const saved = loadQuiz(key, questions.length);
+  let state = saved || { index: 0, answers: [] };
+  const card = h('article', { class: 'panel quiz-card' });
+
+  const answerOf = (i) => state.answers[i] || { tries: [], status: 'open', picked: null };
+  const persist = () => writeStore(key, JSON.stringify({ index: state.index, answers: state.answers }));
+
+  function setAnswer(i, next) {
+    const answers = [...state.answers];
+    answers[i] = { ...answerOf(i), ...next };
+    state = { ...state, answers };
+    persist();
   }
 
-  function grade() {
-    const correct = picked === question.answer;
-    optionEls.forEach((el, j) => {
-      el.disabled = true;
-      el.classList.toggle('is-correct', j === question.answer);
-      el.classList.toggle('is-wrong', j === picked && !correct);
+  function go(index, { focus = true, link = true } = {}) {
+    state = { ...state, index: Math.min(Math.max(index, 0), questions.length) };
+    persist();
+    if (link) setDeepLink(state.index >= questions.length ? 'quiz/done' : `quiz/${state.index + 1}`);
+    render({ focus });
+  }
+
+  function reset() {
+    state = { index: 0, answers: [] };
+    persist();
+    go(0);
+  }
+
+  function render({ focus = false } = {}) {
+    fill(card, ...(state.index >= questions.length ? endScreen() : questionScreen(state.index)));
+    if (focus) {
+      const head = card.querySelector('[data-focus]');
+      if (head) head.focus({ preventScroll: true });
+    }
+  }
+
+  function progress(current) {
+    return h('div', { class: 'step-dots quiz-dots' }, questions.map((_, i) => {
+      const status = answerOf(i).status;
+      return h('button', {
+        type: 'button', class: [i === current ? 'is-current' : '', status !== 'open' ? 'is-done' : ''].join(' ').trim(),
+        'aria-label': `Question ${i + 1}${status === 'right' ? ', right' : status === 'missed' ? ', missed' : ''}`,
+        'aria-current': i === current ? 'step' : null, onclick: () => go(i),
+      });
+    }));
+  }
+
+  function questionScreen(i) {
+    const question = questions[i];
+    const options = list(question.options);
+    const answer = answerOf(i);
+    const resolved = answer.status === 'right' || answer.status === 'missed';
+    const optionEls = options.map((option, j) => {
+      const tried = answer.tries.includes(j);
+      const isAnswer = resolved && j === question.answer;
+      const el = h('button', {
+        class: ['option', tried && !isAnswer ? 'is-tried' : '', isAnswer ? 'is-answer' : ''].join(' ').trim(),
+        type: 'button', role: 'radio', 'aria-checked': String(answer.picked === j), tabindex: '-1', disabled: resolved,
+        onclick: () => pick(j),
+      },
+      h('span', { class: 'key' }, String(j + 1)), optionLabel(option),
+      isAnswer && h('span', { class: 'tag tag-answer' }, 'Correct answer'),
+      tried && !isAnswer && h('span', { class: 'option-note' }, 'Your try'));
+      return el;
     });
-    check.remove();
-    const pickedEl = optionEls[picked];
-    if (correct) pop(pickedEl); else shake(pickedEl);
-    fill(feedback, h('div', { class: `feedback ${correct ? 'is-correct' : 'is-wrong'}` },
-      h('b', null, correct ? 'Correct' : 'Not quite'),
-      h('p', null, text(question.explain, correct ? 'You got it.' : `The answer is “${options[question.answer]}”.`))));
-    riseIn(feedback.firstElementChild);
-    record(index, correct);
+    const focusable = optionEls[answer.picked ?? 0] || optionEls[0];
+    if (focusable && !resolved) focusable.tabIndex = 0;
+
+    function pick(j) {
+      setAnswer(i, { picked: j });
+      render();
+      const el = card.querySelectorAll('.option')[j];
+      if (el) el.focus();
+    }
+
+    function check() {
+      const current = answerOf(i);
+      if (current.picked === null || current.picked === undefined) return;
+      const right = current.picked === question.answer;
+      const tries = [...current.tries, current.picked];
+      const status = right ? (tries.length === 1 ? 'right' : 'right-late') : tries.length >= QUIZ_TRIES ? 'missed' : 'retry';
+      setAnswer(i, { tries, status: status === 'right-late' ? 'missed' : status, firstTry: right && tries.length === 1, picked: right ? current.picked : null, late: status === 'right-late' });
+      render({ focus: true });
+      const chosen = card.querySelectorAll('.option')[tries[tries.length - 1]];
+      if (chosen) { if (right) pop(chosen); else shake(chosen); }
+    }
+
+    const group = h('div', {
+      class: 'options', role: 'radiogroup', 'aria-label': question.question,
+      onkeydown: (event) => {
+        if (resolved) return;
+        const move = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+        const number = Number.parseInt(event.key, 10);
+        if (move) {
+          event.preventDefault();
+          const from = answerOf(i).picked ?? -1;
+          pick((from + move + options.length) % options.length);
+        } else if (number >= 1 && number <= options.length) {
+          event.preventDefault();
+          pick(number - 1);
+        } else if (event.key === 'Enter' && answerOf(i).picked !== null && answerOf(i).picked !== undefined) {
+          event.preventDefault();
+          check();
+        }
+      },
+    }, optionEls);
+
+    const feedback = feedbackPanel(question, answer);
+    const checkButton = !resolved && h('button', {
+      class: 'btn primary', type: 'button', disabled: answer.picked === null || answer.picked === undefined, onclick: check,
+    }, answer.status === 'retry' ? 'Check again' : 'Check');
+    const showAnswer = answer.status === 'retry' && h('button', {
+      class: 'link quiz-reveal', type: 'button',
+      onclick: () => { setAnswer(i, { status: 'missed', picked: null }); render({ focus: true }); },
+    }, 'Show answer');
+    const last = i === questions.length - 1;
+    return [
+      h('div', { class: 'quiz-top' },
+        h('span', { class: 'step-count' }, `Question ${i + 1} of ${questions.length}`),
+        h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
+      progress(i),
+      h('h3', { class: 'quiz-q', tabindex: '-1', 'data-focus': answer.status === 'open' ? '' : null }, softBreaks(question.question)),
+      group,
+      feedback,
+      h('div', { class: 'step-controls quiz-controls' },
+        h('button', { class: 'btn', type: 'button', disabled: i === 0, onclick: () => go(i - 1) }, 'Back'),
+        showAnswer,
+        resolved
+          ? h('button', { class: 'btn primary', type: 'button', onclick: () => go(i + 1) }, last ? 'See your score' : 'Continue')
+          : checkButton),
+      h('p', { class: 'kbd-hint' }, 'Tip: press ', h('kbd', null, '1'), ' to ', h('kbd', null, String(options.length)), ' to pick, ', h('kbd', null, 'Enter'), ' to check.'),
+    ];
   }
 
-  return h('article', { class: 'panel question' },
-    h('span', { class: 'step-count' }, `Question ${index + 1}`),
-    h('h3', null, question.question),
-    h('div', { class: 'options', role: 'radiogroup', 'aria-label': question.question }, optionEls),
-    feedback,
-    h('div', { class: 'question-actions' }, check));
+  function feedbackPanel(question, answer) {
+    const live = h('div', { class: 'quiz-live', 'aria-live': 'polite' });
+    if (answer.status === 'open') return live;
+    const correctText = list(question.options)[question.answer];
+    const explain = text(question.explain, `The answer is “${correctText}”.`);
+    const states = {
+      retry: { cls: 'is-retry', head: 'Not yet. Try again.', body: 'Pick another answer, or show the answer.' },
+      right: { cls: 'is-right', head: 'Right', body: explain },
+      missed: { cls: 'is-missed', head: answer.late ? 'Right on the second try' : 'Why', body: explain },
+    };
+    const view = states[answer.status] || states.missed;
+    live.append(h('div', { class: `feedback ${view.cls}` },
+      h('p', { class: 'feedback-head', tabindex: '-1', 'data-focus': '' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), view.head),
+      h('p', null, softBreaks(view.body))));
+    return live;
+  }
+
+  function endScreen() {
+    const firstTry = questions.filter((_, i) => answerOf(i).status === 'right').length;
+    const missed = questions.map((q, i) => ({ q, i, a: answerOf(i) })).filter(({ a }) => a.status !== 'right');
+    return [
+      h('div', { class: 'quiz-top' }, h('span', { class: 'step-count' }, 'Your score'),
+        h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
+      progress(-1),
+      h('h3', { class: 'quiz-score', tabindex: '-1', 'data-focus': '' }, `${firstTry} of ${questions.length} on the first try`),
+      h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${firstTry / questions.length}` })),
+      missed.length
+        ? h('div', { class: 'quiz-missed' },
+          h('p', { class: 'eyebrow quiet' }, 'To revisit'),
+          h('ul', { class: 'rows' }, missed.map(({ q, i }) => {
+            const lesson = quizLesson(q, data);
+            return h('li', { class: 'quiz-missed-row' },
+              h('button', { class: 'link', type: 'button', onclick: () => go(i) }, softBreaks(`${i + 1}. ${q.question}`)),
+              lesson && h('a', { class: 'quiz-lesson', href: lesson.href }, softBreaks(`Read: ${lesson.label}`)));
+          })))
+        : h('p', { class: 'quiz-perfect' }, 'Every answer right on the first try. This chapter is done.'),
+      h('div', { class: 'step-controls quiz-controls' },
+        h('button', { class: 'btn', type: 'button', onclick: () => go(questions.length - 1) }, 'Back'),
+        h('button', { class: 'btn primary', type: 'button', onclick: reset }, 'Try again')),
+    ];
+  }
+
+  mount.append(h('div', { class: 'lesson quiz' }, card));
+  render();
+  return {
+    open([n] = []) {
+      if (n === 'done') { go(questions.length, { focus: false, link: false }); return null; }
+      const wanted = Number.parseInt(n, 10);
+      if (Number.isInteger(wanted) && wanted >= 1 && wanted <= questions.length) go(wanted - 1, { focus: false, link: false });
+      return null;
+    },
+  };
+}
+
+// ---- picker.js ----
+// Pickers in the design system, in place of native selects whose OS popups
+// show raw values. Three shapes, one contract: { el, read(), focus() }.
+// - optionGroup: a radiogroup of option cards or a segmented row (2 to 4 choices)
+// - listboxPicker: a button and a popover listbox (WAI-ARIA listbox pattern)
+// - comboPicker: a text field with suggestions and free entry (combobox)
+// Each option is { value, label, desc? }; the value is what gets stored.
+let pickerSerial = 0;
+
+function pickerId(prefix) {
+  pickerSerial += 1;
+  return `${prefix}-${pickerSerial}`;
+}
+
+/**
+ * Radio cards or a segmented row. Arrow keys move and choose; one tab stop.
+ * @param {{ options: object[], value: string, labelledBy?: string, describedBy?: string, variant?: 'cards'|'segmented', onChange?: Function, render?: Function }} spec
+ */
+function optionGroup({ options, value, labelledBy, describedBy, variant = 'segmented', onChange, render }) {
+  let current = options.some((o) => o.value === value) ? value : options[0].value;
+  const buttons = options.map((option, index) => h('button', {
+    type: 'button', role: 'radio', class: `pick-option${variant === 'cards' ? ' is-card' : ''}`, 'data-value': option.value,
+    onclick: () => choose(option.value, true),
+    onkeydown: (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      const jump = { Home: 0, End: options.length - 1 }[event.key];
+      if (step === undefined && jump === undefined) return;
+      event.preventDefault();
+      const next = jump !== undefined ? jump : (index + step + options.length) % options.length;
+      choose(options[next].value, true);
+      buttons[next].focus();
+    },
+  },
+  render ? render(option) : [
+    h('span', { class: 'pick-option-label' }, option.label),
+    option.desc && variant === 'cards' && h('span', { class: 'pick-option-desc' }, option.desc),
+  ]));
+  const el = h('div', {
+    class: `pick-group is-${variant}`, role: 'radiogroup', 'aria-labelledby': labelledBy, 'aria-describedby': describedBy,
+  }, buttons);
+
+  function paint() {
+    buttons.forEach((button, i) => {
+      const on = options[i].value === current;
+      button.setAttribute('aria-checked', String(on));
+      button.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  function choose(next, fromUser) {
+    if (next === current && fromUser) return;
+    current = next;
+    paint();
+    if (onChange) onChange(current);
+  }
+
+  paint();
+  return {
+    el,
+    read: () => current,
+    focus: () => { const on = buttons.find((b) => b.getAttribute('aria-checked') === 'true'); if (on) on.focus(); },
+    set: (next) => { if (options.some((o) => o.value === next)) { current = next; paint(); } },
+  };
+}
+
+// Close the open picker on outside pointer or Escape, one at a time.
+const PICKER = { open: null };
+document.addEventListener('pointerdown', (event) => {
+  if (PICKER.open && !PICKER.open.root.contains(event.target)) PICKER.open.close(false);
+});
+
+function placePanel(button, panel) {
+  panel.classList.remove('is-up', 'is-end');
+  const box = button.getBoundingClientRect();
+  const height = panel.offsetHeight;
+  if (box.bottom + 8 + height > window.innerHeight - 8 && box.top - 8 - height > 8) panel.classList.add('is-up');
+  if (box.left + panel.offsetWidth > window.innerWidth - 8) panel.classList.add('is-end');
+}
+
+function optionRow(option, id, selected) {
+  return h('div', { class: 'picker-option', role: 'option', id, 'aria-selected': String(selected), 'data-value': option.value },
+    h('span', { class: 'picker-check', 'aria-hidden': 'true' }),
+    h('span', { class: 'picker-text' },
+      h('span', { class: 'picker-label' }, option.label),
+      option.desc && h('span', { class: 'picker-desc' }, option.desc)));
+}
+
+/**
+ * A button that opens a listbox popover. Up/Down, Home/End, typeahead,
+ * Enter/Space choose, Escape closes and returns focus to the button.
+ * @param {{ options: object[], value: string, labelledBy: string, describedBy?: string, onChange?: Function }} spec
+ */
+function listboxPicker({ options, value, labelledBy, describedBy, onChange, ariaLabel, buttonContent }) {
+  const buttonId = pickerId('picker-button');
+  const listId = pickerId('picker-list');
+  let current = options.some((o) => o.value === value) ? value : options[0].value;
+  let active = 0;
+  let typed = '';
+  let typedAt = 0;
+  const labelOf = (v) => (options.find((o) => o.value === v) || options[0]).label;
+  // Compact pickers (an icon button) name themselves with aria-label.
+  const valueText = h('span', { class: 'picker-value' }, buttonContent ? buttonContent(current) : labelOf(current));
+  const naming = ariaLabel ? { 'aria-label': `${ariaLabel}: ${labelOf(current)}` } : { 'aria-labelledby': `${labelledBy} ${buttonId}` };
+  const button = h('button', {
+    class: `picker-button${buttonContent ? ' is-compact' : ''}`, type: 'button', id: buttonId, 'aria-haspopup': 'listbox', 'aria-expanded': 'false',
+    'aria-controls': listId, 'aria-describedby': describedBy, ...naming,
+  }, valueText, !buttonContent && h('span', { class: 'picker-chevron', 'aria-hidden': 'true' }));
+  const rows = options.map((option, i) => optionRow(option, `${listId}-${i}`, option.value === current));
+  const panel = h('div', {
+    class: 'picker-panel', role: 'listbox', id: listId, tabindex: '-1', hidden: true,
+    ...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': labelledBy }),
+  }, rows);
+  const root = h('div', { class: 'picker' }, button, panel);
+  const api = { root, close };
+
+  function paintActive() {
+    rows.forEach((row, i) => row.classList.toggle('is-active', i === active));
+    panel.setAttribute('aria-activedescendant', rows[active].id);
+  }
+
+  function open() {
+    if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
+    active = Math.max(0, options.findIndex((o) => o.value === current));
+    panel.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    placePanel(button, panel);
+    paintActive();
+    panel.focus({ preventScroll: true });
+    PICKER.open = api;
+  }
+
+  function close(returnFocus = true) {
+    if (panel.hidden) return;
+    panel.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    if (PICKER.open === api) PICKER.open = null;
+    if (returnFocus) button.focus();
+  }
+
+  function show(next) {
+    current = next;
+    fill(valueText, buttonContent ? buttonContent(current) : labelOf(current));
+    if (ariaLabel) button.setAttribute('aria-label', `${ariaLabel}: ${labelOf(current)}`);
+    rows.forEach((row, j) => row.setAttribute('aria-selected', String(options[j].value === current)));
+  }
+
+  function choose(i) {
+    show(options[i].value);
+    close(true);
+    if (onChange) onChange(current);
+  }
+
+  button.addEventListener('click', () => (panel.hidden ? open() : close()));
+  button.addEventListener('keydown', (event) => {
+    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+      event.preventDefault();
+      open();
+    }
+  });
+  panel.addEventListener('keydown', (event) => {
+    const moves = { ArrowDown: active + 1, ArrowUp: active - 1, Home: 0, End: options.length - 1 };
+    if (event.key in moves) {
+      event.preventDefault();
+      active = Math.min(Math.max(moves[event.key], 0), options.length - 1);
+      paintActive();
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      choose(active);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+    } else if (event.key === 'Tab') {
+      close(false);
+    } else if (event.key.length === 1 && /\S/.test(event.key)) {
+      const now = Date.now();
+      typed = now - typedAt > 600 ? event.key.toLowerCase() : typed + event.key.toLowerCase();
+      typedAt = now;
+      const found = options.findIndex((o) => o.label.toLowerCase().startsWith(typed));
+      if (found >= 0) { active = found; paintActive(); }
+    }
+  });
+  rows.forEach((row, i) => {
+    row.addEventListener('click', () => choose(i));
+    row.addEventListener('pointermove', () => { if (active !== i) { active = i; paintActive(); } });
+  });
+
+  return {
+    el: root,
+    read: () => current,
+    focus: () => button.focus(),
+    set: (next) => { if (options.some((o) => o.value === next) && next !== current) show(next); },
+  };
+}
+
+/**
+ * A text field with suggestions (combobox). Free entry is allowed; the
+ * caller validates it. Down opens and moves, Enter takes the active one.
+ * @param {{ options: object[], value: string, id: string, describedBy?: string }} spec
+ */
+function comboPicker({ options, value, id, describedBy }) {
+  const listId = pickerId('combo-list');
+  let active = -1;
+  let shown = [];
+  const input = h('input', {
+    class: 'field picker-input', type: 'text', id, value: String(value ?? ''), role: 'combobox', autocomplete: 'off', spellcheck: 'false',
+    'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': listId, 'aria-describedby': describedBy,
+  });
+  const panel = h('div', { class: 'picker-panel', role: 'listbox', id: listId, hidden: true });
+  const root = h('div', { class: 'picker' }, input, panel);
+  const api = { root, close: () => close() };
+
+  function render() {
+    const q = input.value.trim().toLowerCase();
+    shown = options.filter((o) => !q || o.value.toLowerCase().startsWith(q) || o.label.toLowerCase().includes(q)).slice(0, 8);
+    fill(panel, ...shown.map((option, i) => optionRow(option, `${listId}-${i}`, option.value === input.value.trim())));
+    [...panel.children].forEach((row, i) => row.addEventListener('pointerdown', (event) => { event.preventDefault(); take(i); }));
+    if (!shown.length) { close(); return; }
+    active = Math.min(active, shown.length - 1);
+    paintActive();
+  }
+
+  function paintActive() {
+    [...panel.children].forEach((row, i) => row.classList.toggle('is-active', i === active));
+    if (active >= 0 && panel.children[active]) input.setAttribute('aria-activedescendant', panel.children[active].id);
+    else input.removeAttribute('aria-activedescendant');
+  }
+
+  function open() {
+    if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
+    render();
+    if (!shown.length) return;
+    panel.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    placePanel(input, panel);
+    PICKER.open = api;
+  }
+
+  function close() {
+    panel.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    active = -1;
+    if (PICKER.open === api) PICKER.open = null;
+  }
+
+  function take(i) {
+    input.value = shown[i].value;
+    close();
+    input.focus();
+  }
+
+  input.addEventListener('input', () => { active = -1; open(); });
+  input.addEventListener('focus', () => open());
+  input.addEventListener('blur', () => window.setTimeout(close, 120));
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (panel.hidden) open();
+      active = Math.min(Math.max(active + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1);
+      paintActive();
+    } else if (event.key === 'Enter' && !panel.hidden && active >= 0) {
+      event.preventDefault();
+      take(active);
+    } else if (event.key === 'Escape' && !panel.hidden) {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    }
+  });
+
+  return { el: root, read: () => input.value.trim(), focus: () => input.focus() };
+}
+
+// ---- settings.js ----
+// Settings: one view shared by the explainer pages, the kit and the hub.
+// Reading choices live in this browser (localStorage, in try/catch). Explainer
+// defaults live in <home>/config.json: saved through `library serve` when the
+// page was opened that way, else shown as `config set` commands to copy.
+const READING_PREFS = [
+  {
+    key: 'motion', label: 'Motion', storeKey: 'concept-explainer:motion', fallback: 'system',
+    hint: 'Reduced stops sliding cards, drawing arrows and moving dots.',
+    choices: [{ choice: 'system', label: 'System' }, { choice: 'reduce', label: 'Reduced' }],
+  },
+  {
+    key: 'text', label: 'Text size', storeKey: 'concept-explainer:text', fallback: 'default',
+    hint: 'Large makes every page about an eighth bigger.',
+    choices: [{ choice: 'default', label: 'Default' }, { choice: 'large', label: 'Large' }],
+  },
+  {
+    key: 'density', label: 'Density', storeKey: 'concept-explainer:density', fallback: 'comfortable',
+    hint: 'Compact fits more on the screen.',
+    choices: [{ choice: 'comfortable', label: 'Comfortable' }, { choice: 'compact', label: 'Compact' }],
+  },
+];
+
+// Mirror of scripts/lib/config.mjs, so the form can explain a bad value
+// before anything is saved. The CLI and the server check again. Labels are
+// for people; the stored value stays the config value.
+const opt = (value, label, desc) => ({ value, label, desc });
+const ON_OFF = [opt('on', 'On'), opt('off', 'Off')];
+const CONFIG_FIELDS = {
+  style: { label: 'Style', kind: 'style', help: 'The look new explainers open in. Readers can still switch.',
+    options: [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')] },
+  defaultType: { label: 'Explainer type', kind: 'list', help: 'What the skill makes when you do not say.',
+    options: [
+      opt('auto', 'Auto detect', 'The skill picks from what you point it at'),
+      opt('repo', 'Repo', 'A whole codebase: parts, flows, data'),
+      opt('pr', 'Pull request', 'One PR or MR, its diff and risks'),
+      opt('change', 'Change', 'A commit range or a release'),
+      opt('proposal', 'Proposal', 'An RFC or design doc and its options'),
+      opt('migration', 'Migration', 'Moving from one system to another'),
+      opt('incident', 'Incident', 'What broke, why, and the fix'),
+      opt('concept', 'Concept', 'An idea or technique, no code needed'),
+    ] },
+  audience: { label: 'Audience', kind: 'cards', help: 'Sets tone, depth and how many terms get explained.',
+    options: [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')] },
+  depth: { label: 'Depth', kind: 'cards', help: 'How many parts, flows and steps to trace.',
+    options: [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')] },
+  language: { label: 'Language', kind: 'combo', help: 'A language tag, like en or pt-BR. Pick one or type your own.',
+    options: [
+      opt('en', 'en', 'English'), opt('en-GB', 'en-GB', 'English (UK)'), opt('es', 'es', 'Spanish'), opt('fr', 'fr', 'French'),
+      opt('de', 'de', 'German'), opt('it', 'it', 'Italian'), opt('pt-BR', 'pt-BR', 'Portuguese (Brazil)'), opt('pt-PT', 'pt-PT', 'Portuguese (Portugal)'),
+      opt('nl', 'nl', 'Dutch'), opt('sv', 'sv', 'Swedish'), opt('pl', 'pl', 'Polish'), opt('tr', 'tr', 'Turkish'),
+      opt('ru', 'ru', 'Russian'), opt('uk', 'uk', 'Ukrainian'), opt('ja', 'ja', 'Japanese'), opt('ko', 'ko', 'Korean'),
+      opt('zh-CN', 'zh-CN', 'Chinese (Simplified)'), opt('zh-TW', 'zh-TW', 'Chinese (Traditional)'), opt('hi', 'hi', 'Hindi'),
+      opt('id', 'id', 'Indonesian'), opt('vi', 'vi', 'Vietnamese'), opt('fil', 'fil', 'Filipino'), opt('ar', 'ar', 'Arabic'), opt('he', 'he', 'Hebrew'),
+    ] },
+  visuals: { label: 'Preferred visuals', kind: 'multi', options: ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn'], help: 'Picked first when a chapter can use a picture.' },
+  quiz: { label: 'Quiz', kind: 'onoff', help: 'End explainers with a few questions.' },
+  analogies: { label: 'Analogies', kind: 'onoff', help: 'Add a "think of it like" line to key ideas.' },
+  model: { label: 'Model for estimates', kind: 'list', help: 'Used to price a run before it starts.',
+    options: [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')] },
+  budgetUsd: { label: 'Budget in US dollars', kind: 'number', help: 'Start without asking when the estimate fits. Leave empty to always ask.' },
+  confirmBeforeStart: { label: 'Confirm before starting', kind: 'onoff', help: 'Show the estimate and wait for a yes.' },
+  instructions: { label: 'House instructions', kind: 'textarea', help: 'Plain text added to every run: house style, terms to use. Never overrides the truth rules.' },
+};
+const optionValues = (field) => field.options.map((o) => (typeof o === 'string' ? o : o.value));
+const CONFIG_FIELD_DEFAULTS = {
+  style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {},
+  quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
+};
+const INSTRUCTIONS_LIMIT = 2000;
+const CLI_NAME = 'concept-explainer';
+
+function readingValue(pref) {
+  const value = readStore(pref.storeKey);
+  return pref.choices.some((c) => c.choice === value) ? value : pref.fallback;
+}
+
+// data-motion, data-text, data-density on <html>; defaults leave them off.
+function applyReading() {
+  const root = document.documentElement;
+  READING_PREFS.forEach((pref) => {
+    const value = readingValue(pref);
+    if (value === pref.fallback) delete root.dataset[pref.key];
+    else root.dataset[pref.key] = value;
+  });
+}
+
+function readingSwitch(registry, pref) {
+  return choiceSwitch(registry, {
+    choices: pref.choices, read: () => readingValue(pref), label: pref.label, className: 'theme-switch style-switch', withIcons: false,
+    write: (choice) => { writeStore(pref.storeKey, choice); applyReading(); },
+  });
+}
+
+// `library serve` opens pages with #token=<t>. Keep it for this tab only and
+// clear it from the address before the router reads the hash.
+const SERVE_TOKEN_KEY = 'concept-explainer:serve-token';
+
+function withServe(context) {
+  const served = /^https?:$/.test(window.location.protocol);
+  const match = window.location.hash.match(/^#token=([A-Za-z0-9_-]{8,256})$/);
+  let token = null;
+  if (match) {
+    token = match[1];
+    try {
+      window.sessionStorage.setItem(SERVE_TOKEN_KEY, token);
+    } catch (error) {
+      // Without session storage the token still works until reload.
+    }
+    try {
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`);
+    } catch (error) {
+      window.location.hash = '';
+    }
+  } else if (served) {
+    try {
+      token = window.sessionStorage.getItem(SERVE_TOKEN_KEY);
+    } catch (error) {
+      token = null;
+    }
+  }
+  if (!served || !token) return context;
+  return { ...context, serve: { ...(context.serve || {}), token } };
+}
+
+// ---------- Quick theme: a small menu by the gear, and Shift+D ----------
+const THEME_ICON_OPTIONS = THEME_CHOICES.map((t) => ({ value: t.choice, label: t.label }));
+
+function setTheme(registry, choice) {
+  writeStore(THEME_KEY, choice);
+  applyTheme(choice);
+  registry.paint();
+  registry.changed();
+}
+
+// The theme menu, kept in sync with every other theme control on the page.
+function quickTheme(registry) {
+  const picker = listboxPicker({
+    options: THEME_ICON_OPTIONS, value: storedTheme(), ariaLabel: 'Theme',
+    buttonContent: (value) => icon(value), onChange: (choice) => setTheme(registry, choice),
+  });
+  registry.onChange(() => picker.set(storedTheme()));
+  return h('div', { class: 'quick-theme' }, picker.el);
+}
+
+// Shift+D cycles light, dark, system. Ignored while typing.
+function installThemeShortcut(registry) {
+  const live = h('div', { class: 'sr-only', role: 'status', 'aria-live': 'polite' });
+  document.body.append(live);
+  const order = ['light', 'dark', 'system'];
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'D' || !event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.target.closest && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    const next = order[(order.indexOf(storedTheme()) + 1) % order.length];
+    setTheme(registry, next);
+    live.textContent = `${THEME_CHOICES.find((t) => t.choice === next).label} theme`;
+  });
+}
+
+// One compact line of facts for the sidebar footer, cut with a hint if long.
+function footMeta(parts) {
+  const line = parts.filter(Boolean).join(' · ');
+  return truncatable(h('p', { class: 'side-stamp' }, line), line);
+}
+
+// The gear item for the sidebar and menu footers.
+function settingsLink(href) {
+  return h('div', { class: 'side-util' },
+    h('a', { class: 'util', href, 'data-nav': 'settings' }, h('span', { class: 'util-ic' }, icon('settings')), 'Settings'));
+}
+
+function settingRow(id, label, control, hint) {
+  return h('div', { class: 'setting-row' },
+    h('span', { class: 'setting-label', id: `${id}-label` }, label),
+    control,
+    hint && h('p', { class: 'setting-hint', id: `${id}-hint` }, hint));
+}
+
+function readingGroup(registry) {
+  const labelled = (el, id) => {
+    el.setAttribute('aria-labelledby', `${id}-label`);
+    el.setAttribute('aria-describedby', `${id}-hint`);
+    el.removeAttribute('aria-label');
+    return el;
+  };
+  return h('fieldset', { class: 'panel settings-group' },
+    h('legend', { class: 'settings-legend' }, h('span', null, 'Reading'), h('span', { class: 'eyebrow quiet' }, 'This browser only')),
+    settingRow('set-theme', 'Theme', labelled(themeSwitch(registry), 'set-theme'), 'System follows your device.'),
+    settingRow('set-style', 'Style', labelled(styleSwitch(registry), 'set-style'), 'Clean is calm and grey. Playful is bright and rounded.'),
+    READING_PREFS.map((pref) => settingRow(`set-${pref.key}`, pref.label, labelled(readingSwitch(registry, pref), `set-${pref.key}`), pref.hint)));
+}
+
+// ---------- Explainer defaults ----------
+function normalizeDefaults(raw) {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return Object.fromEntries(Object.entries(CONFIG_FIELD_DEFAULTS).map(([key, fallback]) => {
+    const value = source[key];
+    return [key, value === undefined || fieldErrors(key, value).length ? JSON.parse(JSON.stringify(fallback)) : value];
+  }));
+}
+
+function fieldErrors(key, value) {
+  const field = CONFIG_FIELDS[key];
+  if (key === 'chapters') return value && typeof value === 'object' && !Array.isArray(value) ? [] : ['Must be a list of chapters per type.'];
+  if (!field) return [];
+  if (['style', 'list', 'cards'].includes(field.kind)) return optionValues(field).includes(value) ? [] : ['Pick one of the listed choices.'];
+  if (field.kind === 'onoff') return typeof value === 'boolean' ? [] : ['Must be on or off.'];
+  if (field.kind === 'multi') return Array.isArray(value) && value.every((v) => field.options.includes(v)) ? [] : ['Pick from the listed kinds.'];
+  if (key === 'language') return typeof value === 'string' && /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(value) ? [] : ['Use a language tag like en or pt-BR.'];
+  if (key === 'budgetUsd') return value === null || (typeof value === 'number' && Number.isFinite(value) && value >= 0) ? [] : ['Use a number of 0 or more, or leave it empty.'];
+  if (key === 'instructions') {
+    if (typeof value !== 'string') return ['Must be text.'];
+    if (value.length > INSTRUCTIONS_LIMIT) return [`${value.length} characters. Keep it to ${INSTRUCTIONS_LIMIT}.`];
+    // eslint-disable-next-line no-control-regex
+    return /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value) ? ['Remove control characters. Use plain text.'] : [];
+  }
+  return [];
+}
+
+function shellQuote(value) {
+  const textValue = String(value);
+  return /^[\w.,:@/-]+$/.test(textValue) ? textValue : `'${textValue.replace(/'/g, "'\\''")}'`;
+}
+
+function commandValue(key, value) {
+  if (typeof value === 'boolean') return value ? 'on' : 'off';
+  if (key === 'budgetUsd') return value === null ? 'none' : String(value);
+  if (key === 'visuals') return shellQuote(value.join(','));
+  if (key === 'chapters') return shellQuote(JSON.stringify(value));
+  return shellQuote(value);
+}
+
+function copyButton(getText, label = 'Copy') {
+  const button = h('button', { class: 'btn small', type: 'button' }, label);
+  button.addEventListener('click', () => {
+    navigator.clipboard.writeText(getText())
+      .then(() => { button.textContent = 'Copied'; button.dataset.state = 'done'; })
+      .catch(() => { button.textContent = 'Select to copy'; });
+  });
+  return button;
+}
+
+function downloadBlob(filename, content, type = 'application/json') {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = h('a', { href: url, download: filename, hidden: true });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// A small picture of each style, drawn with the style's own colours.
+function stylePreview(option) {
+  return [
+    h('span', { class: `style-preview is-${option.value}`, 'aria-hidden': 'true' }, h('i'), h('i'), h('i')),
+    h('span', { class: 'pick-option-label' }, option.label),
+    h('span', { class: 'pick-option-desc' }, option.desc),
+  ];
+}
+
+// One control per field, all with the same shape: { el, read(), focus() }.
+function fieldControl(key, value, id, describedBy) {
+  const field = CONFIG_FIELDS[key];
+  const labelledBy = `${id}-label`;
+  if (field.kind === 'style') return optionGroup({ options: field.options, value, labelledBy, describedBy, variant: 'cards', render: stylePreview });
+  if (field.kind === 'cards') return optionGroup({ options: field.options, value, labelledBy, describedBy, variant: 'cards' });
+  if (field.kind === 'onoff') {
+    const group = optionGroup({ options: ON_OFF, value: value ? 'on' : 'off', labelledBy, describedBy });
+    return { ...group, read: () => group.read() === 'on' };
+  }
+  if (field.kind === 'list') return listboxPicker({ options: field.options, value, labelledBy, describedBy });
+  if (field.kind === 'combo') return comboPicker({ options: field.options, value, id, describedBy });
+  if (field.kind === 'multi') {
+    const el = h('div', { class: 'multi', role: 'group', 'aria-labelledby': labelledBy, 'aria-describedby': describedBy },
+      field.options.map((option) => h('label', { class: 'multi-option' },
+        h('input', { type: 'checkbox', name: key, value: option, checked: value.includes(option) }), h('span', null, option))));
+    return { el, read: () => [...el.querySelectorAll('input:checked')].map((input) => input.value), focus: () => el.querySelector('input').focus() };
+  }
+  if (field.kind === 'number') {
+    const el = h('input', { class: 'field', type: 'number', id, min: '0', step: '0.5', inputmode: 'decimal', value: value === null ? '' : String(value), 'aria-describedby': describedBy });
+    return { el, read: () => (el.value.trim() === '' ? null : Number(el.value.trim())), focus: () => el.focus() };
+  }
+  const el = h('textarea', { class: 'field', id, rows: '5', maxlength: String(INSTRUCTIONS_LIMIT * 2), 'aria-describedby': describedBy }, value);
+  return { el, read: () => el.value, focus: () => el.focus() };
+}
+
+function defaultsGroup(context, initialConfig) {
+  let saved = normalizeDefaults(initialConfig);
+  const serve = context && context.serve && typeof context.serve.token === 'string' ? context.serve : null;
+  const status = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
+  const commands = h('div', { class: 'settings-commands' });
+  const errorsFor = {};
+  const rows = Object.keys(CONFIG_FIELDS).map((key) => {
+    const id = `cfg-${key}`;
+    const errorId = `${id}-error`;
+    const control = fieldControl(key, saved[key], id, `${id}-hint ${errorId}`);
+    const error = h('p', { class: 'field-error', id: errorId });
+    errorsFor[key] = { error, control };
+    const field = CONFIG_FIELDS[key];
+    const labelFor = ['number', 'textarea', 'combo'].includes(field.kind);
+    const label = labelFor
+      ? h('label', { class: 'setting-label', for: id, id: `${id}-label` }, field.label)
+      : h('span', { class: 'setting-label', id: `${id}-label` }, field.label);
+    const wide = ['textarea', 'multi', 'style', 'cards'].includes(field.kind);
+    return h('div', { class: `setting-row${wide ? ' is-wide' : ''}`, 'data-field': key },
+      label, control.el, h('p', { class: 'setting-hint', id: `${id}-hint` }, field.help), error);
+  });
+  const counter = h('span', { class: 'setting-count', 'aria-live': 'polite' });
+  const form = h('form', { class: 'settings-form', novalidate: true }, rows,
+    h('p', { class: 'setting-hint' }, 'Chapters per type are set from the command line: ',
+      h('code', null, `${CLI_NAME} config set chapters '{"repo":{"quiz":false}}'`)),
+    h('div', { class: 'settings-actions' },
+      h('button', { class: 'btn primary', type: 'submit' }, serve ? 'Save' : 'Show the commands'),
+      h('button', { class: 'btn', type: 'button', onclick: () => downloadBlob('config.json', `${JSON.stringify(current(), null, 2)}\n`) }, icon('download'), 'Download config.json'),
+      status),
+    commands);
+
+  const instructions = errorsFor.instructions.control.el;
+  const paintCount = () => { counter.textContent = `${instructions.value.length} / ${INSTRUCTIONS_LIMIT}`; };
+  instructions.after(counter);
+  instructions.addEventListener('input', paintCount);
+  paintCount();
+
+  function current() {
+    return { ...saved, ...Object.fromEntries(Object.keys(CONFIG_FIELDS).map((key) => [key, errorsFor[key].control.read()])) };
+  }
+
+  function validate(values) {
+    let firstBad = null;
+    Object.keys(CONFIG_FIELDS).forEach((key) => {
+      const problems = fieldErrors(key, values[key]);
+      const { error, control } = errorsFor[key];
+      error.textContent = problems.join(' ');
+      const target = control.el.matches('input, textarea') ? control.el : control.el.querySelector('input, [role="radiogroup"], .picker-button') || control.el;
+      target.setAttribute('aria-invalid', String(problems.length > 0));
+      if (problems.length && !firstBad) firstBad = control;
+    });
+    return firstBad;
+  }
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const values = current();
+    const bad = validate(values);
+    if (bad) {
+      status.textContent = 'Fix the marked fields first.';
+      bad.focus();
+      return;
+    }
+    const changed = Object.keys(values).filter((key) => JSON.stringify(values[key]) !== JSON.stringify(saved[key]));
+    if (!changed.length) {
+      status.textContent = 'Nothing changed.';
+      fill(commands);
+      return;
+    }
+    if (serve) {
+      status.textContent = 'Saving…';
+      fetch(serveApi(context, 'config'), {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-concept-explainer-token': serve.token },
+        body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
+      }).then((response) => response.json().catch(() => ({})).then((body) => ({ ok: response.ok, body })))
+        .then(({ ok, body }) => {
+          if (!ok) throw new Error(list(body && body.errors).join(' ') || (body && body.error) || 'The server refused the change.');
+          saved = normalizeDefaults(body && body.config ? body.config : values);
+          // The server rebuilt the pages with the new defaults: load them.
+          status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
+          window.setTimeout(() => window.location.reload(), 900);
+        })
+        .catch((error) => { status.textContent = `Could not save: ${error.message}`; });
+      return;
+    }
+    const lines = changed.map((key) => `${CLI_NAME} config set ${key} ${commandValue(key, values[key])}`);
+    status.textContent = `This page cannot write files. Run ${lines.length === 1 ? 'this command' : 'these commands'}, or download config.json.`;
+    fill(commands,
+      h('ul', { class: 'command-list' }, lines.map((line) => h('li', null, h('code', null, line), copyButton(() => line)))),
+      lines.length > 1 && copyButton(() => lines.join('\n'), 'Copy all'));
+  });
+
+  return h('section', { class: 'panel settings-group', 'aria-labelledby': 'settings-defaults-title' },
+    h('div', { class: 'settings-legend' }, h('h2', { id: 'settings-defaults-title' }, 'Explainer defaults'),
+      h('span', { class: 'eyebrow quiet' }, serve ? 'Saved to config.json' : 'Read from config.json')),
+    h('p', { class: 'setting-hint' }, 'What the skill uses for the next explainer you build.'),
+    form);
+}
+
+function countLabel(n, one, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/**
+ * The Settings view. `config` holds the current explainer defaults, when the
+ * page has them (context.config on explainer pages, data.config on the hub).
+ * @returns {{ key: string, title: string, nav: string, section: HTMLElement, controller: object }}
+ */
+function settingsView(registry, { context = {}, config = null, extra = [] } = {}) {
+  const section = h('section', { class: 'view settings-view', 'data-view': 'settings', hidden: true, 'aria-labelledby': 'view-settings-title' },
+    h('header', { class: 'view-head' },
+      h('p', { class: 'eyebrow quiet' }, 'Settings'),
+      h('h1', { id: 'view-settings-title', tabindex: '-1' }, 'Settings'),
+      h('p', { class: 'view-lead' }, 'Reading choices stay in this browser. Explainer defaults shape the next explainer you build.')),
+    h('div', { class: 'settings-body' },
+      readingGroup(registry),
+      config !== null && defaultsGroup(context, config),
+      extra));
+  return { key: 'settings', title: 'Settings', nav: 'Settings', section, controller: null };
+}
+
+// ---------- Share ----------
+const BUNDLE_FORMAT = 'concept-explainer-bundle';
+const LOCAL_PATH_KEYS = new Set(['sourcePath', 'repoPath']);
+
+function slugFor(meta, context) {
+  if (context && typeof context.slug === 'string' && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(context.slug)) return context.slug;
+  const base = text(meta && meta.repo, text(meta && meta.title, 'explainer'));
+  return base.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'explainer';
+}
+
+// Data only, without local paths: the importer rebuilds pages itself.
+function withoutLocalPaths(value) {
+  if (Array.isArray(value)) return value.map(withoutLocalPaths);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !LOCAL_PATH_KEYS.has(key)).map(([key, v]) => [key, withoutLocalPaths(v)]));
+}
+
+function bundleOf(entries) {
+  return { format: BUNDLE_FORMAT, version: 1, exportedAt: new Date().toISOString(), explainers: entries };
+}
+
+const HTML_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeAttr(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => HTML_ESC[ch]);
+}
+
+// The page as it was built, from parts that never change after load: head
+// attributes, the style and script text, and the embedded data. The context
+// keeps only the style, so a shared copy has no token or library link.
+function pageSnapshot(style) {
+  const head = document.head;
+  const meta = [...head.querySelectorAll('meta[name], meta[property], meta[charset]')].map((m) => {
+    if (m.hasAttribute('charset')) return `<meta charset="${escapeAttr(m.getAttribute('charset'))}">`;
+    const key = m.hasAttribute('name') ? 'name' : 'property';
+    return `<meta ${key}="${escapeAttr(m.getAttribute(key))}" content="${escapeAttr(m.getAttribute('content'))}">`;
+  });
+  const links = [...head.querySelectorAll('link[rel]')].map((l) => {
+    const cross = l.hasAttribute('crossorigin') ? ' crossorigin' : '';
+    return `<link rel="${escapeAttr(l.getAttribute('rel'))}" href="${escapeAttr(l.getAttribute('href'))}"${cross}>`;
+  });
+  const prepaint = head.querySelector('script[data-prepaint]');
+  const styleText = (head.querySelector('style') || {}).textContent || '';
+  const main = [...document.querySelectorAll('body > script:not([type])')].pop();
+  const dataText = document.getElementById('explainer-data').textContent;
+  const contextText = JSON.stringify({ style }).replace(/</g, '\\u003c');
+  return [
+    '<!doctype html>', '<html lang="en">', '<head>', ...meta, `<title>${escapeAttr(document.querySelector('title') ? document.querySelector('title').textContent : 'Explainer')}</title>`,
+    ...links, prepaint ? `<script data-prepaint>${prepaint.textContent}<\/script>` : '', `<style>${styleText}</style>`, '</head>', '<body>',
+    '<a class="skip" href="#main">Skip to content</a>', '<div id="app" aria-busy="true"></div>',
+    '<noscript><p class="noscript">This explainer needs JavaScript to draw its diagrams.</p></noscript>',
+    `<script type="application/json" id="explainer-data">${dataText}<\/script>`,
+    `<script type="application/json" id="explainer-context">${contextText}<\/script>`,
+    `<script>${main ? main.textContent : ''}<\/script>`, '</body>', '</html>', '',
+  ].join('\n');
+}
+
+function shareRow(title, body, actions) {
+  return h('div', { class: 'setting-row is-wide share-row' },
+    h('span', { class: 'setting-label' }, title), h('p', { class: 'setting-hint' }, body), h('div', { class: 'btn-row' }, actions));
+}
+
+// Explainer page: export this one, or save the page itself.
+function explainerShareGroup(data, context) {
+  const slug = slugFor(data.meta, context);
+  const status = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
+  const exportButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Export this explainer');
+  exportButton.addEventListener('click', () => {
+    downloadBlob(`${slug}.explainers.json`, `${JSON.stringify(bundleOf([{ slug, data: withoutLocalPaths(data) }]), null, 2)}\n`);
+    status.textContent = `Downloaded ${slug}.explainers.json. Import it with ${CLI_NAME} import.`;
+  });
+  const pageButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Save as page');
+  pageButton.addEventListener('click', () => {
+    downloadBlob(`${slug}.html`, pageSnapshot(storedStyle()), 'text/html');
+    status.textContent = `Downloaded ${slug}.html. It opens on its own, with no library.`;
+  });
+  return h('section', { class: 'panel settings-group', 'aria-labelledby': 'settings-share-title' },
+    h('div', { class: 'settings-legend' }, h('h2', { id: 'settings-share-title' }, 'Share'), h('span', { class: 'eyebrow quiet' }, 'Data only, no local paths')),
+    shareRow('Export', 'A bundle someone else can import into their own library. It holds the explainer data, never the page code.', exportButton),
+    shareRow('Page', 'One file that opens in any browser, offline.', pageButton),
+    status);
+}
+
+// serve.api is { config, export, import }; a bare string is the config path.
+function serveApi(context, name) {
+  const api = context && context.serve && context.serve.api;
+  if (api && typeof api === 'object' && typeof api[name] === 'string' && api[name].startsWith('/api/')) return api[name];
+  if (name === 'config' && typeof api === 'string' && api.startsWith('/api/')) return api;
+  return `/api/${name}`;
+}
+
+function serveFetch(context, url, options = {}) {
+  return fetch(url, { ...options, headers: { ...(options.headers || {}), 'x-concept-explainer-token': context.serve.token } })
+    .then((response) => response.text().then((body) => {
+      let json = null;
+      try {
+        json = body ? JSON.parse(body) : null;
+      } catch (error) {
+        json = null;
+      }
+      if (!response.ok) throw new Error((json && (list(json.errors).join(' ') || json.error)) || `The server answered ${response.status}.`);
+      return { json, body };
+    }));
+}
+
+function commandBlock(lines) {
+  return h('ul', { class: 'command-list' }, lines.map((line) => h('li', null, h('code', null, line), copyButton(() => line))));
+}
+
+const IMPORT_GROUPS = [['added', 'Added'], ['replaced', 'Replaced'], ['skipped', 'Skipped'], ['rejected', 'Rejected']];
+
+function importSummary(result) {
+  const rows = IMPORT_GROUPS.flatMap(([key, label]) => list(result && result[key]).map((item) => ({ label, item })));
+  if (!rows.length) return h('p', { class: 'setting-hint' }, 'The bundle holds no explainers.');
+  return h('table', { class: 'import-table' },
+    h('caption', { class: 'sr-only' }, 'What the import would do'),
+    h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Result'), h('th', { scope: 'col' }, 'Explainer'), h('th', { scope: 'col' }, 'Why'))),
+    h('tbody', null, rows.map(({ label, item }) => h('tr', { class: `is-${label.toLowerCase()}` },
+      h('td', null, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), label),
+      h('td', null, softBreaks(text(item.title, text(item.slug, Number.isInteger(item.index) ? `Item ${item.index + 1}` : 'Untitled')))),
+      h('td', null, list(item.reasons).length ? list(item.reasons).join(' ') : text(item.reason, text(item.note, '')))))));
+}
+
+// Hub: export the picked explainers (or the filter), import a bundle.
+function hubShareGroup(context, getSelection) {
+  const served = Boolean(context && context.serve && context.serve.token);
+  // Each action reports right above its own output.
+  const status = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
+  const importStatus = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
+  const exportOut = h('div', { class: 'settings-commands' });
+  const exportButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Export');
+  exportButton.addEventListener('click', () => {
+    const { slugs, params, args, label } = getSelection();
+    if (served) {
+      status.textContent = 'Preparing the bundle…';
+      const query = slugs.length ? `slugs=${slugs.map(encodeURIComponent).join(',')}`
+        : Object.entries(params || {}).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
+      serveFetch(context, `${serveApi(context, 'export')}${query ? `?${query}` : ''}`)
+        .then(({ body }) => {
+          const many = `concept-explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
+          downloadBlob(slugs.length === 1 ? `${slugs[0]}.explainers.json` : many, body);
+          status.textContent = `Downloaded ${label}.`;
+        })
+        .catch((error) => { status.textContent = `Could not export: ${error.message}`; });
+      return;
+    }
+    status.textContent = `This page cannot read the library files. Run this to export ${label}:`;
+    fill(exportOut, commandBlock([`${CLI_NAME} export ${args}`.trim()]));
+  });
+
+  const importOut = h('div', { class: 'settings-commands' });
+  const importRow = served ? importServed(context, importStatus, importOut) : [
+    h('p', { class: 'setting-hint' }, 'This page cannot write to the library. Run this with the bundle you received:'),
+    commandBlock([`${CLI_NAME} import <file.explainers.json> --dry-run`, `${CLI_NAME} import <file.explainers.json> --on-conflict rename`]),
+  ];
+  return h('section', { class: 'panel settings-group', 'aria-labelledby': 'settings-share-title' },
+    h('div', { class: 'settings-legend' }, h('h2', { id: 'settings-share-title' }, 'Share'), h('span', { class: 'eyebrow quiet' }, 'Data only, no local paths')),
+    h('div', { class: 'setting-row is-wide share-row' }, h('span', { class: 'setting-label' }, 'Export'),
+      h('p', { class: 'setting-hint' }, 'Pick explainers with the boxes on their cards, or export every one the current filter shows.'),
+      h('div', { class: 'btn-row' }, exportButton), status, exportOut),
+    h('div', { class: 'setting-row is-wide share-row' }, h('span', { class: 'setting-label' }, 'Import'), importRow, importStatus, importOut));
+}
+
+function fileSize(bytes) {
+  return bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+// One unit in the control column: drop zone, conflict choice, dry-run
+// summary, then the Import button.
+function importServed(context, status, out) {
+  const input = h('input', { class: 'sr-only', type: 'file', id: 'import-file', accept: '.json,application/json', tabindex: '-1', 'aria-hidden': 'true' });
+  const choose = h('button', { class: 'link drop-choose', type: 'button', onclick: () => input.click() }, 'or choose a file');
+  const picked = h('div', { class: 'drop-picked', hidden: true });
+  const zone = h('div', { class: 'drop-zone', 'aria-describedby': 'import-file-hint' },
+    icon('upload'), h('span', { class: 'drop-title' }, 'Drop a .explainers.json file'), choose, picked);
+  let pending = null;
+  let run = () => {};
+  const conflict = optionGroup({
+    variant: 'cards', value: 'rename', labelledBy: 'import-conflict-label', describedBy: 'import-conflict-hint',
+    options: [
+      { value: 'rename', label: 'Keep both', desc: 'Renames the new one with a -2' },
+      { value: 'skip', label: 'Skip', desc: 'Keeps the one you have' },
+      { value: 'replace', label: 'Replace', desc: 'Only one from the same source' },
+    ],
+    onChange: () => run(true),
+  });
+  const clear = () => {
+    pending = null;
+    picked.hidden = true;
+    zone.classList.remove('has-file');
+    input.value = '';
+    fill(out);
+    status.textContent = '';
+    choose.focus();
+  };
+  run = (dryRun) => {
+    if (!pending) return;
+    status.textContent = dryRun ? 'Checking the bundle…' : 'Importing…';
+    serveFetch(context, `${serveApi(context, 'import')}?onConflict=${conflict.read()}${dryRun ? '&dryRun=1' : ''}`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: pending.text,
+    }).then(({ json: raw }) => {
+      // The server wraps the result in { summary }; accept the bare shape too.
+      const json = raw && raw.summary && typeof raw.summary === 'object' ? raw.summary : raw;
+      if (dryRun) {
+        status.textContent = `Here is what importing ${pending.name} would do. Nothing has changed yet.`;
+        const apply = h('button', { class: 'btn primary', type: 'button', onclick: () => run(false) }, 'Import');
+        fill(out, importSummary(json), h('div', { class: 'btn-row' }, apply));
+      } else {
+        status.textContent = 'Imported. Reload the library to see the new explainers.';
+        fill(out, importSummary(json), h('div', { class: 'btn-row' }, h('button', { class: 'btn', type: 'button', onclick: () => window.location.reload() }, 'Reload')));
+        pending = null;
+      }
+    }).catch((error) => { status.textContent = `Could not import: ${error.message}`; });
+  };
+  const take = (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { status.textContent = `${file.name} is over 10 MB. Bundles must be smaller.`; return; }
+    file.text().then((body) => {
+      pending = { name: file.name, text: body };
+      zone.classList.add('has-file');
+      fill(picked, h('span', { class: 'drop-file' }, softBreaks(file.name)), h('span', { class: 'drop-size' }, fileSize(file.size)),
+        h('button', { class: 'link', type: 'button', onclick: clear }, 'Remove'));
+      picked.hidden = false;
+      run(true);
+    }).catch(() => { status.textContent = `Could not read ${file.name}.`; });
+  };
+  input.addEventListener('change', () => take(input.files && input.files[0]));
+  zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('is-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('is-over'));
+  zone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    zone.classList.remove('is-over');
+    take(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]);
+  });
+  return h('div', { class: 'import-controls' }, input, zone,
+    h('p', { class: 'setting-hint', id: 'import-file-hint' }, 'A bundle someone exported. Up to 10 MB. Nothing changes until you press Import.'),
+    h('div', { class: 'import-field' },
+      h('span', { class: 'setting-label', id: 'import-conflict-label' }, 'If it is already in your library'),
+      conflict.el,
+      h('p', { class: 'setting-hint', id: 'import-conflict-hint' }, 'Applies to explainers with the same name.')));
 }
 
 // ---- sections.js ----
@@ -2123,9 +4035,9 @@ function renderOverview(data, mount, ctx) {
 
   mount.append(h('div', { class: 'overview' },
     h('header', { class: 'ov-head' },
-      h('p', { class: 'eyebrow', title: text(meta.repo, 'Repository') }, text(meta.repo, 'Repository')),
-      h('h1', { id: 'view-overview-title', tabindex: '-1', class: fitClass(meta.title) }, meta.title),
-      meta.summary && h('p', { class: 'lede' }, meta.summary),
+      h('p', { class: 'eyebrow' }, softBreaks(text(meta.repo, 'Repository'))),
+      h('h1', { id: 'view-overview-title', tabindex: '-1', class: fitClass(meta.title) }, softBreaks(meta.title)),
+      meta.summary && h('p', { class: 'lede' }, softBreaks(meta.summary)),
       list(meta.stack).length > 0 && h('ul', { class: 'stack', 'aria-label': 'Built with' },
         list(meta.stack).map((item) => h('li', null, tag(item))))),
     nextSlot,
@@ -2187,7 +4099,7 @@ function chapterCard(data, chapter, index) {
   return h('a', { class: 'card', href: `#${chapter.key}` },
     h('span', { class: 'top-row' }, h('span', null, padNumber(index + 1)),
       h('span', { class: 'card-count' }, `${chapter.count(data)} ${chapter.unit}`)),
-    h('span', { class: `card-title ${fitClass(chapter.title)}` }, chapter.title),
+    h('span', { class: `card-title ${fitClass(chapter.title)}` }, softBreaks(chapter.title)),
     h('span', { class: 'line' }, chapter.lead),
     h('span', { class: 'card-foot' }, h('span', { class: 'card-viewed' }, 'Viewed'), h('span', { class: 'card-open' }, 'Open')));
 }
@@ -2204,7 +4116,7 @@ function latestChanges(data) {
     h('ul', { class: 'rows' }, changes.map(({ change, key }) => h('li', null,
       h('a', { class: 'row-link', href: `#changes/${linkPart(key)}` },
         h('span', { class: 'row-date' }, formatDate(change.date)),
-        h('span', { class: 'row-title' }, change.title),
+        h('span', { class: 'row-title' }, softBreaks(change.title)),
         tag(change.authorType === 'agent' ? 'Agent' : 'Human'))))));
 }
 
@@ -2215,7 +4127,7 @@ function renderTree(data, mount) {
     const isDir = String(entry.path).endsWith('/');
     return h('li', { class: entry.key ? 'is-key' : '', 'data-path': entry.path },
       h('span', { class: 'path', style: `padding-left:${Math.min(depth, 4) * 18}px` }, icon(isDir ? 'folder' : 'file'), h('span', { class: 'path-text' }, breakablePath(entry.path))),
-      h('span', { class: 'note' }, entry.key && tag('Key', 'tag-key'), text(entry.note)));
+      h('span', { class: 'note' }, entry.key && tag('Key', 'tag-key'), softBreaks(text(entry.note))));
   });
   mount.append(h('div', { class: 'panel' }, h('ul', { class: 'tree' }, rows)));
   return {
@@ -2231,7 +4143,7 @@ function renderTree(data, mount) {
 function renderGlossary(data, mount) {
   const terms = list(data.glossary);
   const input = h('input', { class: 'search', type: 'search', placeholder: 'Search terms', 'aria-label': 'Search glossary' });
-  const items = terms.map((term) => ({ term, el: h('div', null, h('dt', null, term.term), h('dd', null, term.definition)) }));
+  const items = terms.map((term) => ({ term, el: h('div', null, h('dt', null, softBreaks(term.term)), h('dd', null, softBreaks(term.definition))) }));
   const filter = () => {
     const q = input.value.trim().toLowerCase();
     items.forEach(({ term, el }) => {
@@ -2263,8 +4175,8 @@ function renderRunbook(data, mount) {
         .catch(() => { copy.textContent = 'Select to copy'; });
     });
     return h('article', { class: 'panel run-item' },
-      h('div', { class: 'run-head' }, h('span', { class: 'run-n' }, padNumber(i + 1)), h('h3', null, item.label), item.command && copy),
-      item.note && h('p', { class: 'run-note' }, item.note),
+      h('div', { class: 'run-head' }, h('span', { class: 'run-n' }, padNumber(i + 1)), h('h3', null, softBreaks(item.label)), item.command && copy),
+      item.note && h('p', { class: 'run-note' }, softBreaks(item.note)),
       item.command && codeBlock(item.command, 'sh'));
   })));
 }
@@ -2308,12 +4220,12 @@ function swatch([name, value, note]) {
 
 function kitSidebar(registry, version) {
   return h('aside', { class: 'side', 'aria-label': 'Sidebar' },
-    h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer')),
+    h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Concept Explainer')),
     h('div', { class: 'side-repo' }, h('b', null, 'Design kit'), h('span', { class: 'mono' }, `v${version}`)),
     h('nav', { class: 'links', 'aria-label': 'Kit' }, h('ul', null, KIT_SECTIONS.map((sec) => h('li', null,
       h('a', { href: `#${sec.id}` }, h('span', { class: 'nav-label' }, sec.nav)))))),
     h('div', { class: 'side-foot' },
-      h('div', { class: 'side-theme' }, h('span', { class: 'side-theme-label' }, 'Theme'), themeSwitch(registry))));
+      h('div', { class: 'foot-row' }, settingsLink('#kit-settings'), themeSwitch(registry))));
 }
 
 function kitComponents() {
@@ -2338,12 +4250,25 @@ function kitComponents() {
     h('div', { class: 'options' },
       h('button', { class: 'option', type: 'button' }, h('span', { class: 'key' }, '1'), h('span', { class: 'option-text' }, 'Unanswered option')),
       h('button', { class: 'option', type: 'button', 'aria-checked': 'true' }, h('span', { class: 'key' }, '2'), h('span', { class: 'option-text' }, 'Selected option')),
-      h('button', { class: 'option is-correct', type: 'button' }, h('span', { class: 'key' }, '3'), h('span', { class: 'option-text' }, 'Correct')),
-      h('button', { class: 'option is-wrong', type: 'button' }, h('span', { class: 'key' }, '4'), h('span', { class: 'option-text' }, 'Wrong'))));
+      h('button', { class: 'option is-answer', type: 'button' }, h('span', { class: 'key' }, '3'), h('span', { class: 'option-text' }, 'The right answer, once shown'), h('span', { class: 'tag tag-answer' }, 'Correct answer')),
+      h('button', { class: 'option is-tried', type: 'button' }, h('span', { class: 'key' }, '4'), h('span', { class: 'option-text is-code' }, 'src/a/wrong/try.ts:12'), h('span', { class: 'option-note' }, 'Your try'))),
+    h('div', { class: 'feedback is-retry' }, h('p', { class: 'feedback-head' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), 'Not yet. Try again.'), h('p', null, 'Status is ink text with a small marker.')));
+}
+
+// The kit has no router: Settings is a section of the page.
+function kitSettings(registry) {
+  const { section } = settingsView(registry);
+  section.hidden = false;
+  section.id = 'kit-settings';
+  section.classList.add('kit-section');
+  const title = section.querySelector('h1');
+  if (title) title.replaceWith(h('h2', { id: title.id, tabindex: '-1' }, 'Settings'));
+  return section;
 }
 
 function bootGallery() {
-  applyTheme(storedTheme());
+  applyLook(readContext());
+  applyReading();
   const data = JSON.parse(document.getElementById('explainer-data').textContent);
   const kinds = list(data.kinds);
   const patterns = list(data.patterns);
@@ -2351,13 +4276,13 @@ function bootGallery() {
   const registry = themeRegistry();
   const app = document.getElementById('app');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
-    h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer kit')),
-    themeSwitch(registry)));
+    h('a', { class: 'brand', href: '#main', 'aria-label': 'Concept Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
+    h('div', { class: 'bar-actions' }, quickTheme(registry), h('a', { class: 'btn small', href: '#kit-settings' }, icon('settings'), 'Settings'))));
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, top, h('div', { class: 'wrap' },
     h('div', { class: 'view' },
       h('header', { class: 'view-head' },
         h('p', { class: 'eyebrow quiet' }, `Design kit · v${version}`),
-        h('h1', null, 'Repo Explainer kit'),
+        h('h1', null, 'Concept Explainer kit'),
         h('p', { class: 'view-lead' }, 'Everything an explainer is made of. Reuse these by name in your data file. Never redraw, recolour or restyle them.'),
         h('p', { class: 'kit-credit' }, `Design credit: ${DESIGN_CREDIT_KIT}`)),
       h('div', { class: 'panel kit-logo' }, brandMark()),
@@ -2367,27 +4292,29 @@ function bootGallery() {
           icon(kind), h('code', null, kind), kinds.includes(kind) ? null : tag('UI only'))))),
 
       kitSection('kit-layers', 'Layer markers', 'Set a layer "color" to one of these names. It shows as a small square and a thin bar on each box, never as a fill.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: `--layer:${colors.ink}` },
+        h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: layerStyle(name) },
           h('span', { class: 'map-col-head' }, name),
           h('button', { class: 'node', type: 'button' }, h('span', { class: 'node-icon' }, icon('service')),
-            h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, colors.ink))))))),
+            h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, `${colors.ink} / ${PLAYFUL_LAYERS[name]}`))))))),
 
       kitSection('kit-tokens', 'Tokens', 'Fixed. These are the only colours in styles.css. Each switches value in the dark theme. Explainers never add others.',
         h('div', { class: 'kit-grid kit-grid-wide' }, KIT_TOKENS.map(swatch))),
 
       kitSection('kit-components', 'Components', 'All of these come from the data file. Depth is a hairline ring, never a shadow.', kitComponents()),
 
-      kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `repo-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
+      kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `concept-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
         h('div', { class: 'kit-grid kit-grid-wide' }, patterns.map((pattern) => h('article', { class: 'panel kit-pattern' },
           h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
           h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
+      kitSettings(registry),
       h('footer', { class: 'site-footer' }, h('p', null, DESIGN_CREDIT_KIT)))));
   fill(app, h('div', { class: 'app' }, kitSidebar(registry, version), main));
   app.removeAttribute('aria-busy');
   registry.paint();
+  installThemeShortcut(registry);
 }
 
-const DESIGN_CREDIT_KIT = 'The one-idea-per-step lesson flow is inspired by Brilliant. Type (Geist, Geist Mono) and the grey scale come from Geist, the Vercel design system. Repo Explainer is not affiliated with or endorsed by Brilliant or Vercel.';
+const DESIGN_CREDIT_KIT = 'The one-idea-per-step lesson flow is inspired by Brilliant. Type (Geist, Geist Mono) and the grey scale come from Geist, the Vercel design system. Concept Explainer is not affiliated with or endorsed by Brilliant or Vercel.';
 
 bootGallery();
 })();

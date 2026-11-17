@@ -68,8 +68,8 @@ function renderFlows(data, mount) {
     h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
     h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title))))));
     fill(meta,
-      flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, flow.trigger)),
-      flow.summary && h('p', { class: 'flow-summary' }, flow.summary));
+      flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
+      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)));
     const diagram = sequenceDiagram(flow, nodeIndex, state.finished ? list(flow.steps).length : state.stepIndex, go, bodyWrap.clientWidth);
     fill(headsWrap, diagram.heads);
     fill(bodyWrap, diagram.body);
@@ -97,12 +97,12 @@ function renderFlows(data, mount) {
         h('span', { class: 'step-count' }, `Step ${state.stepIndex + 1} of ${steps.length}`),
         step.kind && tag(step.kind, `tag-${step.kind}`)),
       h('div', { class: 'step-route' },
-        h('span', { class: 'route-part' }, from && icon(from.kind), text(from && from.label, step.from)),
+        h('span', { class: 'route-part' }, from && icon(from.kind), softBreaks(text(from && from.label, step.from))),
         h('span', { class: 'arrow-glyph', 'aria-hidden': 'true' }, step.from === step.to ? '↺' : '→'),
-        step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), text(to && to.label, step.to))),
+        step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), softBreaks(text(to && to.label, step.to)))),
       h('h3', null, softBreaks(step.label)),
       step.detail && h('p', null, softBreaks(step.detail)),
-      step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, step.why))),
+      step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
       (step.file || step.code) && h('div', { class: 'step-code' },
         step.file && h('div', { class: 'code-head' }, fileChip(step.file)),
         step.code && codeBlock(step.code, step.lang))),
@@ -121,7 +121,7 @@ function renderFlows(data, mount) {
     return [h('div', { class: 'flow-done' },
       h('span', { class: 'trophy' }, icon('trophy')),
       h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
-      h('h3', null, flow.title),
+      h('h3', null, softBreaks(flow.title)),
       h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),

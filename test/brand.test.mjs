@@ -15,7 +15,10 @@ const hubHtml = readFileSync(new URL('../template/library.html', import.meta.url
 const jsDir = new URL('../template/js/', import.meta.url);
 // Comments may name banned things ("never innerHTML"); only code counts.
 const stripComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-const js = stripComments(readdirSync(jsDir).filter((f) => f.endsWith('.js')).map((f) => readFileSync(new URL(f, jsDir), 'utf8')).join('\n'));
+// Every module, including template/js/chapters/*.js, follows the same rules.
+const jsFiles = readdirSync(jsDir, { recursive: true }).filter((f) => String(f).endsWith('.js')).map(String);
+const jsSource = jsFiles.map((f) => readFileSync(new URL(f, jsDir), 'utf8')).join('\n');
+const js = stripComments(jsSource);
 const cssCode = stripComments(css);
 
 // Geist greys, the one orange (marks, fills, text), quiz right/wrong, and
@@ -36,7 +39,8 @@ const ALLOWED_COLORS = new Set([
   // Playful icon illustrations (icons.js), from the original kit.
   '#fff5d3', '#a56d00', '#ffd84d', '#cfcfcf',
 ]);
-const ALLOWED_RADII = new Set(['6px', 'var(--radius)', 'var(--radius-sm)', '4px', '8px', '12px', '9999px', '0', '50%', '1px', '2px']);
+// The compound form is the phone bottom sheet: rounded top, square bottom edge.
+const ALLOWED_RADII = new Set(['6px', 'var(--radius)', 'var(--radius-sm)', '4px', '8px', '12px', '9999px', '0', '50%', '1px', '2px', 'var(--radius) var(--radius) 0 0']);
 
 // The Playful token block, and every Playful rule after it.
 const PLAYFUL_START = cssCode.indexOf(':root[data-style="playful"] {');
@@ -119,7 +123,8 @@ test('both skins exist, each with light and dark tokens', () => {
   assert.match(cssCode, /:root\[data-style="playful"\]:not\(\[data-theme="light"\]\)/);
   assert.match(cssCode, /:root\[data-style="playful"\]\[data-theme="dark"\] \{/);
   assert.match(js, /function applyStyle\(/);
-  assert.match(js, /'repo-explainer:style'/);
+  assert.match(js, /'concept-explainer:style'/);
+  assert.doesNotMatch(js.replace(/LEGACY_PREFIX = 'repo-explainer:'/, ''), /'repo-explainer:/, 'storage keys use concept-explainer:*');
   assert.doesNotMatch(js, /Duolingo/, 'the UI says Clean and Playful, never the brand');
 });
 
@@ -140,6 +145,18 @@ test('light, dark and system themes share the same tokens', () => {
 test('reduced motion disables every animation and transition', () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?animation: none !important;[\s\S]*?transition: none !important;/);
   assert.match(js, /function reducedMotion\(\)/);
+});
+
+test('no script source can close the page script early', () => {
+  // All modules are inlined into one <script>; a literal closing tag in a
+  // string would end it. Write it as <\\/script> instead.
+  assert.doesNotMatch(jsSource, /<\/script/i);
+});
+
+test('choices use the pickers, never a native select', () => {
+  // Native select popups show raw values in the OS look; picker.js is the system's own.
+  assert.doesNotMatch(js, /h\('select'/);
+  assert.match(js, /function listboxPicker\(/);
 });
 
 test('rendering never uses innerHTML or eval', () => {

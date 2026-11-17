@@ -75,7 +75,7 @@ function facetGroup(label, options, current, onPick) {
   if (!options.length) return null;
   const chip = (value, name) => h('button', {
     class: 'facet', type: 'button', 'aria-pressed': String(current === value), onclick: () => onPick(value),
-  }, truncatable(h('span', { class: 'facet-text' }, name), name));
+  }, truncatable(h('span', { class: 'facet-text' }, softBreaks(name)), name));
   return h('div', { class: 'facet-group', role: 'group', 'aria-label': label },
     h('span', { class: 'eyebrow quiet' }, label),
     h('span', { class: 'facet-chips' }, chip(null, 'Any'), options.map((option) => chip(option, option))));
@@ -160,7 +160,7 @@ function resultRow(entry, words) {
 
 function resultGroups(groups, titles, words) {
   return [...groups.entries()].map(([slug, entries]) => h('section', { class: 'panel result-group', 'aria-label': titles.get(slug) || slug },
-    h('div', { class: 'panel-bar' }, truncatable(h('span', { class: 'result-group-title' }, titles.get(slug) || slug), titles.get(slug) || slug), h('span', null, plural(entries.length, 'match', 'matches'))),
+    h('div', { class: 'panel-bar' }, truncatable(h('span', { class: 'result-group-title' }, softBreaks(titles.get(slug) || slug)), titles.get(slug) || slug), h('span', null, plural(entries.length, 'match', 'matches'))),
     h('ul', { class: 'rows' }, entries.map((entry) => resultRow(entry, words)))));
 }
 
@@ -169,7 +169,7 @@ function emptyLibrary() {
     h('p', { class: 'eyebrow quiet' }, 'No explainers yet'),
     h('h2', null, 'Build one and it lands here'),
     h('p', null, 'Every explainer you build is added to this library. From a repo with an explainer.json, run:'),
-    codeBlock('repo-explainer build <explainer.json>', 'sh'),
+    codeBlock('concept-explainer build <explainer.json>', 'sh'),
     h('p', null, 'Then reload this page.'));
 }
 
@@ -179,8 +179,8 @@ function changeRow(entry, titles) {
   const body = [
     h('span', { class: 'row-date' }, hubDate(entry.date) || 'Undated'),
     h('span', { class: 'result-text' },
-      h('span', { class: 'row-title' }, text(entry.title, 'Untitled')),
-      h('span', { class: 'result-snippet' }, titles.get(entry.slug) || entry.slug)),
+      h('span', { class: 'row-title' }, softBreaks(text(entry.title, 'Untitled'))),
+      h('span', { class: 'result-snippet' }, softBreaks(titles.get(entry.slug) || entry.slug))),
     h('span', { class: 'hub-change-tags' },
       entry.authorType && tag(isAgent ? 'Agent' : 'Human', isAgent ? 'tag-agent' : 'tag-human'),
       entry.kind && tag(entry.kind)),
@@ -200,19 +200,23 @@ function hubNav(views, explainers, links) {
     explainers.length > 0 && [h('p', { class: 'side-label' }, 'Explainers'),
       h('ul', { class: 'hub-repos' }, explainers.map((e) => {
         const href = explainerHref(e.slug);
-        const label = truncatable(h('span', { class: 'nav-label' }, text(e.title, e.slug)), text(e.title, e.slug));
+        const label = truncatable(h('span', { class: 'nav-label' }, softBreaks(text(e.title, e.slug))), text(e.title, e.slug));
         return h('li', null, href ? h('a', { href }, label) : label);
       }))]);
 }
 
 function hubShell(views, explainers, updatedAt, registry) {
   const links = [];
-  const foot = () => [
-    h('p', { class: 'side-progress' }, `${plural(explainers.length, 'explainer')}${updatedAt ? `, updated ${updatedAt}` : ''}`),
-    lookControls(registry),
-  ];
+  const foot = () => {
+    const gear = settingsLink('#settings');
+    links.push(gear.querySelector('a'));
+    return [
+      footMeta([plural(explainers.length, 'explainer'), updatedAt && `updated ${updatedAt}`]),
+      h('div', { class: 'foot-row' }, gear, themeSwitch(registry)),
+    ];
+  };
   const side = h('aside', { class: 'side', 'aria-label': 'Sidebar' },
-    h('a', { class: 'brand', href: '#all' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer')),
+    h('a', { class: 'brand', href: '#all' }, brandMark(), h('span', { class: 'name' }, 'Concept Explainer')),
     h('div', { class: 'side-repo' }, h('b', null, 'Explainer library'), h('span', { class: 'mono' }, plural(explainers.length, 'explainer'))),
     hubNav(views, explainers, links),
     h('div', { class: 'side-foot' }, foot()));
@@ -230,6 +234,7 @@ function hubShell(views, explainers, updatedAt, registry) {
     h('a', { class: 'brand', href: '#all', 'aria-label': 'All explainers' }, brandMark(),
       h('span', { class: 'bar-names' }, h('span', { class: 'name' }, 'Explainer library'), barView)),
     h('div', { class: 'bar-actions' },
+      quickTheme(registry),
       h('button', { class: 'btn menu-button', type: 'button', 'aria-haspopup': 'dialog', onclick: () => sheet.showModal() },
         h('span', { class: 'menu-icon', 'aria-hidden': 'true' }), 'Menu'))));
   return { side, sheet, top, links, barView };
@@ -239,6 +244,7 @@ function hubShell(views, explainers, updatedAt, registry) {
 function readHubHash() {
   const raw = window.location.hash.replace(/^#/, '');
   if (raw === 'changes') return { view: 'changes', query: '' };
+  if (raw === 'settings') return { view: 'settings', query: '' };
   const match = raw.match(/^search\/(.*)$/);
   if (!match) return { view: 'all', query: '' };
   try {
@@ -257,16 +263,22 @@ function moveFocus(container, step) {
 }
 
 function bootLibrary() {
-  applyLook(readContext());
+  const pageContext = readContext();
+  applyLook(pageContext);
+  applyReading();
   const app = document.getElementById('app');
   let data;
   try {
     data = JSON.parse(document.getElementById('explainer-data').textContent);
   } catch (error) {
+    withServe(pageContext);
     fill(app, h('div', { class: 'fatal', role: 'alert' }, h('h1', null, 'The library could not load'),
-      h('p', null, 'Its data is not valid JSON. Run "repo-explainer library rebuild" to write it again.')));
+      h('p', null, 'Its data is not valid JSON. Run "concept-explainer library rebuild" to write it again.')));
     return;
   }
+  // The hub's data may name the serve endpoints; the token comes from the URL.
+  const dataServe = data && data.serve && typeof data.serve === 'object' ? { serve: { ...data.serve, ...(pageContext.serve || {}) } } : {};
+  const context = withServe({ ...pageContext, ...dataServe });
   const manifest = (data && data.manifest) || {};
   const explainers = list(manifest.explainers).filter((e) => e && typeof e.slug === 'string');
   const index = list(data && data.index).filter((e) => e && typeof e.slug === 'string');
@@ -280,6 +292,17 @@ function bootLibrary() {
   ];
   const registry = themeRegistry();
   const shell = hubShell(views, explainers, hubDate(manifest.updatedAt), registry);
+  const selected = new Set();
+  const getSelection = () => {
+    const shown = explainers.filter((e) => allowedSlugs().has(e.slug)).map((e) => e.slug);
+    const filtered = Boolean(state.stack || state.preset || input.value.trim());
+    if (selected.size) return { slugs: [...selected], args: [...selected].map(shellQuote).join(' '), label: plural(selected.size, 'picked explainer') };
+    if (!filtered) return { slugs: [], params: {}, args: '', label: 'the whole library' };
+    return { slugs: shown, args: shown.map(shellQuote).join(' '), label: plural(shown.length, 'explainer') };
+  };
+  const settings = settingsView(registry, {
+    context, config: context.config || (data && data.config) || null, extra: [hubShareGroup(context, getSelection)],
+  });
   let state = { stack: null, preset: null, author: 'all' };
   let focusSearchNext = false;
 
@@ -292,6 +315,7 @@ function bootLibrary() {
   const filters = h('div', { class: 'hub-filters' });
   const results = h('div', { class: 'hub-results' });
   const grid = h('ul', { class: 'cards lib-grid' });
+  const pickBar = h('div', { class: 'pick-bar' });
   const changesList = h('ul', { class: 'rows' });
   const authorBar = h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' });
 
@@ -305,6 +329,7 @@ function bootLibrary() {
     explainers.length > 0 && h('div', { class: 'hub-search-wrap' }, input, hint),
     explainers.length > 1 && filters,
     status, results,
+    explainers.length > 0 && pickBar,
     explainers.length ? grid : emptyLibrary());
   const changesView = h('section', { class: 'view hub-view', 'data-view': 'changes', hidden: true, 'aria-labelledby': 'view-changes-title' },
     h('header', { class: 'view-head' },
@@ -339,7 +364,25 @@ function bootLibrary() {
       fill(results);
       grid.hidden = false;
     }
-    fill(grid, ...(shown.length ? shown.map((e) => h('li', null, explainerCard(e))) : [h('li', { class: 'empty' }, 'No explainer matches these filters.')]));
+    fill(grid, ...(shown.length ? shown.map((e) => h('li', { class: 'lib-item' }, explainerCard(e), pickBox(e))) : [h('li', { class: 'empty' }, 'No explainer matches these filters.')]));
+    paintPicks(shown);
+  }
+
+  // Pick explainers to export. The box sits beside the card link, not in it.
+  function pickBox(explainer) {
+    const box = h('input', {
+      type: 'checkbox', class: 'pick-input', checked: selected.has(explainer.slug), 'aria-label': `Pick ${text(explainer.title, explainer.slug)} to export`,
+      onchange: () => { if (box.checked) selected.add(explainer.slug); else selected.delete(explainer.slug); paintPicks(); },
+    });
+    return h('label', { class: 'card-pick' }, box);
+  }
+
+  function paintPicks(shown = explainers.filter((e) => allowedSlugs().has(e.slug))) {
+    fill(pickBar,
+      h('span', { class: 'pick-count' }, selected.size ? `${plural(selected.size, 'explainer')} picked` : 'Pick explainers to export them'),
+      h('button', { class: 'link', type: 'button', onclick: () => { shown.forEach((e) => selected.add(e.slug)); renderAll(); } }, `Pick all ${shown.length} shown`),
+      selected.size > 0 && h('button', { class: 'link', type: 'button', onclick: () => { selected.clear(); renderAll(); } }, 'Clear'),
+      h('a', { class: 'link', href: '#settings' }, selected.size ? 'Export them' : 'Export or import'));
   }
 
   function renderChanges() {
@@ -355,14 +398,16 @@ function bootLibrary() {
     const { view, query } = readHubHash();
     allView.hidden = view !== 'all';
     changesView.hidden = view !== 'changes';
+    settings.section.hidden = view !== 'settings';
     shell.links.forEach((a) => {
       if (a.dataset.nav === view) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     });
-    shell.barView.textContent = view === 'changes' ? 'Recent changes' : 'All explainers';
-    document.title = `${view === 'changes' ? 'Recent changes' : 'Explainer library'} · Repo Explainer`;
+    const viewName = { changes: 'Recent changes', settings: 'Settings' }[view] || 'All explainers';
+    shell.barView.textContent = viewName;
+    document.title = `${view === 'all' ? 'Explainer library' : viewName} · Concept Explainer`;
     if (view === 'all' && input.value !== query) input.value = query;
-    if (view === 'all') renderAll(); else renderChanges();
+    if (view === 'all') renderAll(); else if (view === 'changes') renderChanges();
     if (initial && !window.location.hash) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     if (focusSearchNext) {
@@ -370,7 +415,7 @@ function bootLibrary() {
       input.focus();
       input.select();
     } else if (!(initial && query)) {
-      const heading = (view === 'changes' ? changesView : allView).querySelector('h1');
+      const heading = ({ changes: changesView, settings: settings.section }[view] || allView).querySelector('h1');
       if (heading) heading.focus({ preventScroll: true });
     }
   }
@@ -413,11 +458,12 @@ function bootLibrary() {
   });
 
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, shell.top,
-    h('div', { class: 'wrap' }, allView, changesView,
-      h('footer', { class: 'site-footer' }, h('p', null, 'Built by repo-explainer. Rebuild every page with "repo-explainer library rebuild".'))));
+    h('div', { class: 'wrap' }, allView, changesView, settings.section,
+      h('footer', { class: 'site-footer' }, h('p', null, 'Built by concept-explainer. Rebuild every page with "concept-explainer library rebuild".'))));
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
   registry.paint();
+  installThemeShortcut(registry);
   wireSkipLink(main);
   window.addEventListener('hashchange', () => route());
   route({ initial: true });

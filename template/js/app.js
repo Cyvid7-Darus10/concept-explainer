@@ -27,7 +27,7 @@ function chooseChapters(data) {
 
 // ---------- Viewed chapters (this browser only) ----------
 function viewedStore(meta) {
-  const key = `repo-explainer:viewed:${text(meta.repo, meta.title)}:${text(meta.commit, '')}`;
+  const key = `concept-explainer:viewed:${text(meta.repo, meta.title)}:${text(meta.commit, '')}`;
   let viewed = new Set();
   try {
     viewed = new Set(list(JSON.parse(readStore(key) || '[]')).filter((v) => typeof v === 'string'));
@@ -60,22 +60,22 @@ function navList(chapters, data, links) {
     h('ul', null, chapters.map((c) => item(c.key, c.nav, c.count(data)))));
 }
 
-function footBits(meta, context, registry, progressLines) {
+function footBits(meta, context, registry, progressLines, links) {
+  const gear = settingsLink('#settings');
+  links.push(gear.querySelector('a'));
   const library = safeHref(context.libraryHref);
   const progress = h('p', { class: 'side-progress' });
   progressLines.push(progress);
   return [
     progress,
     library && h('div', { class: 'side-util' }, h('a', { class: 'util', href: library }, h('span', { class: 'util-ic' }, icon('library_shelf')), 'Library')),
-    lookControls(registry),
-    (meta.generatedAt || meta.commit) && h('p', { class: 'side-stamp' },
-      meta.generatedAt && h('span', null, `Generated ${formatDate(meta.generatedAt)}`),
-      meta.commit && h('span', null, `Commit ${String(meta.commit).slice(0, 7)}`)),
+    h('div', { class: 'foot-row' }, gear, themeSwitch(registry)),
+    (meta.generatedAt || meta.commit) && footMeta([meta.generatedAt && formatDate(meta.generatedAt), meta.commit && String(meta.commit).slice(0, 7)]),
   ];
 }
 
 function brandRow() {
-  return h('a', { class: 'brand', href: '#overview' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer'));
+  return h('a', { class: 'brand', href: '#overview' }, brandMark(), h('span', { class: 'name' }, 'Concept Explainer'));
 }
 
 function buildShell(data, chapters, context, registry) {
@@ -87,13 +87,13 @@ function buildShell(data, chapters, context, registry) {
     h('div', { class: 'side-repo' }, truncatable(h('b', null, softBreaks(meta.title)), meta.title),
       meta.repo && truncatable(h('span', { class: 'mono' }), meta.repo, { mode: 'middle' })),
     navList(chapters, data, links),
-    h('div', { class: 'side-foot' }, footBits(meta, context, registry, progressLines)));
+    h('div', { class: 'side-foot' }, footBits(meta, context, registry, progressLines, links)));
 
   const closeButton = h('button', { class: 'btn sheet-close', type: 'button' }, h('span', { class: 'close-icon', 'aria-hidden': 'true' }), 'Close');
   const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Menu' },
-    h('div', { class: 'sheet-head' }, truncatable(h('span', { class: 'name' }, meta.title), meta.title), closeButton),
+    h('div', { class: 'sheet-head' }, truncatable(h('span', { class: 'name' }, softBreaks(meta.title)), meta.title), closeButton),
     navList(chapters, data, links),
-    h('div', { class: 'sheet-foot' }, footBits(meta, context, registry, progressLines)));
+    h('div', { class: 'sheet-foot' }, footBits(meta, context, registry, progressLines, links)));
   closeButton.addEventListener('click', () => sheet.close());
   sheet.addEventListener('click', (event) => {
     if (event.target === sheet || event.target.closest('a[href^="#"]')) sheet.close();
@@ -105,9 +105,10 @@ function buildShell(data, chapters, context, registry) {
     h('span', { class: 'menu-icon', 'aria-hidden': 'true' }), 'Menu');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
     h('a', { class: 'brand', href: '#overview', 'aria-label': 'Overview' }, brandMark(),
-      h('span', { class: 'bar-names' }, truncatable(h('span', { class: 'name' }, meta.title), meta.title), barView)),
+      h('span', { class: 'bar-names' }, truncatable(h('span', { class: 'name' }, softBreaks(meta.title)), meta.title), barView)),
     h('div', { class: 'bar-actions' },
       library && h('a', { class: 'btn bar-library', href: library }, 'Library'),
+      quickTheme(registry),
       menuButton)));
   return { side, sheet, top, links, progressLines, barView };
 }
@@ -183,7 +184,7 @@ function createRouter(views, shell, chapters, viewed, meta) {
       else a.removeAttribute('aria-current');
     });
     shell.barView.textContent = view.nav;
-    document.title = view.key === 'overview' ? `${meta.title} · Repo Explainer` : `${view.title} · ${meta.title}`;
+    document.title = view.key === 'overview' ? `${meta.title} · Concept Explainer` : `${view.title} · ${meta.title}`;
     if (view.key !== 'overview') viewed.add(view.key);
     paintProgress();
   }
@@ -214,18 +215,20 @@ function fatal(app, message) {
 }
 
 function boot() {
-  const context = readContext();
+  // The serve token leaves the address bar before the router reads it.
+  const context = withServe(readContext());
   applyLook(context);
+  applyReading();
   const app = document.getElementById('app');
   let data;
   try {
     data = JSON.parse(document.getElementById('explainer-data').textContent);
   } catch (error) {
-    fatal(app, `The embedded data is not valid JSON (${error.message}). Rebuild it with repo-explainer build.`);
+    fatal(app, `The embedded data is not valid JSON (${error.message}). Rebuild it with concept-explainer build.`);
     return;
   }
   if (!data || !data.meta || !data.meta.title) {
-    fatal(app, 'The embedded data has no meta.title. Run repo-explainer validate to see what is missing.');
+    fatal(app, 'The embedded data has no meta.title. Run concept-explainer validate to see what is missing.');
     return;
   }
   const chapters = chooseChapters(data);
@@ -233,18 +236,20 @@ function boot() {
   const registry = themeRegistry();
   const shell = buildShell(data, chapters, context, registry);
   const ctx = { chapters, viewed, context };
-  const views = [overviewView(data, ctx), ...chapters.map((c, i) => chapterView(c, i, chapters, data, ctx))];
+  const views = [overviewView(data, ctx), ...chapters.map((c, i) => chapterView(c, i, chapters, data, ctx)),
+    settingsView(registry, { context, config: context.config || null, extra: [explainerShareGroup(data, context)] })];
   const meta = data.meta;
   const stamp = [meta.generatedAt && `Generated ${formatDate(meta.generatedAt)}`, meta.commit && `at ${String(meta.commit).slice(0, 7)}`].filter(Boolean).join(' ');
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' },
     shell.top,
     h('div', { class: 'wrap' }, views.map((v) => v.section),
       h('footer', { class: 'site-footer' },
-        h('p', null, `${stamp ? `${stamp} ` : ''}with repo-explainer.`),
+        h('p', null, `${stamp ? `${stamp} ` : ''}with concept-explainer.`),
         h('p', null, DESIGN_CREDIT))));
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
   registry.paint();
+  installThemeShortcut(registry);
   wireSkipLink(main);
   createRouter(views, shell, chapters, viewed, data.meta).route({ initial: true });
 }
