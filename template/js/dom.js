@@ -59,6 +59,11 @@ function reducedMotion() {
   return document.documentElement.dataset.motion === 'reduce' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+// "1 step", "2 steps": a count with its noun, everywhere a page prints one.
+function plural(n, one, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 function byId(items) {
   return new Map(list(items).map((item) => [item.id, item]));
 }

@@ -239,7 +239,7 @@ function saveConfig(context, { submit, status }, changed, values, onSaved) {
     body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
   }).then(({ json: body }) => {
     onSaved(body && body.config ? body.config : values);
-    status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
+    status.textContent = `Saved ${plural(changed.length, 'setting')}. Reloading with the new defaults.`;
     window.setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
   }).catch((error) => {
     submit.disabled = false;
@@ -281,10 +281,6 @@ function defaultsGroup(context, initialConfig) {
       h('span', { class: 'eyebrow quiet' }, serve ? 'Saved to config.json' : 'Read from config.json')),
     h('p', { class: 'setting-hint' }, 'What the skill uses for the next explainer you build.'),
     form);
-}
-
-function countLabel(n, one, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`;
 }
 
 // Explainer defaults always show: the built-in defaults merged with what the

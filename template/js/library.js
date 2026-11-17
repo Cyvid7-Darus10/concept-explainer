@@ -25,49 +25,12 @@ function explainerHref(slug) {
   return libraryHref(`explainers/${slug}/index.html`);
 }
 
-function plural(n, one, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
 // ---------- Pieces ----------
 function layerMarkers(layers) {
   const items = list(layers).filter((l) => l && l.label);
   if (!items.length) return null;
   return h('span', { class: 'lib-layers', 'aria-label': `Layers: ${items.map((l) => l.label).join(', ')}` },
     items.slice(0, 8).map((l) => h('span', { class: 'layer-dot', title: l.label, style: layerStyle(l.color) })));
-}
-
-// A small picture of the explainer: its map (layers as columns, parts as
-// boxes, calls as lines) when the manifest carries one.
-const THUMB = { w: 240, h: 64, pad: 6 };
-
-function mapThumb(thumb) {
-  const layers = list(thumb.layers);
-  const nodes = list(thumb.nodes);
-  if (!layers.length || !nodes.length) return null;
-  const colW = (THUMB.w - THUMB.pad * 2) / layers.length;
-  const perCol = layers.map((l) => nodes.filter((n) => n.layer === l.id));
-  const rows = Math.max(...perCol.map((c) => c.length), 1);
-  const boxH = Math.min(12, (THUMB.h - THUMB.pad * 2 - (rows - 1) * 4) / rows);
-  const at = new Map();
-  perCol.forEach((col, i) => col.forEach((n, j) => at.set(n.id, {
-    x: THUMB.pad + i * colW + 6, y: THUMB.pad + j * (boxH + 4), w: colW - 12, h: boxH,
-  })));
-  const lines = list(thumb.edges).map((e) => [at.get(e.from), at.get(e.to)]).filter(([a, b]) => a && b)
-    .map(([a, b]) => s('line', { class: 'thumb-edge', x1: a.x + a.w, y1: a.y + a.h / 2, x2: b.x, y2: b.y + b.h / 2 }));
-  const boxes = perCol.flatMap((col, i) => col.map((n) => {
-    const b = at.get(n.id);
-    return s('g', { class: 'thumb-layer', style: layerStyle(layers[i].color) },
-      s('rect', { class: 'thumb-box', x: b.x, y: b.y, width: b.w, height: b.h, rx: 2 }),
-      s('rect', { class: 'thumb-bar', x: b.x, y: b.y, width: 2, height: b.h }));
-  }));
-  return s('svg', { class: 'lib-thumb', viewBox: `0 0 ${THUMB.w} ${THUMB.h}`, 'aria-hidden': 'true', focusable: 'false' }, lines, boxes);
-}
-
-function cardThumb(thumb) {
-  if (!thumb || typeof thumb !== 'object') return null;
-  if (thumb.kind === 'map') return mapThumb(thumb);
-  return h('span', { class: 'lib-thumb is-visual', 'aria-hidden': 'true' }, h('span', { class: 'eyebrow quiet' }, text(thumb.kind, 'visual')));
 }
 
 function stackTags(stack, max = 4) {

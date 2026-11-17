@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-jS3w61smpqsG02Dx5Y2IP7usZjpiRb4qMtmoHVFXdgM='; style-src 'sha256-BYcEVUAWEEGi+aR4KH0X7ntAjMAF7HzZU752sYWMc3k=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-jC1oKdi9SkPTscNBsO8YgMjn3jr2sWmsWAzbOX8btUY='; style-src 'sha256-B3mZ9fls9/kISPYo0bKwZlP1rMHryf09UhCX09BP9TM=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="generator" content="concept-explainer">
 <meta name="color-scheme" content="light dark">
@@ -1528,12 +1528,20 @@ h4.viz-title { font-size: 17px; letter-spacing: -0.015em; }
 .drop-size { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .import-field { display: grid; gap: 6px; margin-block-start: 6px; }
 .lib-thumb { display: block; width: 100%; height: 64px; margin-block: 2px 4px; border-radius: var(--radius-sm); background: var(--canvas); box-shadow: inset 0 0 0 var(--hair) var(--line); }
-.lib-thumb.is-visual { display: grid; place-items: center; }
 .thumb-edge { stroke: var(--faint); stroke-width: 1; }
 .thumb-box { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
 .thumb-layer { --layer: var(--layer-clean); }
 :root[data-style="playful"] .thumb-layer { --layer: var(--layer-fun); }
 .thumb-bar { fill: var(--layer); }
+/* Visual thumbnails: hairlines in the line colour, one mark in the accent. */
+.thumb-ring, .thumb-arc { fill: none; stroke: var(--line); stroke-width: 1; }
+.thumb-ring.is-accent { stroke: var(--accent); }
+.thumb-dot { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.thumb-dot.is-accent { fill: var(--accent); stroke: var(--accent); }
+.thumb-mark { fill: var(--accent); }
+.thumb-line { fill: var(--line); }
+.thumb-cell { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.thumb-cell.is-head { fill: var(--canvas); }
 .tag-imported { margin-inline-start: 8px; }
 
 /* ---- kit.css ---- */
@@ -1731,6 +1739,11 @@ function truncate(value, max) {
 // The device setting, or the reader's own Motion choice in Settings.
 function reducedMotion() {
   return document.documentElement.dataset.motion === 'reduce' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// "1 step", "2 steps": a count with its noun, everywhere a page prints one.
+function plural(n, one, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 function byId(items) {
@@ -3134,7 +3147,7 @@ function flowPicks(flows, current, onPick) {
   return flows.map((f, i) => h('li', null, h('button', {
     class: 'flow-pick', type: 'button', 'aria-pressed': String(i === current), onclick: () => onPick(i),
   },
-  h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
+  h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, plural(list(f.steps).length, 'step'))),
   h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title)))));
 }
 
@@ -3189,7 +3202,7 @@ function flowDonePanel(flow, go, onNext) {
     h('span', { class: 'trophy' }, icon('trophy')),
     h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
     h('h3', null, softBreaks(flow.title)),
-    h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
+    h('p', null, `You followed it through ${plural(steps.length, 'step')} and ${plural(actors.size, 'part')} of the system.`),
     h('div', { class: 'btn-row' },
       h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
       onNext && h('button', { class: 'btn primary', type: 'button', onclick: onNext }, 'Next flow')))];
@@ -3332,7 +3345,7 @@ function sequenceDiagram(flow, nodeIndex, currentIndex, go, available) {
   const headW = Math.min(col - 16, 170);
   const chars = Math.floor((headW - 46) / 7);
   const heads = s('svg', { class: 'seq-heads', viewBox: `0 0 ${width} ${SEQ.head}`, width, height: SEQ.head, 'aria-hidden': 'true' });
-  const body = s('svg', { viewBox: `0 0 ${width} ${height}`, width, height, role: 'img', 'aria-label': `${flow.title}: ${steps.length} steps` });
+  const body = s('svg', { viewBox: `0 0 ${width} ${height}`, width, height, role: 'img', 'aria-label': `${flow.title}: ${plural(steps.length, 'step')}` });
 
   actors.forEach((id) => {
     const node = nodeIndex.get(id);
@@ -6834,7 +6847,7 @@ function saveConfig(context, { submit, status }, changed, values, onSaved) {
     body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
   }).then(({ json: body }) => {
     onSaved(body && body.config ? body.config : values);
-    status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
+    status.textContent = `Saved ${plural(changed.length, 'setting')}. Reloading with the new defaults.`;
     window.setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
   }).catch((error) => {
     submit.disabled = false;
@@ -6876,10 +6889,6 @@ function defaultsGroup(context, initialConfig) {
       h('span', { class: 'eyebrow quiet' }, serve ? 'Saved to config.json' : 'Read from config.json')),
     h('p', { class: 'setting-hint' }, 'What the skill uses for the next explainer you build.'),
     form);
-}
-
-function countLabel(n, one, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`;
 }
 
 // Explainer defaults always show: the built-in defaults merged with what the
@@ -7315,7 +7324,7 @@ function nextUpCard(data, chapters, next) {
   const index = chapters.indexOf(chapter);
   return h('article', { class: 'panel next-up' },
     h('p', { class: 'eyebrow' }, done ? 'All chapters viewed' : 'Next up'),
-    h('p', { class: 'next-kicker' }, `Chapter ${index + 1} · ${chapter.count(data)} ${chapter.unit}`),
+    h('p', { class: 'next-kicker' }, `Chapter ${index + 1} · ${chapterCount(chapter, data)}`),
     h('h2', { class: 'next-title' }, chapter.title),
     h('p', { class: 'next-line' }, chapter.lead),
     h('div', { class: 'next-actions' },
@@ -7356,7 +7365,7 @@ function glancePanel(data) {
 function chapterCard(data, chapter, index) {
   return h('a', { class: 'card', href: `#${chapter.key}` },
     h('span', { class: 'top-row' }, h('span', null, padNumber(index + 1)),
-      h('span', { class: 'card-count' }, `${chapter.count(data)} ${chapter.unit}`)),
+      h('span', { class: 'card-count' }, chapterCount(chapter, data))),
     h('span', { class: `card-title ${fitClass(chapter.title)}` }, softBreaks(chapter.title)),
     h('span', { class: 'line' }, chapter.lead),
     h('span', { class: 'card-foot' }, h('span', { class: 'card-viewed' }, 'Viewed'), h('span', { class: 'card-open' }, 'Open')));
@@ -7443,27 +7452,33 @@ function renderRunbook(data, mount) {
 // Boot: read the embedded data and library context, build the dashboard
 // shell (sidebar, phone bar, menu sheet) and show one view per hash.
 const CHAPTERS = [
-  { key: 'context', nav: 'Context', title: 'Why this exists', lead: 'The problem first, then what this aims for and what it leaves out.', count: (d) => list(d.context && d.context.goals).length, unit: 'goals', has: (d) => Boolean(d.context && d.context.problem), render: chRenderContext },
-  { key: 'diff', nav: 'Files changed', title: 'What the change touches', lead: 'Each bar is one file, as long as its changed lines. Pick one to read what changed and which part it belongs to.', count: (d) => list(d.diff).length, unit: 'files', has: (d) => list(d.diff).length > 0, render: chRenderDiff },
-  { key: 'options', nav: 'Options', title: 'The options, side by side', lead: 'Every option on the same rows, pros and cons drawn as marks. The chosen one is marked.', count: (d) => list(d.options).length, unit: 'options', has: (d) => list(d.options).length > 0, render: chRenderOptions },
-  { key: 'risks', nav: 'Risks', title: 'What could go wrong', lead: 'Risks in rows by impact, the worst at the top. Pick one to see how it is handled.', count: (d) => list(d.risks).length, unit: 'risks', has: (d) => list(d.risks).length > 0, render: chRenderRisks },
-  { key: 'rollout', nav: 'Rollout', title: 'How it ships', lead: 'The steps in order. Filled steps are done; the ringed one is next.', count: (d) => list(d.rollout).length, unit: 'steps', has: (d) => list(d.rollout).length > 0, render: chRenderRollout },
-  { key: 'timeline', nav: 'Timeline', title: 'What happened, when', lead: 'Events in the order of the record. The marker shape says what kind of moment it was.', count: (d) => list(d.timeline).length, unit: 'events', has: (d) => list(d.timeline).length > 0, render: chRenderTimeline },
-  { key: 'visuals', nav: 'Diagrams', title: 'The idea, drawn', lead: 'Each diagram answers one question. Pick a part to see what it does.', count: (d) => list(d.diagrams).length, unit: 'diagrams', has: (d) => list(d.diagrams).length > 0, render: chRenderVisuals },
-  { key: 'map', nav: 'Architecture', title: 'The big picture', lead: 'Every box is one part of the system. Pick one to see what it does and who it talks to.', count: (d) => list(d.nodes).length, unit: 'parts', has: (d) => list(d.nodes).length > 0, render: renderMap },
-  { key: 'flows', nav: 'Flows', title: 'Follow it end to end', lead: 'Pick a flow and press Continue. Each step is one hop, with the exact file that does the work.', count: (d) => list(d.flows).length, unit: 'flows', has: (d) => list(d.flows).length > 0, render: renderFlows },
-  { key: 'code', nav: 'Code walkthrough', title: 'The code, line by line', lead: 'The few lines that carry the idea, one step at a time. Each step says what the lines do and why.', count: (d) => list(d.walkthroughs).length, unit: 'walkthroughs', has: (d) => list(d.walkthroughs).length > 0, render: chRenderCode },
-  { key: 'changes', nav: 'Changes', title: 'What changed, and why', lead: 'Recent merges from people and agents, each with its reason. Show them on the map to see which parts moved.', count: (d) => list(d.changes).length, unit: 'changes', has: (d) => list(d.changes).length > 0, render: renderChanges },
-  { key: 'tree', nav: 'Where things live', title: 'Where things live', lead: 'The folders worth knowing. Key ones are where most changes happen.', count: (d) => list(d.tree).length, unit: 'paths', has: (d) => list(d.tree).length > 0, render: renderTree },
-  { key: 'data', nav: 'Data model', title: 'The data', lead: 'What the system stores and how the pieces relate.', count: (d) => list(d.dataModel).length, unit: 'entities', has: (d) => list(d.dataModel).length > 0, render: renderModels },
-  { key: 'concepts', nav: 'Key ideas', title: 'Key ideas', lead: 'The few patterns you need to read this code with confidence. One idea at a time.', count: (d) => list(d.concepts).length, unit: 'ideas', has: (d) => list(d.concepts).length > 0, render: renderConcepts },
-  { key: 'quiz', nav: 'Check yourself', title: 'Check yourself', lead: 'A few quick questions. If you can answer these, you can find your way around.', count: (d) => list(d.quiz).length, unit: 'questions', has: (d) => list(d.quiz).length > 0, render: renderQuiz },
-  { key: 'glossary', nav: 'Glossary', title: 'Glossary', lead: 'Words this codebase uses in its own way.', count: (d) => list(d.glossary).length, unit: 'terms', has: (d) => list(d.glossary).length > 0, render: renderGlossary },
-  { key: 'run', nav: 'Run it', title: 'Run it yourself', lead: 'Commands to get it running on your machine.', count: (d) => list(d.runbook).length, unit: 'commands', has: (d) => list(d.runbook).length > 0, render: renderRunbook },
+  { key: 'context', nav: 'Context', title: 'Why this exists', lead: 'The problem first, then what this aims for and what it leaves out.', count: (d) => list(d.context && d.context.goals).length, unit: ['goal', 'goals'], has: (d) => Boolean(d.context && d.context.problem), render: chRenderContext },
+  { key: 'diff', nav: 'Files changed', title: 'What the change touches', lead: 'Each bar is one file, as long as its changed lines. Pick one to read what changed and which part it belongs to.', count: (d) => list(d.diff).length, unit: ['file', 'files'], has: (d) => list(d.diff).length > 0, render: chRenderDiff },
+  { key: 'options', nav: 'Options', title: 'The options, side by side', lead: 'Every option on the same rows, pros and cons drawn as marks. The chosen one is marked.', count: (d) => list(d.options).length, unit: ['option', 'options'], has: (d) => list(d.options).length > 0, render: chRenderOptions },
+  { key: 'risks', nav: 'Risks', title: 'What could go wrong', lead: 'Risks in rows by impact, the worst at the top. Pick one to see how it is handled.', count: (d) => list(d.risks).length, unit: ['risk', 'risks'], has: (d) => list(d.risks).length > 0, render: chRenderRisks },
+  { key: 'rollout', nav: 'Rollout', title: 'How it ships', lead: 'The steps in order. Filled steps are done; the ringed one is next.', count: (d) => list(d.rollout).length, unit: ['step', 'steps'], has: (d) => list(d.rollout).length > 0, render: chRenderRollout },
+  { key: 'timeline', nav: 'Timeline', title: 'What happened, when', lead: 'Events in the order of the record. The marker shape says what kind of moment it was.', count: (d) => list(d.timeline).length, unit: ['event', 'events'], has: (d) => list(d.timeline).length > 0, render: chRenderTimeline },
+  { key: 'visuals', nav: 'Diagrams', title: 'The idea, drawn', lead: 'Each diagram answers one question. Pick a part to see what it does.', count: (d) => list(d.diagrams).length, unit: ['diagram', 'diagrams'], has: (d) => list(d.diagrams).length > 0, render: chRenderVisuals },
+  { key: 'map', nav: 'Architecture', title: 'The big picture', lead: 'Every box is one part of the system. Pick one to see what it does and who it talks to.', count: (d) => list(d.nodes).length, unit: ['part', 'parts'], has: (d) => list(d.nodes).length > 0, render: renderMap },
+  { key: 'flows', nav: 'Flows', title: 'Follow it end to end', lead: 'Pick a flow and press Continue. Each step is one hop, with the exact file that does the work.', count: (d) => list(d.flows).length, unit: ['flow', 'flows'], has: (d) => list(d.flows).length > 0, render: renderFlows },
+  { key: 'code', nav: 'Code walkthrough', title: 'The code, line by line', lead: 'The few lines that carry the idea, one step at a time. Each step says what the lines do and why.', count: (d) => list(d.walkthroughs).length, unit: ['walkthrough', 'walkthroughs'], has: (d) => list(d.walkthroughs).length > 0, render: chRenderCode },
+  { key: 'changes', nav: 'Changes', title: 'What changed, and why', lead: 'Recent merges from people and agents, each with its reason. Show them on the map to see which parts moved.', count: (d) => list(d.changes).length, unit: ['change', 'changes'], has: (d) => list(d.changes).length > 0, render: renderChanges },
+  { key: 'tree', nav: 'Where things live', title: 'Where things live', lead: 'The folders worth knowing. Key ones are where most changes happen.', count: (d) => list(d.tree).length, unit: ['path', 'paths'], has: (d) => list(d.tree).length > 0, render: renderTree },
+  { key: 'data', nav: 'Data model', title: 'The data', lead: 'What the system stores and how the pieces relate.', count: (d) => list(d.dataModel).length, unit: ['entity', 'entities'], has: (d) => list(d.dataModel).length > 0, render: renderModels },
+  { key: 'concepts', nav: 'Key ideas', title: 'Key ideas', lead: 'The few patterns you need to read this code with confidence. One idea at a time.', count: (d) => list(d.concepts).length, unit: ['idea', 'ideas'], has: (d) => list(d.concepts).length > 0, render: renderConcepts },
+  { key: 'quiz', nav: 'Check yourself', title: 'Check yourself', lead: 'A few quick questions. If you can answer these, you can find your way around.', count: (d) => list(d.quiz).length, unit: ['question', 'questions'], has: (d) => list(d.quiz).length > 0, render: renderQuiz },
+  { key: 'glossary', nav: 'Glossary', title: 'Glossary', lead: 'Words this codebase uses in its own way.', count: (d) => list(d.glossary).length, unit: ['term', 'terms'], has: (d) => list(d.glossary).length > 0, render: renderGlossary },
+  { key: 'run', nav: 'Run it', title: 'Run it yourself', lead: 'Commands to get it running on your machine.', count: (d) => list(d.runbook).length, unit: ['command', 'commands'], has: (d) => list(d.runbook).length > 0, render: renderRunbook },
 ];
 
 // Default chapter order per explainer type, copied from presets/types/*.json
 // (and TYPE_RULES.repo); test/type-chapters.test.mjs keeps them in step.
+// "1 walkthrough", "3 walkthroughs": a chapter's count with its noun.
+function chapterCount(chapter, data) {
+  const [one, many] = chapter.unit;
+  return plural(chapter.count(data), one, many);
+}
+
 // The build embeds the chapter list (context.chapters, from the one rule in
 // scripts/lib/chapters.mjs), so the page never keeps its own copy. A page
 // without it (an older build) falls back to meta.chapters, else every chapter

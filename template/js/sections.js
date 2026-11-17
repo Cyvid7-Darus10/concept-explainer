@@ -64,7 +64,7 @@ function nextUpCard(data, chapters, next) {
   const index = chapters.indexOf(chapter);
   return h('article', { class: 'panel next-up' },
     h('p', { class: 'eyebrow' }, done ? 'All chapters viewed' : 'Next up'),
-    h('p', { class: 'next-kicker' }, `Chapter ${index + 1} · ${chapter.count(data)} ${chapter.unit}`),
+    h('p', { class: 'next-kicker' }, `Chapter ${index + 1} · ${chapterCount(chapter, data)}`),
     h('h2', { class: 'next-title' }, chapter.title),
     h('p', { class: 'next-line' }, chapter.lead),
     h('div', { class: 'next-actions' },
@@ -105,7 +105,7 @@ function glancePanel(data) {
 function chapterCard(data, chapter, index) {
   return h('a', { class: 'card', href: `#${chapter.key}` },
     h('span', { class: 'top-row' }, h('span', null, padNumber(index + 1)),
-      h('span', { class: 'card-count' }, `${chapter.count(data)} ${chapter.unit}`)),
+      h('span', { class: 'card-count' }, chapterCount(chapter, data))),
     h('span', { class: `card-title ${fitClass(chapter.title)}` }, softBreaks(chapter.title)),
     h('span', { class: 'line' }, chapter.lead),
     h('span', { class: 'card-foot' }, h('span', { class: 'card-viewed' }, 'Viewed'), h('span', { class: 'card-open' }, 'Open')));

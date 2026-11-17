@@ -30,7 +30,7 @@ function flowPicks(flows, current, onPick) {
   return flows.map((f, i) => h('li', null, h('button', {
     class: 'flow-pick', type: 'button', 'aria-pressed': String(i === current), onclick: () => onPick(i),
   },
-  h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
+  h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, plural(list(f.steps).length, 'step'))),
   h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title)))));
 }
 
@@ -85,7 +85,7 @@ function flowDonePanel(flow, go, onNext) {
     h('span', { class: 'trophy' }, icon('trophy')),
     h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
     h('h3', null, softBreaks(flow.title)),
-    h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
+    h('p', null, `You followed it through ${plural(steps.length, 'step')} and ${plural(actors.size, 'part')} of the system.`),
     h('div', { class: 'btn-row' },
       h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
       onNext && h('button', { class: 'btn primary', type: 'button', onclick: onNext }, 'Next flow')))];
@@ -228,7 +228,7 @@ function sequenceDiagram(flow, nodeIndex, currentIndex, go, available) {
   const headW = Math.min(col - 16, 170);
   const chars = Math.floor((headW - 46) / 7);
   const heads = s('svg', { class: 'seq-heads', viewBox: `0 0 ${width} ${SEQ.head}`, width, height: SEQ.head, 'aria-hidden': 'true' });
-  const body = s('svg', { viewBox: `0 0 ${width} ${height}`, width, height, role: 'img', 'aria-label': `${flow.title}: ${steps.length} steps` });
+  const body = s('svg', { viewBox: `0 0 ${width} ${height}`, width, height, role: 'img', 'aria-label': `${flow.title}: ${plural(steps.length, 'step')}` });
 
   actors.forEach((id) => {
     const node = nodeIndex.get(id);
