@@ -6,7 +6,6 @@ All notable changes to this project are documented here. This project follows [S
 
 Repo Explainer is now **Concept Explainer**. It explains a repo, a PR or MR, a change, a proposal, a migration, an incident or a concept, and the main point is the picture: diagrams first, ideas broken into parts, every claim cited.
 
-<!-- After the GitHub rename from Cyvid7-Darus10/repo-explainer: update repository, bugs and homepage in package.json and the links in README, CONTRIBUTING and SECURITY. GitHub redirects the old URL. -->
 
 ### Added
 

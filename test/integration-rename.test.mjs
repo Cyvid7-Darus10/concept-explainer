@@ -18,7 +18,7 @@ const SKIP = [/^CHANGELOG\.md$/, /^docs\/plans\//, /^test\//, /^NOTICE$/];
 // Uses that are correct anywhere.
 const ALLOWED = [
   /"repo-explainer": "bin\/repo-explainer\.mjs"/g, // the alias bin in package.json
-  /Cyvid7-Darus10\/repo-explainer/g, // the GitHub repo (URLs, npx github:) keeps its name until the owner renames it
+  /Cyvid7-Darus10\/repo-explainer/g, // old GitHub URL (GitHub redirects it), allowed only in history
   /cyvid7-darus10\.github\.io\/repo-explainer/g,
   /repo-explainer:/g, // legacy browser storage keys, read once and moved
   /~?\/?\.repo-explainer\b/g, // the old library home, moved on first run

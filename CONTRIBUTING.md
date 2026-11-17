@@ -5,8 +5,8 @@ Thanks for helping. This project has two audiences, people and agents, and one r
 ## Setup
 
 ```sh
-git clone https://github.com/Cyvid7-Darus10/repo-explainer
-cd repo-explainer      # the GitHub repo keeps its old name for now
+git clone https://github.com/Cyvid7-Darus10/concept-explainer
+cd concept-explainer
 npm run check        # tests, validate and rebuild every example, rebuild the kit (never touches your library)
 ```
 
