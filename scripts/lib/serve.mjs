@@ -155,7 +155,8 @@ async function importBundle(state, url, req, res) {
   } catch (error) {
     return fail(res, 400, error.message);
   }
-  const summary = url.searchParams.get('apply') === '1' ? applyImport(state.home, plan) : plan.summary;
+  // ?dryRun=1 plans only. Without it the plan is applied and the hub rebuilt.
+  const summary = url.searchParams.get('dryRun') === '1' ? plan.summary : applyImport(state.home, plan);
   return sendJson(res, 200, { summary });
 }
 
