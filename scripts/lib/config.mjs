@@ -76,6 +76,15 @@ function valueErrors(key, value) {
 }
 
 /**
+ * The config a page may embed: everything except `instructions`, which can
+ * hold private notes. Pages served with a token read the rest from the API.
+ */
+export function publicConfig(config) {
+  const { instructions, ...rest } = normalizeConfig(config);
+  return rest;
+}
+
+/**
  * Strict check, for anything about to be saved. Unknown keys are errors.
  * @param {unknown} config a full or partial config
  * @returns {{ errors: string[] }}

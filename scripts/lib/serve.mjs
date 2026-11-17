@@ -9,6 +9,7 @@ import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { readConfig, rebuildLibrary, writeConfig } from './library.mjs';
 import { MAX_BUNDLE_BYTES, applyImport, createBundle, parseBundle, planImport } from './bundle.mjs';
+import { SLUG_PATTERN } from './library-model.mjs';
 
 export const HOST = '127.0.0.1';
 export const TOKEN_HEADER = 'x-concept-explainer-token';
@@ -25,6 +26,7 @@ const TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.txt': 'text/plain; charset=utf-8',
+  '.woff2': 'font/woff2',
 };
 
 const SAFE_HEADERS = {
@@ -53,6 +55,21 @@ function allowedOrigins(port) {
 }
 
 // A file inside the library, or null. Symlinks out of the library count as outside.
+// The only files a browser may read: the hub, the kit, each explainer's page
+// and the fonts. Data (library.json, config.json, explainer.json), temp and
+// backup files, dotfiles and anything else are not found, token or not.
+const FONT_FILE = /^[A-Za-z0-9-]+\.woff2$|^OFL\.txt$/;
+
+function allowedPath(decoded) {
+  if (decoded === '/' || decoded === '/index.html') return 'index.html';
+  if (decoded === '/kit.html') return 'kit.html';
+  const page = decoded.match(/^\/explainers\/([^/]+)\/(?:index\.html)?$/);
+  if (page && SLUG_PATTERN.test(page[1])) return join('explainers', page[1], 'index.html');
+  const font = decoded.match(/^\/fonts\/([^/]+)$/);
+  if (font && FONT_FILE.test(font[1])) return join('fonts', font[1]);
+  return null;
+}
+
 function resolveFile(root, pathname) {
   let decoded;
   try {
@@ -60,11 +77,10 @@ function resolveFile(root, pathname) {
   } catch {
     return { status: 400 };
   }
-  if (decoded.includes('\0') || decoded.split(/[\\/]/).includes('..')) return { status: 403 };
-  let target = resolve(root, `.${decoded}`);
-  if (target !== root && !target.startsWith(root + sep)) return { status: 403 };
-  if (existsSync(target) && statSync(target).isDirectory()) target = join(target, 'index.html');
-  if (!existsSync(target)) return { status: 404 };
+  const relative = allowedPath(decoded);
+  if (!relative) return { status: 404 };
+  const target = resolve(root, relative);
+  if (!target.startsWith(root + sep) || !existsSync(target)) return { status: 404 };
   const real = realpathSync(target);
   if (!real.startsWith(root + sep)) return { status: 403 };
   return statSync(real).isFile() ? { file: real } : { status: 404 };

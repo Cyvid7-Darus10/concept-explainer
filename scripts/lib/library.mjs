@@ -10,7 +10,7 @@ import { listPatterns } from './init.mjs';
 import { NODE_KINDS } from './schema.mjs';
 import { buildSearchIndex } from './search-index.mjs';
 import { parseStyle } from './style.mjs';
-import { normalizeConfig, validateConfig } from './config.mjs';
+import { normalizeConfig, publicConfig, validateConfig } from './config.mjs';
 import {
   SLUG_PATTERN, baseSlugFor, chooseSlug, emptyManifest, entryFor, isManifest, upsertEntry, withoutEntry,
 } from './library-model.mjs';
@@ -162,10 +162,12 @@ function packageVersion() {
 /** Rewrite the hub page and the kit page beside it. */
 export function writeHub(home, manifest, options = {}) {
   const paths = libraryPaths(home);
-  const config = readConfig(home);
+  const config = publicConfig(readConfig(home));
   const { style } = config;
+  // The hub is a page: it gets no local paths.
+  const pageManifest = { ...manifest, explainers: manifest.explainers.map(({ sourcePath, repoPath, ...entry }) => entry) };
   const index = manifest.explainers.flatMap((entry) => buildSearchIndex(entry.slug, readStoredData(paths, entry.slug) || { meta: entry }));
-  writeAtomic(paths.hub, buildLibrary(manifest, index, { templateDir: options.templateDir, style, config, kitHref: KIT_HREF }));
+  writeAtomic(paths.hub, buildLibrary(pageManifest, index, { templateDir: options.templateDir, style, config, kitHref: KIT_HREF }));
   const kit = { kinds: NODE_KINDS, patterns: listPatterns(), version: packageVersion() };
   writeAtomic(paths.kit, buildGallery(kit, { templateDir: options.templateDir, context: { libraryHref: 'index.html', style, config } }));
   return paths.hub;
@@ -173,7 +175,7 @@ export function writeHub(home, manifest, options = {}) {
 
 function writePage(paths, slug, data, options, style) {
   const pagePath = join(paths.dirFor(slug), 'index.html');
-  const context = { libraryHref: HUB_FROM_PAGE, slug, style, config: readConfig(paths.home) };
+  const context = { libraryHref: HUB_FROM_PAGE, slug, style, config: publicConfig(readConfig(paths.home)) };
   writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context }));
   return pagePath;
 }

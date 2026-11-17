@@ -14,6 +14,7 @@ import { exportAllSvgs } from '../assets.mjs';
 import { PRICING, estimateRun, formatEstimate, sizeOf } from '../estimate.mjs';
 import { measureDiff, measureSource } from '../estimate-input.mjs';
 import { readConfig, resolveHome } from '../library.mjs';
+import { publicConfig } from '../config.mjs';
 import { openPath } from '../open.mjs';
 import {
   out, err, BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
@@ -127,7 +128,7 @@ export const EXPLAIN_COMMANDS = {
     if (!data) return;
     const out = opts.out || join(dirname(file), `${basename(file).replace(/(\.explainer)?\.json$/, '')}.html`);
     // A throwaway build stays independent of the library, config included.
-    const context = opts['no-library'] ? { style } : { style, config: readConfig(resolveHome()) };
+    const context = opts['no-library'] ? { style } : { style, config: publicConfig(readConfig(resolveHome())) };
     writeFile(out, buildExplainer(data, { context }));
     if (!opts['no-library']) {
       try {
