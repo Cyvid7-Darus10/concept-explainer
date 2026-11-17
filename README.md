@@ -9,9 +9,9 @@
 
 <p align="center">
   <a href="https://github.com/Cyvid7-Darus10/repo-explainer/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Cyvid7-Darus10/repo-explainer/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-58cc02"></a>
-  <img alt="Node 18.3 or newer" src="https://img.shields.io/badge/node-%E2%89%A518.3-1cb0f6">
-  <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-042c60">
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-d2430e"></a>
+  <img alt="Node 18.3 or newer" src="https://img.shields.io/badge/node-%E2%89%A518.3-171717">
+  <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-666666">
 </p>
 
 <p align="center">
@@ -21,11 +21,13 @@
   &nbsp;·&nbsp;
   <a href="#quick-start"><b>Quick start</b></a>
   &nbsp;·&nbsp;
+  <a href="#the-library"><b>Library</b></a>
+  &nbsp;·&nbsp;
   <a href="#what-a-run-costs"><b>Cost</b></a>
 </p>
 
 <p align="center">
-  <a href="https://cyvid7-darus10.github.io/repo-explainer/examples/taskflow.html"><img src="docs/media/demo.gif" alt="A Repo Explainer tour: the hero, the architecture map, stepping through a request, recent changes, the data model and a quiz" width="860"></a>
+  <a href="https://cyvid7-darus10.github.io/repo-explainer/examples/taskflow.html"><img src="docs/media/demo.gif" alt="A Repo Explainer tour: the overview, the architecture map, stepping through a request, recent changes, the data model and a quiz" width="860"></a>
 </p>
 
 ## Why
@@ -43,7 +45,7 @@ Reading every diff does not scale. Repo Explainer has your agent do the reading,
 
 ## What you get
 
-One self-contained HTML page per repo:
+One self-contained HTML page per repo, laid out as a dashboard. A sidebar lists the chapters and marks where you are. The page opens on an **Overview**: the summary, the stack, counts, a card per chapter and the latest changes. Each chapter is its own view:
 
 - **The big picture.** An architecture map. Click a part to see what it does, its files, and who it talks to.
 - **End to end.** Step through each request on a sequence diagram with a Continue button. Every hop cites `file:line`.
@@ -53,10 +55,38 @@ One self-contained HTML page per repo:
 
 Re-run it tomorrow and it only reads the new merges.
 
+**Every view has a link.** Views are hash-routed, so you can send someone straight to a part, a step or a change. Back and forward work.
+
+| Link | Opens |
+|---|---|
+| `#overview` | The Overview |
+| `#map/<nodeId>` | The map with that part selected |
+| `#flows/<flowId>/<n>` | A flow at step n, counted from 1 |
+| `#changes/<changeId>` | That change, highlighted |
+| `#data/<entity>`, `#glossary/<term>`, `#tree/<path>` | That entity, term or folder |
+| `#concepts/<n>`, `#quiz`, `#run` | A key idea (from 0), the quiz, the runbook |
+
+Light, dark and system themes sit in the sidebar footer. On a phone, a Menu button opens the same chapter list.
+
+## The library
+
+Explainers pile up across repos and sessions. So every build also lands in one local folder, `~/.repo-explainer` (or `$REPO_EXPLAINER_HOME`), and its `index.html` puts them all in one place:
+
+- **Search everything.** Parts, flows, single steps, changes, entities, terms and folders across every explainer. Each result opens the exact view.
+- **Browse.** One card per repo with its summary and stack.
+
+```sh
+repo-explainer build .explainer/explainer.json --repo .   # builds, then publishes
+repo-explainer library                                    # list what is in it
+repo-explainer library open                               # open the hub
+```
+
+The hub is one HTML file that works offline from `file://`. The source of each explainer stays in its repo at `.explainer/explainer.json`; the library keeps a copy and the built page. Pass `--no-library` for a throwaway build. Layout, manifest and search index: [`references/library.md`](references/library.md).
+
 | | |
 |---|---|
 | <img src="docs/media/hero.png" alt="Hero with the main request route"> | <img src="docs/media/map.png" alt="Architecture map with a part selected"> |
-| **Start.** Reading time and the main route at a glance. | **Map.** Click a part to see its files, neighbours and flows. |
+| **Overview.** Summary, stack, counts and where to start. | **Map.** Click a part to see its files, neighbours and flows. |
 | <img src="docs/media/flow.png" alt="Sequence diagram beside a step card with code"> | <img src="docs/media/changes.png" alt="Timeline of recent changes with reasons"> |
 | **Flows.** One hop at a time, with the code that does it. | **Changes.** Agent or human, the reason, and the risk. |
 | <img src="docs/media/data.png" alt="ER diagram with a field table"> | <img src="docs/media/quiz.png" alt="Quiz with instant feedback"> |
@@ -74,7 +104,15 @@ Then ask your agent:
 
 > Explain this repo for a new engineer. Trace sign in and checkout end to end, and include what changed this week.
 
-The agent follows [`SKILL.md`](SKILL.md). It scans the repo, picks a preset, traces flows through the real code, fills in `explainer.json`, and builds the page. Any agent that can read a skill file and run Node can use it.
+The agent follows [`SKILL.md`](SKILL.md). It scans the repo, picks a preset, traces flows through the real code, fills in `explainer.json`, builds the page and publishes it to your library. Any agent that can read a skill file and run Node can use it.
+
+To use it from every Claude session, link it in once and add the library rule:
+
+```sh
+node ~/path/to/repo-explainer/bin/repo-explainer.mjs install
+```
+
+`install` links the skill into `~/.claude/skills/repo-explainer` and writes [`rules/repo-explainer.md`](rules/repo-explainer.md) to `~/.claude/rules/` (both under `$CLAUDE_CONFIG_DIR` when set). It is safe to run again, and it never replaces a real folder or an edited rule unless you pass `--force`, which keeps a backup.
 
 ### From the command line
 
@@ -85,7 +123,7 @@ npx github:Cyvid7-Darus10/repo-explainer changes ./my-repo --data explainer.json
 npx github:Cyvid7-Darus10/repo-explainer build explainer.json --repo ./my-repo --strict --open
 ```
 
-Needs Node 18.3 or newer. Nothing to install. The output is one HTML file you can commit, attach to a PR, or host anywhere.
+Needs Node 18.3 or newer. Nothing to install. The output is one HTML file you can commit, attach to a PR, or host anywhere, plus a copy in your library.
 
 <details>
 <summary><b>All commands</b></summary>
@@ -97,7 +135,9 @@ Needs Node 18.3 or newer. Nothing to install. The output is one HTML file you ca
 | `init <repo> [--preset id]` | A starter `explainer.json` with `TODO`s to fill |
 | `changes <repo> [--data f --write]` | Draft change entries from git: human or agent, type, PR link, parts touched |
 | `validate <file> [--repo dir] [--strict]` | Check references, lesson shape, writing style, and that every cited file exists |
-| `build <file> [--out f] [--repo dir]` | Validate, then render the page |
+| `build <file> [--out f] [--repo dir]` | Validate, render the page, and publish it to the library (`--no-library` skips that) |
+| `library [list\|path\|add\|remove\|rebuild\|open]` | List, locate, add, remove, re-render or open the library |
+| `install [--force]` | Link the skill and the library rule into `~/.claude` |
 | `presets` | Presets for full stack, backend API, frontend, mobile, and library or CLI repos |
 | `patterns [id]` | Reusable flow shapes: auth, webhook, async job, cache, and more |
 | `gallery` | The design kit page |
@@ -124,12 +164,12 @@ These are estimates, not quotes. They assume most repeated context comes from th
 
 ## Built to stay consistent
 
-Agents only write data. The design, components, icons and motion are fixed and tested, so every explainer looks the same and readers learn it once.
+Agents only write data. The design, components, icons and motion are fixed and tested, so every explainer looks the same and readers learn it once. The look is a Geist dashboard: Geist type and greys, one orange accent for "where you are", hairline rings instead of shadows, one 6px radius, and layer colors as small markers. See [`references/design-system.md`](references/design-system.md).
 
 - **One data contract**, checked on every build. See [`references/data-schema.md`](references/data-schema.md).
 - **Presets and flow patterns** so agents start from a proven shape.
 - **Writing rules:** gist first, short sentences, no filler. Enforced as warnings.
-- **Design guardrail tests** fail CI on shadows, gradients, off-palette colors or `innerHTML`.
+- **Design guardrail tests** fail CI on blurred shadows, gradients, colors outside the tokens, stray radii, other fonts or `innerHTML`.
 - **Truthfulness:** every part and step cites real files, and `--repo` checks they exist. Change reasons come from PRs and commits, never made up.
 
 ## Security and privacy
@@ -137,16 +177,17 @@ Agents only write data. The design, components, icons and motion are fixed and t
 - The scanner reads env var **names** from example files only. It never opens `.env`.
 - All repo text renders as plain text, and embedded data is escaped. Links must be `http` or `https`.
 - The page makes no network calls except loading Google Fonts. It falls back to system fonts offline.
+- The library lives only on your machine. Slugs are limited to `[a-z0-9-]`, files are written atomically, and the hub only follows links into its own `explainers/` folder.
 
 Report vulnerabilities through [SECURITY.md](SECURITY.md).
 
 ## Credits
 
-- **Visual design** follows [Duolingo](https://www.duolingo.com)'s design language: the palette and its color names, the type scale, and the pressable buttons.
-- **Lesson format** is inspired by [Brilliant](https://brilliant.org): one idea per step, with a Continue button.
+- **Type and greys** come from [Geist](https://vercel.com/geist), the Vercel design system.
+- **Lesson pacing** is inspired by [Brilliant](https://brilliant.org): one idea per step, with a Continue button.
 - **Explanation design** draws on Bret Victor's [Explorable Explanations](https://worrydream.com/ExplorableExplanations/), Red Blob Games, and the C4 model.
 
-Repo Explainer is independent and not affiliated with Duolingo or Brilliant. It includes none of their logos, mascots, illustrations or fonts. Type is [Nunito](https://fonts.google.com/specimen/Nunito) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/). The icons are original.
+Repo Explainer is independent and not affiliated with or endorsed by Vercel or Brilliant. It includes none of their logos or illustrations. Type is [Geist and Geist Mono](https://vercel.com/font), loaded from Google Fonts. The icons and the mark are original.
 
 ## Contributing
 

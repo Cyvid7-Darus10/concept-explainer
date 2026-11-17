@@ -5,11 +5,15 @@ description: 'Turn a codebase into a guided, interactive HTML tour: architecture
 
 # Repo Explainer
 
-You produce **one self-contained HTML file** that teaches a repo the way Brilliant teaches math: one idea at a time, with interactive diagrams and a big Continue button.
+You produce **one self-contained HTML page** that teaches a repo the way Brilliant teaches math: one idea at a time, with interactive diagrams and a Continue button. The page is a dashboard: a sidebar of chapters, an Overview, and one view per chapter.
+
+Every build also lands in the **library**, one local folder (`~/.repo-explainer`, or `$REPO_EXPLAINER_HOME`) whose `index.html` lists and searches every explainer you have made, in any repo.
 
 **You only write data.** The design, components, icons, animation and layout are finished and tested. Your job is to investigate the repo and fill `explainer.json` with true, cited facts. The CLI turns that into the page.
 
 `SKILL_DIR` below means the folder this file is in. Run the CLI with `node "$SKILL_DIR/bin/repo-explainer.mjs" <command>` (Node 18.3+, no install step).
+
+To make every Claude session use the library, run `repo-explainer install` once. It links this skill into `~/.claude/skills/` and adds a short rule to `~/.claude/rules/` (or under `$CLAUDE_CONFIG_DIR`).
 
 ## Workflow
 
@@ -22,17 +26,18 @@ Copy this checklist into your todo list and work through it in order.
 4. **Investigate.** Follow `references/investigation-playbook.md`. Read the entry points, then trace each `mustTrace` flow through the real code, one call at a time. Write down `file:line` as you go.
 5. **Fill the data** using `references/data-schema.md`. Start each flow from a pattern: run `repo-explainer patterns`, then `repo-explainer patterns <id>`, copy its steps, and rename its roles to your node ids.
 6. **Draft the changes chapter.** Run `repo-explainer changes <repo> --data <file> --write --since "14 days ago"`. Add `--merges` when the repo merges PRs, and `--remote https://github.com/<o>/<r>` for links. Then replace each `why` TODO with the reason from the PR description, linked issue or commit body. If you cannot find a reason, say "No reason recorded". **Never invent one.**
-7. **Build with file checks.** Run `repo-explainer build <file> --repo <repo> --strict`. Fix every error and warning, since `--strict` fails on warnings too. `--repo` proves every cited path exists.
-8. **Look at it.** Open the HTML (add `--open`, or use a browser tool). Click a node, step through every flow to the trophy, answer the quiz, and narrow the window to phone width. Fix the data, not the template.
-9. **Hand off.** Report the output path, the flows you traced, and anything you could not verify.
+7. **Build and publish.** Run `repo-explainer build <file> --repo <repo> --strict`. Fix every error and warning, since `--strict` fails on warnings too. `--repo` proves every cited path exists. A clean build also publishes to the library and prints its path. Do not pass `--no-library` unless the user asks for a throwaway build.
+8. **Look at it.** Open the HTML (add `--open`, or use a browser tool). Open each chapter from the sidebar, click a node, step through every flow to the trophy, answer the quiz, and narrow the window to phone width. Fix the data, not the template.
+9. **Hand off.** Report the page path, the library hub path (`<home>/index.html`, printed by the build and by `repo-explainer library path`), the flows you traced, and anything you could not verify. Leave `.explainer/explainer.json` in the repo as the source.
 
 ## Brand and UX guardrails (non-negotiable)
 
-The look is a deliberate system: a Duolingo-style palette inside a Brilliant-style lesson flow. Consistency across every repo's explainer is the point, so treat these as hard rules:
+The look is a deliberate system: a Geist dashboard (Geist type and greys, one orange accent, hairline rings, one 6px radius) around a Brilliant-style lesson flow. Consistency across every repo's explainer is the point, so treat these as hard rules:
 
 - **Do not edit** `template/`, `styles.css`, the icons, the tokens or the layout to make one explainer "fit". If something does not fit, change the data: shorter labels, fewer actors, a split flow. If the template is genuinely missing something, stop and say so. That is a template change for a maintainer and a separate PR.
-- **Do not add** CSS, `<style>`, inline styles, scripts, fonts, emoji icon sets, images, gradients, shadows, extra colors or extra border radii. No custom HTML in any string either: everything renders as plain text by design.
-- **Do not hand-write the HTML or draw your own diagrams.** Every visual comes from the data. Need an icon? Set `kind` to a name in `assets/icons/`. Need a color? Set the layer `color` to one of `green, blue, navy, midnight, yellow, pink`. Need the logo? Use `assets/logo/`. To see everything available, run `repo-explainer gallery`.
+- **Do not add** CSS, `<style>`, inline styles, scripts, fonts, emoji icon sets, images, gradients, shadows, extra colors, extra accents or extra border radii. No custom HTML in any string either: everything renders as plain text by design.
+- **Do not hand-write the HTML or draw your own diagrams.** Every visual comes from the data. Need an icon? Set `kind` to a name in `assets/icons/`. Need a layer color? Set the layer `color` to one of `green, blue, navy, midnight, yellow, pink`; it shows as a small marker, never a fill. Need the logo? Use `assets/logo/`. To see everything available, run `repo-explainer gallery`.
+- **Do not build explainer pages any other way.** No hand-written HTML in another folder, no copies of built pages. Build with the CLI so the page lands in the library.
 - **Respect the shape of a lesson:**
   - **One idea per step.** A step `label` is a short action (≤ 6 words, e.g. "Checks the session"). A `detail` is at most 2 sentences.
   - **4–12 steps per flow.** More than that means splitting it into two flows.
@@ -79,7 +84,8 @@ A reader should get the idea from the first five words. Write like you are expla
 | Why something is built that way | `step.why`, `concept.analogy` | a long `detail` |
 | Recent work | `repo-explainer changes` → `changes[]` | a pasted git log |
 | Folder guide | `tree[]` (`key: true` for hot spots) | a full file listing |
-| Logo, icons, palette | `assets/`, `repo-explainer gallery` | redrawing or recoloring |
+| Logo, icons, layer colors | `assets/`, `repo-explainer gallery` | redrawing or recoloring |
+| Finding an old explainer | `repo-explainer library`, the hub at `<home>/index.html` | searching folders for HTML files |
 
 ## Updating an existing explainer
 
@@ -89,7 +95,7 @@ For a repo that already has one (e.g. `.explainer/explainer.json`):
 2. Fill in each new `why`.
 3. Re-check any node or flow whose cited files appear in those changes.
 4. Bump `meta.generatedAt` and `meta.commit`.
-5. Rebuild with `--strict`.
+5. Rebuild with `--strict`. The library entry for this repo is updated in place, under the same slug.
 
 Keep the JSON in the repo so the next agent updates it instead of starting over.
 
@@ -97,6 +103,7 @@ Keep the JSON in the repo so the next agent updates it instead of starting over.
 
 - `references/data-schema.md`: every field, its limits and an example.
 - `references/investigation-playbook.md`: how to trace flows in each kind of stack.
+- `references/library.md`: the library folder, its manifest, the search index and the `library` commands.
 - `references/design-system.md`: tokens and the reasoning behind each rule (read-only context).
 - `references/ux-principles.md`: why the page is built as a guided lesson.
 - `examples/taskflow.explainer.json`: a complete, valid example to imitate.
