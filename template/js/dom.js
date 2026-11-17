@@ -118,7 +118,16 @@ function linkPart(value) {
 
 // A small mono label: kinds, authors, PK/FK. Never coloured fills.
 function tag(label, extra = '') {
-  return h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, label);
+  return h('span', { class: `tag${extra ? ` ${extra}` : ''}`, title: String(label) }, label);
+}
+
+// Display titles step down a size when their longest word is long, so an
+// identifier like AbstractSingletonProxyFactoryBean breaks cleanly.
+function fitClass(value) {
+  const longest = String(value || '').split(/\s+/).reduce((max, word) => Math.max(max, word.length), 0);
+  if (longest > 32) return 'fit-xlong';
+  if (longest > 18) return 'fit-long';
+  return '';
 }
 
 // Tiny, safe highlighter: tokenises into spans, never parses HTML.
@@ -242,3 +251,35 @@ function themeRegistry() {
   };
 }
 
+
+// ---------- Page context (library builds) ----------
+// The library context is optional: missing, broken or unfilled means standalone.
+function readContext() {
+  const el = document.getElementById('explainer-context');
+  const raw = el ? el.textContent.trim() : '';
+  if (!raw || raw === '__CONTEXT__') return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+// A relative link (../../index.html) or an http(s) one. No other schemes.
+function safeHref(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const trimmed = value.trim();
+  if (safeUrl(trimmed)) return safeUrl(trimmed);
+  return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(trimmed) ? null : trimmed;
+}
+
+// The skip link moves focus only; a "#main" hash would read as a view name.
+function wireSkipLink(main) {
+  const skip = document.querySelector('.skip');
+  if (!skip || !main) return;
+  skip.addEventListener('click', (event) => {
+    event.preventDefault();
+    main.focus();
+  });
+}
