@@ -195,3 +195,33 @@ test('imported entries keep their origin through a rebuild; local builds have no
   const local = libraryWith(concept);
   assert.equal(listExplainers({ home: local })[0].origin, undefined);
 });
+
+test('two items replacing one slug in one bundle: the original is kept and the duplicate skipped', () => {
+  const to = libraryWith(pr);
+  const slug = listExplainers({ home: to })[0].slug;
+  const original = stored(to, slug);
+  const first = structuredClone(pr);
+  first.meta.title = 'First replacement';
+  const second = structuredClone(pr);
+  second.meta.title = 'Second replacement';
+  const plan = planImport(to, parseBundle(bundleOf([{ slug, data: first }, { slug, data: second }])), { onConflict: 'replace' });
+  assert.equal(plan.summary.replaced.length, 1);
+  assert.deepEqual(plan.summary.skipped.map((s) => [s.index, s.reason]), [[1, 'duplicate in this bundle']]);
+  applyImport(to, plan);
+  const dir = join(to, 'explainers', slug);
+  const backups = readdirSync(dir).filter((f) => f.startsWith('explainer.json.replaced-'));
+  assert.equal(backups.length, 1);
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, backups[0]), 'utf8')), original, 'the original survives');
+  assert.equal(stored(to, slug).meta.title, 'First replacement');
+});
+
+test('backups never overwrite each other, even within one millisecond', () => {
+  const to = libraryWith(pr);
+  const slug = listExplainers({ home: to })[0].slug;
+  const v = (title) => ({ ...structuredClone(pr), meta: { ...pr.meta, title } });
+  publishExplainer(v('two'), { home: to, slug, backupExisting: true });
+  publishExplainer(v('three'), { home: to, slug, backupExisting: true });
+  const backups = readdirSync(join(to, 'explainers', slug)).filter((f) => f.startsWith('explainer.json.replaced-'));
+  assert.equal(backups.length, 2);
+  assert.match(backups[0], /^explainer\.json\.replaced-[\dT-]+Z-[0-9a-f]{8}$/);
+});
