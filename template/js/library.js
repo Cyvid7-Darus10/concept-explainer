@@ -343,18 +343,18 @@ function bootLibrary() {
   const shortDate = displayDate(manifest.updatedAt, { year: false });
   const shell = hubShell(views, explainers, shortDate, registry, safeHref(data && data.kitHref));
   const selected = new Set();
+  // Export exactly what the hub shows: the picked cards, else every explainer
+  // the search and filters leave on screen, else the whole library.
+  const shownSlugs = () => {
+    const allowed = allowedSlugs();
+    const query = input.value.trim();
+    return query ? [...groupBySlug(searchEntries(index, query, allowed)).keys()] : explainers.map((e) => e.slug).filter((slug) => allowed.has(slug));
+  };
   const getSelection = () => {
-    const shown = explainers.filter((e) => allowedSlugs().has(e.slug)).map((e) => e.slug);
     const filtered = Boolean(state.stack || state.preset || state.type || state.tag || input.value.trim());
-    if (selected.size) return { slugs: [...selected], args: [...selected].map(shellQuote).join(' '), label: plural(selected.size, 'picked explainer') };
-    if (!filtered) return { slugs: [], params: {}, args: '', label: 'the whole library' };
-    // The CLI can select by type, tag, stack and search; a preset filter falls back to the shown slugs.
-    if (!state.preset) {
-      const params = Object.fromEntries([['type', state.type], ['tag', state.tag], ['stack', state.stack], ['search', input.value.trim()]].filter(([, v]) => v));
-      const args = Object.entries(params).map(([k, v]) => `--${k} ${shellQuote(v)}`).join(' ');
-      return { slugs: [], params, args, label: plural(shown.length, 'explainer') };
-    }
-    return { slugs: shown, args: shown.map(shellQuote).join(' '), label: plural(shown.length, 'explainer') };
+    const slugs = selected.size ? [...selected] : filtered ? shownSlugs() : [];
+    const label = selected.size ? plural(slugs.length, 'picked explainer') : filtered ? plural(slugs.length, 'explainer') : 'the whole library';
+    return { slugs, args: slugs.map(shellQuote).join(' '), label, none: (selected.size > 0 || filtered) && !slugs.length };
   };
   const settings = settingsView(registry, {
     context, config: context.config || (data && data.config) || null, extra: [hubShareGroup(context, getSelection)],
@@ -436,7 +436,7 @@ function bootLibrary() {
     return h('label', { class: 'card-pick' }, box);
   }
 
-  function paintPicks(shown = explainers.filter((e) => allowedSlugs().has(e.slug))) {
+  function paintPicks(shown = explainers.filter((e) => shownSlugs().includes(e.slug))) {
     fill(pickBar,
       h('span', { class: 'pick-count' }, selected.size ? `${plural(selected.size, 'explainer')} picked` : 'Pick explainers to export them'),
       h('button', { class: 'link', type: 'button', onclick: () => { shown.forEach((e) => selected.add(e.slug)); renderAll(); } }, `Pick all ${shown.length} shown`),

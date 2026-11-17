@@ -20,16 +20,48 @@ const READING_PREFS = [
   },
 ];
 
-// Mirror of scripts/lib/config.mjs, so the form can explain a bad value
-// before anything is saved. The CLI and the server check again. Labels are
-// for people; the stored value stays the config value.
-const opt = (value, label, desc) => ({ value, label, desc });
+// The valid values come from the build (context.enums, scripts/lib/page-enums.mjs),
+// so the form never keeps its own list that can drift. The lists below are
+// labels for people, and the values for a page built before enums existed.
+// The CLI and the server check every value again.
+const PAGE_ENUMS = (() => {
+  const enums = readContext().enums;
+  return enums && typeof enums === 'object' && !Array.isArray(enums) ? enums : {};
+})();
+
+function enumList(name, fallback) {
+  const values = PAGE_ENUMS[name];
+  return Array.isArray(values) && values.length && values.every((v) => typeof v === 'string') ? values : fallback;
+}
+
+function enumNumber(name, fallback) {
+  const value = PAGE_ENUMS[name];
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+// Every value the build allows, labelled when the page has a label for it.
+function enumOptions(name, labelled, lead = []) {
+  const values = [...new Set([...lead, ...enumList(name, labelled.map((o) => o.value))])];
+  return values.map((value) => labelled.find((o) => o.value === value) || opt(value, value));
+}
+
+const LANGUAGE_PATTERN = (() => {
+  try {
+    return typeof PAGE_ENUMS.languagePattern === 'string' ? new RegExp(PAGE_ENUMS.languagePattern) : null;
+  } catch (error) {
+    return null;
+  }
+})() || /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
+
+function opt(value, label, desc) {
+  return { value, label, desc };
+}
 const ON_OFF = [opt('on', 'On'), opt('off', 'Off')];
 const CONFIG_FIELDS = {
   style: { label: 'Style', kind: 'style', help: 'The look new explainers open in. Readers can still switch.',
-    options: [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')] },
+    options: enumOptions('styles', [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')]) },
   defaultType: { label: 'Explainer type', kind: 'list', help: 'What the skill makes when you do not say.',
-    options: [
+    options: enumOptions('types', [
       opt('auto', 'Auto detect', 'The skill picks from what you point it at'),
       opt('repo', 'Repo', 'A whole codebase: parts, flows, data'),
       opt('pr', 'Pull request', 'One PR or MR, its diff and risks'),
@@ -38,11 +70,11 @@ const CONFIG_FIELDS = {
       opt('migration', 'Migration', 'Moving from one system to another'),
       opt('incident', 'Incident', 'What broke, why, and the fix'),
       opt('concept', 'Concept', 'An idea or technique, no code needed'),
-    ] },
+    ], ['auto']) },
   audience: { label: 'Audience', kind: 'cards', help: 'Sets tone, depth and how many terms get explained.',
-    options: [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')] },
+    options: enumOptions('audience', [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')]) },
   depth: { label: 'Depth', kind: 'cards', help: 'How many parts, flows and steps to trace.',
-    options: [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')] },
+    options: enumOptions('depth', [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')]) },
   language: { label: 'Language', kind: 'combo', help: 'A language tag, like en or pt-BR. Pick one or type your own.',
     options: [
       opt('en', 'en', 'English'), opt('en-GB', 'en-GB', 'English (UK)'), opt('es', 'es', 'Spanish'), opt('fr', 'fr', 'French'),
@@ -52,13 +84,13 @@ const CONFIG_FIELDS = {
       opt('zh-CN', 'zh-CN', 'Chinese (Simplified)'), opt('zh-TW', 'zh-TW', 'Chinese (Traditional)'), opt('hi', 'hi', 'Hindi'),
       opt('id', 'id', 'Indonesian'), opt('vi', 'vi', 'Vietnamese'), opt('fil', 'fil', 'Filipino'), opt('ar', 'ar', 'Arabic'), opt('he', 'he', 'Hebrew'),
     ] },
-  visuals: { label: 'Preferred visuals', kind: 'multi', options: ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn'], help: 'Picked first when a chapter can use a picture.' },
+  visuals: { label: 'Preferred visuals', kind: 'multi', options: enumList('visualKinds', ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn']), help: 'Picked first when a chapter can use a picture.' },
   codeWalkthrough: { label: 'Code walkthrough', kind: 'cards', help: 'A line-by-line tour of the few lines that carry the idea.',
-    options: [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')] },
+    options: enumOptions('codeWalkthrough', [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')]) },
   quiz: { label: 'Quiz', kind: 'onoff', help: 'End explainers with a few questions.' },
   analogies: { label: 'Analogies', kind: 'onoff', help: 'Add a "think of it like" line to key ideas.' },
   model: { label: 'Model for estimates', kind: 'list', help: 'Used to price a run before it starts.',
-    options: [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')] },
+    options: enumOptions('models', [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')]) },
   budgetUsd: { label: 'Budget in US dollars', kind: 'number', help: 'Start without asking when the estimate fits. Leave empty to always ask.' },
   confirmBeforeStart: { label: 'Confirm before starting', kind: 'onoff', help: 'Show the estimate and wait for a yes.' },
   instructions: { label: 'House instructions', kind: 'textarea', help: 'Plain text added to every run: house style, terms to use. Never overrides the truth rules.' },
@@ -68,7 +100,7 @@ const CONFIG_FIELD_DEFAULTS = {
   style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {}, codeWalkthrough: 'auto',
   quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
 };
-const INSTRUCTIONS_LIMIT = 2000;
+const INSTRUCTIONS_LIMIT = enumNumber('instructionsLimit', 2000);
 const CLI_NAME = 'concept-explainer';
 
 function readingValue(pref) {
@@ -208,7 +240,7 @@ function fieldErrors(key, value) {
   if (['style', 'list', 'cards'].includes(field.kind)) return optionValues(field).includes(value) ? [] : ['Pick one of the listed choices.'];
   if (field.kind === 'onoff') return typeof value === 'boolean' ? [] : ['Must be on or off.'];
   if (field.kind === 'multi') return Array.isArray(value) && value.every((v) => field.options.includes(v)) ? [] : ['Pick from the listed kinds.'];
-  if (key === 'language') return typeof value === 'string' && /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(value) ? [] : ['Use a language tag like en or pt-BR.'];
+  if (key === 'language') return typeof value === 'string' && LANGUAGE_PATTERN.test(value) ? [] : ['Use a language tag like en or pt-BR.'];
   if (key === 'budgetUsd') return value === null || (typeof value === 'number' && Number.isFinite(value) && value >= 0) ? [] : ['Use a number of 0 or more, or leave it empty.'];
   if (key === 'instructions') {
     if (typeof value !== 'string') return ['Must be text.'];
@@ -308,11 +340,12 @@ function defaultsGroup(context, initialConfig) {
       label, control.el, h('p', { class: 'setting-hint', id: `${id}-hint` }, field.help), error);
   });
   const counter = h('span', { class: 'setting-count', 'aria-live': 'polite' });
+  const submit = h('button', { class: 'btn primary', type: 'submit' }, serve ? 'Save' : 'Show the commands');
   const form = h('form', { class: 'settings-form', novalidate: true }, rows,
     h('p', { class: 'setting-hint' }, 'Chapters per type are set from the command line: ',
       h('code', null, `${CLI_NAME} config set chapters '{"repo":{"quiz":false}}'`)),
     h('div', { class: 'settings-actions' },
-      h('button', { class: 'btn primary', type: 'submit' }, serve ? 'Save' : 'Show the commands'),
+      submit,
       h('button', { class: 'btn', type: 'button', onclick: () => downloadBlob('config.json', `${JSON.stringify(current(), null, 2)}\n`) }, icon('download'), 'Download config.json'),
       status),
     commands);
@@ -356,19 +389,22 @@ function defaultsGroup(context, initialConfig) {
       return;
     }
     if (serve) {
+      // One save at a time: a second press while the first runs does nothing.
+      if (submit.disabled) return;
+      submit.disabled = true;
       status.textContent = 'Saving…';
-      fetch(serveApi(context, 'config'), {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-concept-explainer-token': serve.token },
+      serveFetch(context, serveApi(context, 'config'), {
+        method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
-      }).then((response) => response.json().catch(() => ({})).then((body) => ({ ok: response.ok, body })))
-        .then(({ ok, body }) => {
-          if (!ok) throw new Error(list(body && body.errors).join(' ') || (body && body.error) || 'The server refused the change.');
-          saved = normalizeDefaults(body && body.config ? body.config : values);
-          // The server rebuilt the pages with the new defaults: load them.
-          status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
-          window.setTimeout(() => window.location.reload(), 900);
-        })
-        .catch((error) => { status.textContent = `Could not save: ${error.message}`; });
+      }).then(({ json: body }) => {
+        saved = normalizeDefaults(body && body.config ? body.config : values);
+        // The server rebuilt the pages with the new defaults: load them.
+        status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
+        window.setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
+      }).catch((error) => {
+        submit.disabled = false;
+        status.textContent = `Could not save: ${error.message}`;
+      });
       return;
     }
     const lines = changed.map((key) => `${CLI_NAME} config set ${key} ${commandValue(key, values[key])}`);
@@ -422,13 +458,18 @@ function settingsView(registry, { context = {}, config = null, extra = [] } = {}
 }
 
 // ---------- Share ----------
-const BUNDLE_FORMAT = 'concept-explainer-bundle';
+const BUNDLE_FORMAT = typeof PAGE_ENUMS.bundleFormat === 'string' && PAGE_ENUMS.bundleFormat ? PAGE_ENUMS.bundleFormat : 'concept-explainer-bundle';
+const BUNDLE_MAX_BYTES = enumNumber('bundleMaxBytes', 10 * 1024 * 1024);
+const BUNDLE_MAX_LABEL = `${Math.round(BUNDLE_MAX_BYTES / 1024 / 1024)} MB`;
+// Long enough to read "Saved", short enough not to wait on.
+const RELOAD_DELAY_MS = 900;
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LOCAL_PATH_KEYS = new Set(['sourcePath', 'repoPath']);
 
-function slugFor(meta, context) {
-  if (context && typeof context.slug === 'string' && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(context.slug)) return context.slug;
-  const base = text(meta && meta.repo, text(meta && meta.title, 'explainer'));
-  return base.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'explainer';
+// The library slug when the page knows it. Otherwise the bundle leaves it
+// empty and the importer derives one, so there is one slug rule.
+function knownSlug(context) {
+  return context && typeof context.slug === 'string' && SLUG_PATTERN.test(context.slug) ? context.slug : '';
 }
 
 // Data only, without local paths: the importer rebuilds pages itself.
@@ -449,8 +490,47 @@ function escapeAttr(value) {
 
 // The page as it was built, from parts that never change after load: head
 // attributes, the style and script text, and the embedded data. The context
-// keeps only the style, so a shared copy has no token or library link.
-function pageSnapshot(style) {
+// keeps the style, chapters and choice lists, so a shared copy has no token or library link.
+// The library's font rules point at its fonts/ folder, which a saved
+// page does not have: they go, and the system fonts in each stack take over.
+// Spelled in pieces: built pages are checked for these words in their source.
+const FONT_FACE_BLOCK = new RegExp(`^(\\s*)(?:@${'font'}-face\\{[^}]*\\}\\n?)+`);
+const CSP_NAME = ['Content', 'Security', 'Policy'].join('-');
+
+function sha256Source(text) {
+  const subtle = window.crypto && window.crypto.subtle;
+  if (!subtle) return Promise.resolve(null);
+  return subtle.digest('SHA-256', new TextEncoder().encode(text)).then((buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    bytes.forEach((b) => { binary += String.fromCharCode(b); });
+    return `'sha256-${window.btoa(binary)}'`;
+  }).catch(() => null);
+}
+
+// The page's own policy, verbatim: the scripts are copied unchanged, so their
+// hashes still hold. Only the style hash follows the trimmed stylesheet.
+function savedCsp(styleText, styleHash) {
+  const tag = [...document.head.querySelectorAll('meta[http-equiv]')].find((m) => m.getAttribute('http-equiv') === CSP_NAME);
+  const policy = tag ? tag.getAttribute('content') : '';
+  if (!policy) return '';
+  const next = styleHash ? policy.replace(/style-src [^;]*/, `style-src ${styleHash}`) : policy;
+  // Quotes in the policy stay as they are, so it reads byte for byte the same.
+  return `<meta http-equiv="${CSP_NAME}" content="${next.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">`;
+}
+
+// Resolves to the page text. With no Web Crypto the stylesheet stays whole,
+// so the policy's hash for it still matches.
+function savedPage(style) {
+  const full = (document.head.querySelector('style') || {}).textContent || '';
+  const trimmed = full.replace(FONT_FACE_BLOCK, '$1');
+  if (trimmed === full) return Promise.resolve(pageSnapshot(style, full, savedCsp(full, null)));
+  return sha256Source(trimmed).then((hash) => (hash
+    ? pageSnapshot(style, trimmed, savedCsp(trimmed, hash))
+    : pageSnapshot(style, full, savedCsp(full, null))));
+}
+
+function pageSnapshot(style, styleText, cspTag) {
   const head = document.head;
   const meta = [...head.querySelectorAll('meta[name], meta[property], meta[charset]')].map((m) => {
     if (m.hasAttribute('charset')) return `<meta charset="${escapeAttr(m.getAttribute('charset'))}">`;
@@ -462,12 +542,15 @@ function pageSnapshot(style) {
     return `<link rel="${escapeAttr(l.getAttribute('rel'))}" href="${escapeAttr(l.getAttribute('href'))}"${cross}>`;
   });
   const prepaint = head.querySelector('script[data-prepaint]');
-  const styleText = (head.querySelector('style') || {}).textContent || '';
   const main = [...document.querySelectorAll('body > script:not([type])')].pop();
   const dataText = document.getElementById('explainer-data').textContent;
-  const contextText = JSON.stringify({ style }).replace(/</g, '\\u003c');
+  // The build's chapter list and choice lists carry over; the token, slug and
+  // library link do not.
+  const built = readContext();
+  const kept = { style, ...(Array.isArray(built.chapters) ? { chapters: built.chapters } : {}), ...(built.enums ? { enums: built.enums } : {}) };
+  const contextText = JSON.stringify(kept).replace(/</g, '\\u003c');
   return [
-    '<!doctype html>', '<html lang="en">', '<head>', ...meta, `<title>${escapeAttr(document.querySelector('title') ? document.querySelector('title').textContent : 'Explainer')}</title>`,
+    '<!doctype html>', '<html lang="en">', '<head>', ...meta.slice(0, 1), cspTag, ...meta.slice(1), `<title>${escapeAttr(document.querySelector('title') ? document.querySelector('title').textContent : 'Explainer')}</title>`,
     ...links, prepaint ? `<script data-prepaint>${prepaint.textContent}<\/script>` : '', `<style>${styleText}</style>`, '</head>', '<body>',
     '<a class="skip" href="#main">Skip to content</a>', '<div id="app" aria-busy="true"></div>',
     '<noscript><p class="noscript">This explainer needs JavaScript to draw its diagrams.</p></noscript>',
@@ -484,17 +567,21 @@ function shareRow(title, body, actions) {
 
 // Explainer page: export this one, or save the page itself.
 function explainerShareGroup(data, context) {
-  const slug = slugFor(data.meta, context);
+  const slug = knownSlug(context);
+  const fileName = `${slug || 'explainer'}.explainers.json`;
   const status = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
   const exportButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Export this explainer');
   exportButton.addEventListener('click', () => {
-    downloadBlob(`${slug}.explainers.json`, `${JSON.stringify(bundleOf([{ slug, data: withoutLocalPaths(data) }]), null, 2)}\n`);
-    status.textContent = `Downloaded ${slug}.explainers.json. Import it with ${CLI_NAME} import.`;
+    downloadBlob(fileName, `${JSON.stringify(bundleOf([{ slug, data: withoutLocalPaths(data) }]), null, 2)}\n`);
+    status.textContent = `Downloaded ${fileName}. Import it with ${CLI_NAME} import.`;
   });
   const pageButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Save as page');
   pageButton.addEventListener('click', () => {
-    downloadBlob(`${slug}.html`, pageSnapshot(storedStyle()), 'text/html');
-    status.textContent = `Downloaded ${slug}.html. It opens on its own, with no library.`;
+    const pageName = `${slug || 'explainer'}.html`;
+    savedPage(storedStyle()).then((page) => {
+      downloadBlob(pageName, page, 'text/html');
+      status.textContent = `Downloaded ${pageName}. It opens on its own, with no library.`;
+    }).catch((error) => { status.textContent = `Could not save the page: ${error.message}`; });
   });
   return h('section', { class: 'panel settings-group', 'aria-labelledby': 'settings-share-title' },
     h('div', { class: 'settings-legend' }, h('h2', { id: 'settings-share-title' }, 'Share'), h('span', { class: 'eyebrow quiet' }, 'Data only, no local paths')),
@@ -552,12 +639,16 @@ function hubShareGroup(context, getSelection) {
   const exportOut = h('div', { class: 'settings-commands' });
   const exportButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Export');
   exportButton.addEventListener('click', () => {
-    const { slugs, params, args, label } = getSelection();
+    const { slugs, args, label, none } = getSelection();
+    if (none) {
+      status.textContent = 'No explainers match the filter, so there is nothing to export.';
+      fill(exportOut);
+      return;
+    }
     if (served) {
       status.textContent = 'Preparing the bundle…';
-      const query = slugs.length ? `slugs=${slugs.map(encodeURIComponent).join(',')}`
-        : Object.entries(params || {}).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
-      serveFetch(context, `${serveApi(context, 'export')}${query ? `?${query}` : ''}`)
+      const query = slugs.length ? `?slugs=${slugs.map(encodeURIComponent).join(',')}` : '';
+      serveFetch(context, `${serveApi(context, 'export')}${query}`)
         .then(({ body }) => {
           const many = `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
           downloadBlob(slugs.length === 1 ? `${slugs[0]}.explainers.json` : many, body);
@@ -596,6 +687,8 @@ function importServed(context, status, out) {
   const zone = h('div', { class: 'drop-zone', 'aria-describedby': 'import-file-hint' },
     icon('upload'), h('span', { class: 'drop-title' }, 'Drop a .explainers.json file'), choose, picked);
   let pending = null;
+  let busy = false;
+  let checkId = 0;
   let run = () => {};
   const conflict = optionGroup({
     variant: 'cards', value: 'rename', labelledBy: 'import-conflict-label', describedBy: 'import-conflict-hint',
@@ -607,6 +700,7 @@ function importServed(context, status, out) {
     onChange: () => run(true),
   });
   const clear = () => {
+    if (busy) return;
     pending = null;
     picked.hidden = true;
     zone.classList.remove('has-file');
@@ -615,28 +709,47 @@ function importServed(context, status, out) {
     status.textContent = '';
     choose.focus();
   };
-  run = (dryRun) => {
-    if (!pending) return;
+  run = (dryRun, applyButton) => {
+    // While an import runs, nothing else starts: a double press imports once.
+    if (!pending || busy) return;
+    const job = pending;
+    const id = ++checkId;
+    if (!dryRun) {
+      busy = true;
+      pending = null;
+      if (applyButton) applyButton.disabled = true;
+    }
     status.textContent = dryRun ? 'Checking the bundle…' : 'Importing…';
     serveFetch(context, `${serveApi(context, 'import')}?onConflict=${conflict.read()}${dryRun ? '&dryRun=1' : ''}`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: pending.text,
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: job.text,
     }).then(({ json: raw }) => {
+      // A newer check (the conflict choice changed) replaces this one.
+      if (dryRun && (id !== checkId || pending !== job)) return;
       // The server wraps the result in { summary }; accept the bare shape too.
       const json = raw && raw.summary && typeof raw.summary === 'object' ? raw.summary : raw;
       if (dryRun) {
-        status.textContent = `Here is what importing ${pending.name} would do. Nothing has changed yet.`;
-        const apply = h('button', { class: 'btn primary', type: 'button', onclick: () => run(false) }, 'Import');
+        status.textContent = `Here is what importing ${job.name} would do. Nothing has changed yet.`;
+        const apply = h('button', { class: 'btn primary', type: 'button' }, 'Import');
+        apply.addEventListener('click', () => run(false, apply));
         fill(out, importSummary(json), h('div', { class: 'btn-row' }, apply));
       } else {
         status.textContent = 'Imported. Reload the library to see the new explainers.';
         fill(out, importSummary(json), h('div', { class: 'btn-row' }, h('button', { class: 'btn', type: 'button', onclick: () => window.location.reload() }, 'Reload')));
-        pending = null;
+        busy = false;
       }
-    }).catch((error) => { status.textContent = `Could not import: ${error.message}`; });
+    }).catch((error) => {
+      if (!dryRun) {
+        // Nothing was imported: the same file can be tried again.
+        busy = false;
+        pending = job;
+        if (applyButton) applyButton.disabled = false;
+      }
+      status.textContent = `Could not import: ${error.message}`;
+    });
   };
   const take = (file) => {
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { status.textContent = `${file.name} is over 10 MB. Bundles must be smaller.`; return; }
+    if (!file || busy) return;
+    if (file.size > BUNDLE_MAX_BYTES) { status.textContent = `${file.name} is over ${BUNDLE_MAX_LABEL}. Bundles must be smaller.`; return; }
     file.text().then((body) => {
       pending = { name: file.name, text: body };
       zone.classList.add('has-file');
@@ -655,7 +768,7 @@ function importServed(context, status, out) {
     take(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]);
   });
   return h('div', { class: 'import-controls' }, input, zone,
-    h('p', { class: 'setting-hint', id: 'import-file-hint' }, 'A bundle someone exported. Up to 10 MB. Nothing changes until you press Import.'),
+    h('p', { class: 'setting-hint', id: 'import-file-hint' }, `A bundle someone exported. Up to ${BUNDLE_MAX_LABEL}. Nothing changes until you press Import.`),
     h('div', { class: 'import-field' },
       h('span', { class: 'setting-label', id: 'import-conflict-label' }, 'If it is already in your library'),
       conflict.el,

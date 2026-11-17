@@ -22,29 +22,15 @@ const CHAPTERS = [
 
 // Default chapter order per explainer type, copied from presets/types/*.json
 // (and TYPE_RULES.repo); test/type-chapters.test.mjs keeps them in step.
-const TYPE_CHAPTERS = {
-  repo: ['map', 'flows', 'changes', 'tree', 'data', 'concepts', 'quiz', 'glossary', 'run'],
-  pr: ['context', 'diff', 'map', 'flows', 'risks', 'rollout', 'quiz'],
-  change: ['context', 'diff', 'flows', 'risks', 'quiz'],
-  proposal: ['context', 'options', 'map', 'flows', 'risks', 'rollout', 'quiz'],
-  migration: ['context', 'options', 'map', 'flows', 'rollout', 'risks', 'quiz'],
-  incident: ['context', 'timeline', 'flows', 'risks', 'rollout', 'quiz'],
-  concept: ['concepts', 'map', 'flows', 'glossary', 'quiz'],
-};
-
-// meta.chapters wins. Without it, the type's default order comes first and
-// any other chapter that has data follows, so nothing written is hidden.
-function chooseChapters(data) {
-  const requested = list(data.meta && data.meta.chapters);
-  const typeOrder = TYPE_CHAPTERS[data.meta && data.meta.type] || TYPE_CHAPTERS.repo;
-  // The code walkthrough is optional in every type: when there is one, it
-  // follows the flows.
-  const flowsAt = typeOrder.indexOf('flows');
-  const withCode = list(data.walkthroughs).length && !typeOrder.includes('code')
-    ? [...typeOrder.slice(0, flowsAt + 1), 'code', ...typeOrder.slice(flowsAt + 1)]
-    : typeOrder;
-  const order = requested.length ? requested : [...withCode, ...CHAPTERS.map((c) => c.key).filter((key) => !withCode.includes(key))];
-  return order
+// The build embeds the chapter list (context.chapters, from the one rule in
+// scripts/lib/chapters.mjs), so the page never keeps its own copy. A page
+// without it (an older build) falls back to meta.chapters, else every chapter
+// with data in table order. Either way each key shows once, and only with data.
+function chooseChapters(data, context) {
+  const embedded = list(context && context.chapters).filter((key) => typeof key === 'string');
+  const requested = list(data.meta && data.meta.chapters).filter((key) => typeof key === 'string');
+  const order = embedded.length ? embedded : requested.length ? requested : CHAPTERS.map((c) => c.key);
+  return [...new Set(order)]
     .map((key) => CHAPTERS.find((c) => c.key === key))
     .filter((chapter) => chapter && chapter.has(data))
     .map((chapter) => {
@@ -263,7 +249,7 @@ function boot() {
     fatal(app, 'The embedded data has no meta.title. Run concept-explainer validate to see what is missing.');
     return;
   }
-  const chapters = chooseChapters(data);
+  const chapters = chooseChapters(data, context);
   const viewed = viewedStore(data.meta);
   const registry = themeRegistry();
   const shell = buildShell(data, chapters, context, registry);

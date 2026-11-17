@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-/GXUlHLm0KxTOkVQJure1epaEVl2gu+PFA5c2NI0Xc0='; style-src 'sha256-90jxcjLvUeT0qrfpYy1a5sZ3SHCFmg5cRGn+dfOvurE=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-6iHhQbqLioU1nvyDw8yMGHeJ/8mR5wgUTvFryuow9HU='; style-src 'sha256-BYcEVUAWEEGi+aR4KH0X7ntAjMAF7HzZU752sYWMc3k=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="generator" content="concept-explainer">
 <meta name="color-scheme" content="light dark">
@@ -42,7 +42,7 @@ try { var s = window.localStorage, r = document.documentElement, v;
   --heading: var(--ink); --display: var(--ink); --link: var(--ink); --select: var(--accent);
   --select-wash: var(--surface); --nav-current-bg: var(--canvas); --nav-current-ring: inset 0 0 0 1px var(--line);
   --primary-ring: 0 0 0 0 transparent; --good-wash: var(--surface); --bad-wash: var(--surface); --hair: 1px;
-  --radius-sm: 4px; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
+  --radius-sm: 4px; --page-zoom: 1; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
   --code-ring: inset 0 0 0 var(--hair) var(--line); --code-ink: var(--body); --code-kw: var(--ink);
   --code-cm: var(--quiet); --code-st: var(--accent-text); --mark-bg: rgb(252 94 50 / 0.16); --hint-bg: var(--surface); --hint-ring: var(--line); --hint-ink: var(--muted);
 }
@@ -77,6 +77,8 @@ body {
   font-family: var(--sans);
   font-size: 16px;
   font-weight: var(--body-weight);
+  /* Text size Large scales the whole page; fixed-height panels divide by it. */
+  zoom: var(--page-zoom, 1);
   letter-spacing: var(--body-tracking);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -230,6 +232,9 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 }
 /* Chrome still breaks at <wbr> under nowrap; single-line holders drop the break points. */
 :is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) wbr { display: none; }
+.credit-playful { display: none; }
+:root[data-style="playful"] .credit-clean { display: none; }
+:root[data-style="playful"] .credit-playful { display: inline; }
 
 /* ---- shell.css ---- */
 /* Shell: sidebar, phone bar and Menu sheet, theme and style switches. */
@@ -249,7 +254,7 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
   .top { display: none; }
   /* A fixed-height column: only the nav list scrolls, so the footer (theme and Settings) is always in view. */
   .side {
-    position: sticky; inset-block-start: 0; align-self: start; height: 100vh; height: 100dvh; overflow: hidden;
+    position: sticky; inset-block-start: 0; align-self: start; height: calc(100vh / var(--page-zoom, 1)); height: calc(100dvh / var(--page-zoom, 1)); overflow: hidden;
     display: flex; flex-direction: column; gap: 16px; padding: 20px 12px 12px 16px;
     background: var(--surface); box-shadow: inset -1px 0 0 var(--line);
   }
@@ -291,7 +296,7 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 @media (hover: hover) { .side-util .util:hover { background: var(--hover-tint); color: var(--ink); } }
 .side-theme { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px 2px 20px; }
 .side-theme-label { font-size: 14px; color: var(--muted); }
-.side-stamp { padding: 0 8px 0 20px; font-family: var(--mono); font-size: 11px; color: var(--quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-stamp { padding: 0 8px 0 20px; font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* The theme switch: three icon buttons in a pill */
 .theme-switch { display: inline-flex; flex: none; align-items: center; gap: 2px; padding: 3px; border-radius: 9999px; background: var(--surface); box-shadow: inset 0 0 0 var(--hair) var(--line); }
@@ -332,7 +337,7 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
   .bar-actions .btn { padding-inline: 12px; }
 }
 .sheet {
-  margin: 0; inset: 0; width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; border: 0;
+  margin: 0; inset: 0; width: calc(100vw / var(--page-zoom, 1)); max-width: none; height: calc(100vh / var(--page-zoom, 1)); height: calc(100dvh / var(--page-zoom, 1)); max-height: none; border: 0;
   padding: 0 max(8px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   overflow-y: auto; overscroll-behavior: contain; background: var(--surface); color: var(--ink);
   display: none; flex-direction: column; gap: 16px;
@@ -412,7 +417,7 @@ html:has(.sheet[open]) { overflow: hidden; }
 .picker-input { width: min(100%, 16em); }
 @media (max-width: 639px) {
   /* On phones the list opens as a bottom sheet, full width and within reach. */
-  .picker > .picker-panel, .picker > .picker-panel.is-up, .picker > .picker-panel.is-end, .side .quick-theme .picker-panel, .bar .quick-theme .picker-panel {
+  :not(.quick-theme) > .picker > .picker-panel, :not(.quick-theme) > .picker > .picker-panel.is-up, :not(.quick-theme) > .picker > .picker-panel.is-end {
     position: fixed; inset: auto 0 0 0; max-width: none; min-width: 0; padding: 8px 8px max(12px, env(safe-area-inset-bottom));
     border-radius: var(--radius) var(--radius) 0 0; z-index: 70; box-shadow: var(--ring-strong), 0 0 0 100vmax rgb(0 0 0 / 0.4);
   }
@@ -423,6 +428,44 @@ html:has(.sheet[open]) { overflow: hidden; }
 .quick-theme .picker-panel { min-width: 11em; }
 .side .quick-theme .picker-panel { inset-block-start: auto; inset-block-end: calc(100% + 6px); }
 .bar .quick-theme .picker-panel { inset-inline-start: auto; inset-inline-end: 0; }
+
+/* The phone theme menu stays a dropdown under its button: a fixed sheet would be placed against the bar's
+   backdrop filter, not the screen. */
+@media (max-width: 639px) {
+  .bar .quick-theme .picker-panel { position: absolute; inset: calc(100% + 6px) 0 auto auto; padding: 4px; border-radius: var(--radius); box-shadow: var(--ring-strong); min-width: 11em; }
+  .bar .bar-library { display: none; }
+}
+.links a[aria-current="page"] .nav-count { color: var(--body); }
+/* Settings in the footer shows where you are like the nav does; icons at 24px, text at 52px. */
+.side-util .util { padding-inline-start: 8px; gap: 12px; }
+.side-util .util[aria-current="page"] { background: var(--nav-current-bg); color: var(--heading); font-weight: 500; box-shadow: var(--nav-current-ring); }
+/* More rows below in the nav: a hairline at its bottom edge (no gradient). */
+@media (min-width: 1024px) {
+  .side > .links[data-more="below"] { box-shadow: inset 0 -1px 0 var(--faint); }
+}
+@media (min-width: 1024px) and (max-height: 760px) {
+  .side .side-stamp { display: none; }
+  .side { gap: 12px; }
+}
+/* Touch: every control is at least 44px. :root raises these over each view's own sizes. Small marks (the "?"
+   hint, step dots) get a 44px box with the same small picture drawn inside, and negative margins keep the layout. */
+@media (pointer: coarse) {
+  :root :is(.facet, .seg-option, .ts-option, .pick-option, .multi-option, .chip, .btn.small, .picker-button, .field, .drop-choose) { min-height: 44px; }
+  :root :is(.link.quiz-reset, .theme-switch .ts-option, .card-pick) { min-width: 44px; min-height: 44px; }
+  :root .chip, :root .multi-option { display: inline-flex; align-items: center; }
+  :root .picker-button.is-compact { width: 44px; min-height: 44px; }
+  :root :is(.ov-section-head a.eyebrow, .panel-bar a) { display: inline-flex; align-items: center; min-height: 44px; margin-block: -13px; }
+  /* The gap joins the hit areas; the bars look the same. Back and Next do the same job at full size. */
+  :root .step-dots { gap: 0; }
+  :root .step-dots button { height: 44px; }
+  :root .step-dots button::before { inset-block-start: 20px; inset-inline: 1.5px; }
+  :root .pick-bar .link { display: inline-flex; align-items: center; min-height: 44px; }
+  :root .trunc-hint { width: 44px; height: 44px; margin: -14px; background: none; box-shadow: none; isolation: isolate; }
+  :root .trunc-hint::before { inset: 0; }
+  :root .trunc-hint::after { content: ""; position: absolute; inset: 14px; z-index: -1; border-radius: 9999px; background: var(--hint-bg); box-shadow: inset 0 0 0 var(--hair) var(--hint-ring); }
+  :root .sheet .side-util .util { min-height: 48px; font-size: 17px; }
+}
+.pick-option.is-card[aria-checked="true"] .pick-option-desc { color: var(--body); }
 
 /* ---- views.css ---- */
 /* Views: title blocks, the Overview dashboard, code blocks, display-title sizing. */
@@ -468,7 +511,7 @@ html:has(.sheet[open]) { overflow: hidden; }
 .prog-break dt { color: var(--body); }
 .prog-break dd { font-family: var(--mono); font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .prog-note { margin-block-start: auto; padding-block-start: 4px; font-size: 13px; color: var(--muted); }
-.glance-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.glance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); }
 .glance-grid > div { display: grid; gap: 6px; padding: 16px var(--card-pad) 18px; min-width: 0; }
 .glance-grid > div + div { box-shadow: inset 1px 0 0 var(--line); }
 .glance-grid dt { color: var(--muted); }
@@ -543,7 +586,7 @@ kbd { padding: 0 5px; border-radius: var(--radius-sm); background: var(--surface
 .settings-legend > span:first-child, .settings-legend h2 { font-size: 20px; font-weight: var(--heading-weight); letter-spacing: -0.02em; color: var(--heading); }
 .setting-row { display: grid; grid-template-columns: minmax(0, 12em) minmax(0, 1fr); align-items: center; gap: 4px 20px; padding: 12px 0; box-shadow: inset 0 1px 0 var(--line); clear: both; }
 .setting-row > :nth-child(2) { justify-self: start; max-width: 100%; }
-.setting-row .setting-hint, .setting-row .field-error { grid-column: 2; }
+.setting-row > .setting-hint, .setting-row > .field-error { grid-column: 2; }
 .setting-row.is-wide { align-items: start; }
 .setting-label { font-weight: 500; color: var(--ink); }
 .setting-hint { font-size: 14px; color: var(--muted); }
@@ -572,12 +615,12 @@ textarea.field { width: 100%; min-height: 120px; padding: 10px 12px; line-height
 .command-list code { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--code-bg); box-shadow: var(--code-ring); color: var(--code-ink); font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
 @media (max-width: 639px) {
   .setting-row { grid-template-columns: minmax(0, 1fr); }
-  .setting-row .setting-hint, .setting-row .field-error, .setting-count { grid-column: 1; }
+  .setting-row > .setting-hint, .setting-row > .field-error, .setting-count { grid-column: 1; }
 }
 
 /* Reading choices from Settings (data-* on <html>, set before first paint). */
 :root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-:root[data-text="large"] body { zoom: 1.125; }
+:root[data-text="large"] { --page-zoom: 1.125; }
 :root[data-density="compact"] { --card-pad: 16px; --grid-gap: 10px; --view-top: 20px; --title-gap: 20px; }
 :root[data-density="compact"] .links a { min-height: 34px; }
 :root[data-density="compact"] .btn { min-height: 38px; }
@@ -1442,8 +1485,7 @@ h4.viz-title { font-size: 17px; letter-spacing: -0.015em; }
 .hub-change { grid-template-columns: 7.5em minmax(0, 1fr) auto; }
 .hub-change-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 @media (max-width: 559px) { .hub-change { grid-template-columns: minmax(0, 1fr) auto; } .hub-change .result-text { grid-column: 1 / -1; grid-row: 2; } }
-.hub-repos a { min-height: 36px; font-size: 14px; }
-.hub-repos .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-repos .nav-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-block: 8px; }
 .view[data-view="changes"] .seg { justify-self: start; }
 .hub-view { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap); align-content: start; }
 .hub-view > .view-head { margin-block-end: 8px; }
@@ -1585,7 +1627,7 @@ h4.viz-title { font-size: 17px; letter-spacing: -0.015em; }
 :root[data-style="playful"] .links a { font-weight: 700; }
 :root[data-style="playful"] .link, :root[data-style="playful"] .panel-bar a { font-weight: 800; text-decoration: none; }
 :root[data-style="playful"] .tag { padding: 0 8px; }
-:root[data-style="playful"] .brand .name { font-family: var(--sans); font-weight: 900; font-size: 17px; letter-spacing: -0.01em; color: var(--accent-edge); }
+:root[data-style="playful"] .brand .name { font-family: var(--sans); font-weight: 900; font-size: 17px; letter-spacing: -0.01em; color: var(--accent-text); }
 
 /* Buttons: uppercase, heavy, pressable. The 4px bottom collapses on press. */
 :root[data-style="playful"] .btn { min-height: 46px; padding-inline: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px; }
@@ -1614,6 +1656,9 @@ h4.viz-title { font-size: 17px; letter-spacing: -0.015em; }
 /* Map boxes are narrow: Nunito at 800 needs a touch more room for long names. */
 :root[data-style="playful"] .node-label { font-size: 13px; font-weight: 700; letter-spacing: 0; }
 :root[data-style="playful"] .node .node-icon { width: 28px; height: 28px; }
+@media (pointer: coarse) {
+  :root[data-style="playful"] .btn.small { min-height: 44px; }
+}
 
 </style>
 </head>
@@ -1622,7 +1667,7 @@ h4.viz-title { font-size: 17px; letter-spacing: -0.015em; }
 <div id="app" aria-busy="true"></div>
 <noscript><p class="noscript">This explainer needs JavaScript to draw its diagrams.</p></noscript>
 <script type="application/json" id="explainer-data">{"$schema":"../references/data-schema.md","meta":{"title":"Taskflow, explained","repo":"acme/taskflow","summary":"A team to-do app. A Next.js web app talks to a small API, which stores tasks in Postgres and hands slow work (emails, webhooks) to a background worker.","stack":["Next.js 15","TypeScript","Postgres","Prisma","BullMQ","Redis","Stripe"],"preset":"fullstack-web","generatedAt":"2026-10-25","commit":"9f3c2ab41e"},"layers":[{"id":"client","label":"Client","color":"blue"},{"id":"edge","label":"Edge \u0026 API","color":"green"},{"id":"domain","label":"Domain","color":"navy"},{"id":"infra","label":"Data \u0026 infra","color":"yellow"},{"id":"external","label":"Outside world","color":"pink"}],"nodes":[{"id":"user","label":"Team member","layer":"client","kind":"user","summary":"Someone using Taskflow in their browser.","files":[]},{"id":"web","label":"Web app","layer":"client","kind":"ui","tech":"Next.js App Router","summary":"Pages and React components. Server components fetch data; client components handle forms and optimistic updates.","files":["apps/web/app/","apps/web/components/"]},{"id":"middleware","label":"Auth middleware","layer":"edge","kind":"auth","tech":"Next middleware + JWT","summary":"Runs before every request. Reads the session cookie, rejects anonymous users, and puts the user id on the request.","files":["apps/web/middleware.ts"]},{"id":"api","label":"Tasks API","layer":"edge","kind":"api","tech":"Route handlers","summary":"Thin HTTP layer. Parses and validates input with Zod, then calls the task service. Never touches the database directly.","files":["apps/web/app/api/tasks/route.ts"]},{"id":"service","label":"Task service","layer":"domain","kind":"service","tech":"Plain TypeScript","summary":"All business rules live here: who can edit a task, what happens when it is completed, which events fire.","files":["packages/core/src/tasks/service.ts"]},{"id":"billing","label":"Billing service","layer":"domain","kind":"service","tech":"Stripe SDK","summary":"Checks plan limits (free teams get 50 open tasks) and syncs subscription state from Stripe webhooks.","files":["packages/core/src/billing/"]},{"id":"db","label":"Postgres","layer":"infra","kind":"db","tech":"Prisma ORM","summary":"The source of truth for teams, users and tasks.","files":["packages/db/prisma/schema.prisma"]},{"id":"queue","label":"Job queue","layer":"infra","kind":"queue","tech":"BullMQ on Redis","summary":"Holds slow work so requests stay fast. Each job is retried 5 times with backoff.","files":["packages/core/src/queue.ts"]},{"id":"worker","label":"Worker","layer":"infra","kind":"job","tech":"Node process","summary":"Pulls jobs off the queue: sends emails, fires customer webhooks, rolls up daily stats.","files":["apps/worker/src/index.ts"]},{"id":"email","label":"Email provider","layer":"external","kind":"external","tech":"Resend","summary":"Delivers notification emails.","files":["apps/worker/src/jobs/send-email.ts"]},{"id":"stripe","label":"Stripe","layer":"external","kind":"external","summary":"Payments and subscriptions.","files":["apps/web/app/api/stripe/webhook/route.ts"]}],"edges":[{"from":"user","to":"web","label":"clicks"},{"from":"web","to":"middleware","label":"fetch /api/*"},{"from":"middleware","to":"api","label":"user id"},{"from":"api","to":"service","label":"createTask()"},{"from":"service","to":"billing","label":"checkLimit()"},{"from":"service","to":"db","label":"insert","kind":"data"},{"from":"service","to":"queue","label":"enqueue","kind":"async"},{"from":"queue","to":"worker","label":"job","kind":"async"},{"from":"worker","to":"email","label":"send"},{"from":"stripe","to":"billing","label":"webhook","kind":"async"}],"flows":[{"id":"create-task","title":"Create a task","trigger":"User presses “Add task”","summary":"The most common write in the app. Follow it from the click to the email the assignee receives.","steps":[{"from":"user","to":"web","label":"Types a title, presses Add","kind":"request","detail":"The form is a client component. It shows the task instantly (optimistic update) before the server answers.","file":"apps/web/components/new-task-form.tsx:24"},{"from":"web","to":"api","label":"POST /api/tasks","kind":"request","detail":"A normal fetch with the session cookie attached. The auth middleware runs first: no valid session means a 401 and the request stops.","file":"apps/web/components/new-task-form.tsx:41","code":"await fetch('/api/tasks', {\n  method: 'POST',\n  body: JSON.stringify({ title, assigneeId }),\n})","lang":"ts","why":"Doing auth once in middleware means no route can forget to check it."},{"from":"api","to":"service","label":"Validates, calls createTask()","kind":"request","detail":"Zod rejects bad input with a 422 before any business logic runs.","file":"apps/web/app/api/tasks/route.ts:18","code":"const input = CreateTask.parse(await req.json())\nconst task = await tasks.createTask(userId, input)\nreturn Response.json(task, { status: 201 })","lang":"ts"},{"from":"service","to":"service","label":"Checks the plan limit","kind":"internal","detail":"Free teams can have 50 open tasks. Over the limit, billing.checkLimit() throws and the API answers 402.","file":"packages/core/src/billing/limits.ts:9"},{"from":"service","to":"db","label":"INSERT the task","kind":"data","detail":"Inside a transaction together with an activity-log row, so the history can never miss a task.","file":"packages/core/src/tasks/service.ts:57"},{"from":"service","to":"queue","label":"Enqueue “task.assigned”","kind":"async","detail":"Only if someone else was assigned. The request does not wait for the email.","why":"Email providers can take seconds. Queuing keeps the click under 100 ms.","file":"packages/core/src/tasks/service.ts:71"},{"from":"api","to":"web","label":"201 Created","kind":"response","detail":"The real task replaces the optimistic one. If anything failed, the form rolls back and shows the error.","file":"apps/web/app/api/tasks/route.ts:20"},{"from":"queue","to":"worker","label":"Worker sends the email","kind":"async","detail":"Usually within a second. Failed jobs retry with backoff, then the assignee gets the email.","file":"apps/worker/src/index.ts:15"}]},{"id":"upgrade","title":"Upgrade to Pro","trigger":"Stripe sends a webhook","summary":"Payment happens on Stripe’s page. We only learn about it through a webhook.","steps":[{"from":"stripe","to":"billing","label":"checkout.session.completed","kind":"async","detail":"The webhook route checks the Stripe signature first, then hands the event to the billing service.","why":"Without the signature check, anyone could POST a fake ‘paid’ event.","file":"apps/web/app/api/stripe/webhook/route.ts:10"},{"from":"billing","to":"db","label":"Set team.plan = 'pro'","kind":"data","detail":"Idempotent: replaying the same event changes nothing.","file":"packages/core/src/billing/sync.ts:22"},{"from":"billing","to":"queue","label":"Enqueue welcome email","kind":"async","file":"packages/core/src/billing/sync.ts:30"},{"from":"queue","to":"worker","label":"Job runs","kind":"async","file":"apps/worker/src/index.ts:15"},{"from":"worker","to":"email","label":"“Welcome to Pro”","kind":"request","file":"apps/worker/src/jobs/send-email.ts:8"}]}],"changes":[{"id":"pr-482","title":"Move task emails onto the queue","date":"2026-10-24","author":"claude-agent","authorType":"agent","ref":"#482","kind":"perf","what":"createTask() used to call Resend inline. Now it enqueues a job and the worker sends it.","why":"p95 for POST /api/tasks was 1.8 s because of email latency. It is now 90 ms.","risk":"Emails can arrive a few seconds late; retries may duplicate an email if the provider times out after sending.","nodes":["service","queue","worker"],"files":["packages/core/src/tasks/service.ts","apps/worker/src/jobs/send-email.ts"]},{"id":"pr-479","title":"Enforce the 50-task limit on the free plan","date":"2026-10-24","author":"maria","authorType":"human","ref":"#479","kind":"feat","what":"New billing.checkLimit() call before every insert, plus a 402 response and an upgrade banner.","why":"Pricing change agreed for Q4: free stays useful for small teams, heavy users upgrade.","nodes":["billing","service","api","web"],"files":["packages/core/src/billing/limits.ts"]},{"id":"pr-475","title":"Verify Stripe webhook signatures","date":"2026-10-23","author":"security-agent","authorType":"agent","ref":"#475","kind":"security","what":"The webhook route now rejects any request whose Stripe-Signature header does not verify.","why":"An audit found the endpoint trusted any POST. Anyone could have upgraded a team for free.","nodes":["stripe","billing"],"files":["apps/web/app/api/stripe/webhook/route.ts"]},{"id":"pr-471","title":"Split auth checks out of route handlers","date":"2026-10-22","author":"dev-agent-2","authorType":"agent","ref":"#471","kind":"refactor","what":"Twelve copies of the session check were replaced by one middleware.","why":"Two new routes had shipped without auth. One place to check means none can forget.","nodes":["middleware","api"],"files":["apps/web/middleware.ts"]}],"tree":[{"path":"apps/","note":"Things you can run"},{"path":"apps/web/","note":"The Next.js app: pages, components and API routes","key":true},{"path":"apps/web/app/api/","note":"HTTP endpoints. Thin: validate, then call packages/core"},{"path":"apps/web/middleware.ts","note":"Auth for every request"},{"path":"apps/worker/","note":"Background job runner (emails, webhooks, stats)"},{"path":"packages/","note":"Shared code, no HTTP in here"},{"path":"packages/core/","note":"Business rules. Start here to change behaviour","key":true},{"path":"packages/db/","note":"Prisma schema and migrations"}],"dataModel":[{"name":"Team","summary":"A workspace. Billing lives here.","fields":[{"name":"id","type":"uuid"},{"name":"name","type":"text"},{"name":"plan","type":"'free' | 'pro'","note":"Synced from Stripe"},{"name":"stripeCustomerId","type":"text?"}],"relations":[{"to":"User","kind":"has many"},{"to":"Task","kind":"has many"}]},{"name":"User","fields":[{"name":"id","type":"uuid"},{"name":"email","type":"text","note":"Unique"},{"name":"teamId","type":"uuid"}],"relations":[{"to":"Team","kind":"belongs to"}]},{"name":"Task","summary":"The thing people actually care about.","fields":[{"name":"id","type":"uuid"},{"name":"title","type":"text"},{"name":"status","type":"'open' | 'done'"},{"name":"assigneeId","type":"uuid?","ref":"User"},{"name":"completedAt","type":"timestamptz?","note":"Set by the service, never by the client"}],"relations":[{"to":"Team","kind":"belongs to"},{"to":"User","kind":"assigned to"}]}],"concepts":[{"title":"Routes are thin, the service is thick","body":"API routes only parse input and shape the response. Every rule lives in packages/core: limits, permissions, side effects.","analogy":"Routes are the waiter: they take the order and bring the plate. The service is the kitchen.","file":"packages/core/src/tasks/service.ts"},{"title":"Slow things go on the queue","body":"If something talks to the outside world and the user does not need the result right now, it becomes a job.","analogy":"Like dropping a letter in a postbox instead of walking it to the recipient.","code":"await queue.add('task.assigned', { taskId: task.id })","lang":"ts"},{"title":"Optimistic UI","body":"The web app shows your change before the server confirms it, then quietly fixes things up if the server disagrees.","file":"apps/web/components/new-task-form.tsx"}],"quiz":[{"question":"You need to add a rule: “archived teams can’t create tasks”. Where does it go?","options":["apps/web/app/api/tasks/route.ts","packages/core/src/tasks/service.ts","apps/web/middleware.ts","The Prisma schema"],"answer":1,"explain":"Business rules belong in the service, so every caller gets them: API, worker and scripts."},{"question":"Why doesn’t creating a task wait for the email to send?","options":["Emails are sent by the browser","The email is queued and the worker sends it later","Emails are only sent on Pro plans"],"answer":1,"explain":"PR #482 moved emails onto the queue, which cut p95 from 1.8 s to 90 ms."},{"question":"What stops someone faking a Stripe ‘payment succeeded’ event?","options":["The auth middleware","Rate limiting","Webhook signature verification"],"answer":2,"explain":"Added in #475 after an audit. The middleware doesn’t run for Stripe, because Stripe has no session cookie."}],"glossary":[{"term":"Optimistic update","definition":"Showing a change in the UI before the server confirms it."},{"term":"Job","definition":"A unit of background work stored in Redis and run by the worker."},{"term":"Plan limit","definition":"The 50-open-task cap on free teams, enforced in billing/limits.ts."},{"term":"Idempotent","definition":"Safe to run twice: the second run changes nothing."}],"runbook":[{"label":"Install","command":"pnpm install"},{"label":"Start Postgres and Redis","command":"docker compose up -d db redis","note":"Needs Docker Desktop running."},{"label":"Run the app and the worker","command":"pnpm dev","note":"Web on :3000, worker logs in the same terminal."}],"walkthroughs":[{"id":"create-task-route","title":"Creating a task","file":"apps/web/app/api/tasks/route.ts:10-21","lang":"ts","why":"Every new task passes through this handler, so it shows what a route does and what it leaves to the service.","code":"export async function POST(req: Request) {\n  const session = await auth()\n  if (!session) {\n    return Response.json({ error: 'Sign in first' }, { status: 401 })\n  }\n  const userId = session.user.id\n\n  // Validate at the edge; the service trusts typed input only.\n  const input = CreateTask.parse(await req.json())\n  const task = await tasks.createTask(userId, input)\n  return Response.json(task, { status: 201 })\n}","steps":[{"lines":"11-14","note":"Stops a request that has no signed in user.","kind":"input","refs":{"node":"middleware"}},{"lines":"17-18","note":"Parses the body against the CreateTask schema, or fails with a 400.","why":"Checking shape at the edge means the service only ever sees typed input.","kind":"why","refs":{"flow":"create-task","step":3}},{"lines":"19","note":"Hands the work to the task service: limits, the insert and the email job live there.","kind":"what","refs":{"concept":0,"node":"service"}},{"lines":"20","note":"Answers 201 with the saved task.","kind":"output","refs":{"flow":"create-task","step":7}}],"takeaway":"The route checks who and what, then gets out of the way: the rules live in the service."}]}</script>
-<script type="application/json" id="explainer-context">{"style":"clean"}</script>
+<script type="application/json" id="explainer-context">{"style":"clean","chapters":["map","flows","code","changes","tree","data","concepts","quiz","glossary","run"],"enums":{"models":["auto","fable-5.2","opus-5.5","sonnet-5.5","haiku-5.5"],"visualKinds":["layers","cycle","state","compare","hierarchy","beforeAfter","quadrant","funnel","venn"],"types":["repo","pr","change","proposal","migration","incident","concept"],"styles":["clean","playful"],"depth":["overview","standard","deep"],"audience":["newcomer","engineer","expert"],"codeWalkthrough":["auto","always","never"],"bundleFormat":"concept-explainer-bundle","bundleMaxBytes":10485760,"instructionsLimit":2000,"languagePattern":"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$"}}</script>
 <script>
 (() => {
 'use strict';
@@ -1654,9 +1699,13 @@ function appendChildren(el, children) {
 }
 
 // replaceChildren() would stringify skipped (undefined/false) slots.
+// A re-render drops the old nodes: forget the truncation watchers among them
+// (after appending, so nodes moved back in stay watched).
 function fill(el, ...children) {
   el.replaceChildren();
-  return appendChildren(el, children);
+  appendChildren(el, children);
+  if (TRUNC.watched.size) pruneTruncation();
+  return el;
 }
 
 function h(tag, attrs, ...children) {
@@ -2087,7 +2136,8 @@ function middleForms(full) {
   return cuts;
 }
 
-const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, nestedWatch: null };
+const TRUNC_SWEEP_EVERY = 200;
+const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, nestedWatch: null, nextSweep: TRUNC_SWEEP_EVERY };
 
 function truncTip() {
   if (TRUNC.tip) return TRUNC.tip;
@@ -2211,9 +2261,28 @@ function textFits(el, span) {
   return span.getBoundingClientRect().width <= room + 0.05;
 }
 
+// Stop watching an element that left the page (a re-render replaced it), so
+// the observer and the set do not keep old views alive.
+function forgetTruncation(el) {
+  TRUNC.watched.delete(el);
+  if (TRUNC.observer) TRUNC.observer.unobserve(el);
+}
+
+// Elements are made before they are attached: only one that has been on the
+// page (state.seen) and is gone now is dropped.
+function pruneTruncation() {
+  TRUNC.watched.forEach((el) => { if (el.__trunc && el.__trunc.seen && !el.isConnected) forgetTruncation(el); });
+}
+
 function checkTruncation(el) {
   const state = el.__trunc;
-  if (!state || !el.isConnected || !el.getClientRects().length) return;
+  if (!state) return;
+  if (!el.isConnected) {
+    if (state.seen) forgetTruncation(el);
+    return;
+  }
+  state.seen = true;
+  if (!el.getClientRects().length) return;
   el.classList.remove('is-truncated');
   if (state.hint) state.hint.remove();
   if (state.mode === 'middle') state.visible.textContent = state.full;
@@ -2256,6 +2325,11 @@ function truncatable(el, full, { mode = 'end' } = {}) {
       document.fonts.addEventListener('loadingdone', recheckTruncation);
     }
   }
+  // Sweep now and then, so long sessions of re-renders stay flat.
+  if (TRUNC.watched.size >= TRUNC.nextSweep) {
+    pruneTruncation();
+    TRUNC.nextSweep = TRUNC.watched.size + TRUNC_SWEEP_EVERY;
+  }
   TRUNC.watched.add(el);
   if (TRUNC.observer) TRUNC.observer.observe(el);
   return el;
@@ -2264,9 +2338,65 @@ function truncatable(el, full, { mode = 'end' } = {}) {
 // Re-check every watched element, for example after a style switch.
 function recheckTruncation() {
   TRUNC.watched.forEach((el) => {
-    if (!el.isConnected) TRUNC.watched.delete(el);
-    else checkTruncation(el);
+    if (el.isConnected) checkTruncation(el);
+    else if (el.__trunc && el.__trunc.seen) forgetTruncation(el);
   });
+}
+
+// The credit follows the style on screen: Clean owes its type and greys to
+// Geist, Playful its palette and rounded type to Duolingo's design language.
+const CREDIT_CLEAN = 'Lesson pacing inspired by Brilliant. Type and greys from Geist by Vercel. Not affiliated with either.';
+const CREDIT_PLAYFUL = 'Lesson pacing inspired by Brilliant. Palette and rounded type (Nunito) inspired by Duolingo\'s design language. Not affiliated with either.';
+
+function designCredit() {
+  return h('p', { class: 'credit' }, h('span', { class: 'credit-clean' }, CREDIT_CLEAN), h('span', { class: 'credit-playful' }, CREDIT_PLAYFUL));
+}
+
+// Break points only (no shortening), for text that wraps or is clamped.
+function wordBreaks(value) {
+  return String(value ?? '').split(/(\s+)/).flatMap((token) => (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token) ? [token] : breakToken(token)));
+}
+
+// ---------- Navigation state, shared by the explainer, the hub and the kit ----------
+// Mark the current item in every nav copy; in a visible sidebar, bring it
+// into view inside the nav (a reader action, never on scroll).
+function setNavCurrent(links, key) {
+  links.forEach((a) => {
+    if (a.dataset.nav === key) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  const current = links.find((a) => a.dataset.nav === key && a.closest('.side') && a.getClientRects().length);
+  if (!current) return;
+  current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // Web fonts can change row heights after the first paint: check again then.
+  if (document.fonts) document.fonts.ready.then(() => { if (current.getAttribute('aria-current') === 'page') current.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+}
+
+// data-more="below" while the nav has rows under its bottom edge.
+function watchNavMore(nav) {
+  if (!nav) return;
+  const paint = () => {
+    const more = nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2;
+    if (more) nav.dataset.more = 'below'; else delete nav.dataset.more;
+  };
+  nav.addEventListener('scroll', paint, { passive: true });
+  if ('ResizeObserver' in window) new ResizeObserver(paint).observe(nav);
+  paint();
+}
+
+// ---------- Dates ----------
+// A date-only value (2026-11-17) is a calendar day: show that day wherever
+// the reader is. A value with a time is a moment: show the reader's own day
+// for it, so 2026-11-17T20:00Z reads Nov 18 in Manila.
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+function displayDate(value, { year = true, fallback = '' } = {}) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const raw = String(value).trim();
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return fallback;
+  const options = { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}) };
+  return date.toLocaleDateString(undefined, DATE_ONLY.test(raw) ? { ...options, timeZone: 'UTC' } : options);
 }
 
 // ---- icons.js ----
@@ -3304,7 +3434,7 @@ function changeItem(change, nodeIndex, isTarget) {
     h('div', { class: 'change-dot', 'aria-hidden': 'true' }, icon(isAgent ? 'robot' : 'user')),
     h('article', { class: 'panel change-card' },
       h('div', { class: 'change-top' },
-        h('span', null, formatDate(change.date)),
+        h('span', null, displayDate(change.date, { fallback: 'undated' })),
         change.ref && (url
           ? h('a', { class: 'link', href: safeUrl(change.url), target: '_blank', rel: 'noopener noreferrer' }, softBreaks(change.ref))
           : h('span', null, softBreaks(change.ref))),
@@ -3322,11 +3452,6 @@ function changeItem(change, nodeIndex, isTarget) {
       list(change.files).length > 0 && h('div', { class: 'change-nodes' }, list(change.files).slice(0, 6).map(fileChip))));
 }
 
-function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return text(value, 'undated');
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-}
 
 // ---- lessons.js ----
 // Chapter: key concepts, one idea per card. (The quiz follows.)
@@ -3736,6 +3861,42 @@ function chOnWidth(el, fn) {
   }).observe(el);
 }
 
+/**
+ * One item selected at a time across a list of buttons: marks them (one tab
+ * stop, arrows move), fills the detail panel with describe(index) and a
+ * stepper, and writes the deep link. `order` maps button positions to item
+ * indexes when the buttons are drawn in another order (risks: high first);
+ * links always carry the item index.
+ * @returns {(index: number|null, opts?: { link?: boolean }) => Element|null} select
+ */
+function chSelection({ buttons, detail, chapter, empty, describe, noun, order = null, hash = (i) => `${chapter}/${i}`, axis = 'both' }) {
+  const itemAt = (k) => (order ? order[k] : k);
+  const at = (index) => (order ? order.indexOf(index) : index);
+  let selected = null;
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(buttons, index === null ? null : at(index));
+    if (index === null) fill(detail, empty());
+    else fill(detail, ...describe(index), chStepper(at(index), buttons.length, (k) => { select(itemAt(k)); buttons[k].focus(); }, noun));
+    if (link) setDeepLink(index === null ? chapter : hash(index));
+    return index === null ? null : buttons[at(index)];
+  }
+  buttons.forEach((button, k) => button.addEventListener('click', () => select(selected === itemAt(k) ? null : itemAt(k))));
+  chRoving(buttons, { axis, onMove: (k) => select(itemAt(k)) });
+  select(null, { link: false });
+  return select;
+}
+
+/** The open() of a chapter whose deep link is an index from 0. */
+function chIndexOpener(select, count) {
+  return {
+    open([raw] = []) {
+      const index = chIndexPart(raw, count);
+      return index === null ? null : select(index, { link: false });
+    },
+  };
+}
+
 // ---- chapters/viz-core.js ----
 // The visuals kit: nine fixed kinds drawn as SVG from data (no SVG or
 // images in the data). vizMount() draws one visual, makes every part
@@ -3839,6 +4000,75 @@ function vizFacts(facts) {
     h('dt', null, label), h('dd', null, value instanceof Node || Array.isArray(value) ? value : softBreaks(String(value))))));
 }
 
+/** Selection marks: is-selected, aria-selected and one tab stop (the selected part, else the first). */
+function vizPaintSelection(drawing, svg, selected) {
+  drawing.parts.forEach((part, i) => {
+    const on = i === selected;
+    part.el.classList.toggle('is-selected', on);
+    part.el.setAttribute('aria-selected', String(on));
+    part.el.setAttribute('tabindex', on || (selected === null && i === 0) ? '0' : '-1');
+  });
+  svg.classList.toggle('has-selection', selected !== null);
+  if (drawing.highlight) drawing.highlight(selected);
+}
+
+/** The detail panel's children: a tip, or the selected part with its facts and a stepper. */
+function vizDetailChildren(drawing, selected, go) {
+  if (selected === null || !drawing) {
+    return [chEmptyDetail('Pick any part of the drawing', 'Click a part, or Tab to the drawing and use the arrow keys. Each part shows what it does here.')];
+  }
+  const part = drawing.parts[selected];
+  return [
+    h('p', { class: 'eyebrow quiet' }, part.kicker || `Part ${selected + 1} of ${drawing.parts.length}`),
+    h('h3', null, softBreaks(part.label)),
+    part.detail && h('p', { class: 'viz-detail-text' }, softBreaks(part.detail)),
+    vizFacts(part.facts),
+    drawing.parts.length > 1 && chStepper(selected, drawing.parts.length, go),
+  ];
+}
+
+/** The svg for a drawing; its parts become options with names and clicks. */
+function vizSvg(drawing, { room, id, label, kind, onClick }) {
+  const svg = s('svg', {
+    class: 'viz-svg', width: room, height: Math.ceil(drawing.height), viewBox: `0 0 ${room} ${Math.ceil(drawing.height)}`,
+    role: 'listbox', 'aria-label': text(label, VIZ_KIND_NAMES[kind]), 'aria-orientation': 'vertical',
+  }, vizMarkers(`${id}-m`), drawing.nodes, drawing.parts.map((p) => p.el));
+  drawing.parts.forEach((part, i) => {
+    part.el.setAttribute('role', 'option');
+    part.el.setAttribute('aria-label', part.aria || [part.label, part.detail].filter(Boolean).join('. '));
+    part.el.dataset.part = String(i);
+    part.el.prepend(s('title', null, part.label));
+    part.el.addEventListener('click', () => onClick(i));
+  });
+  return svg;
+}
+
+/** Where a key moves from part `index` of `count`: an index, null to clear, or undefined to ignore. */
+function vizKeyTarget(key, index, count) {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[key];
+  if (step) return (index + step + count) % count;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  if (key === 'Enter' || key === ' ') return index;
+  if (key === 'Escape') return null;
+  return undefined;
+}
+
+/** Arrows, Home, End, Enter and Escape on the drawing's parts. */
+function vizKeys(stage, view) {
+  stage.addEventListener('keydown', (event) => {
+    const host = event.target.closest && event.target.closest('[data-part]');
+    if (!host || !view.count()) return;
+    const next = vizKeyTarget(event.key, Number(host.dataset.part), view.count());
+    if (next === undefined || (next === null && view.selected() === null)) return;
+    event.preventDefault();
+    if (next === null) {
+      view.select(null);
+      host.focus();
+    } else view.select(next, { focus: true });
+  });
+}
+
 /**
  * Draw one visual with its detail panel.
  * @param {object} visual { kind, ...shape } (title and caption are shown by the caller)
@@ -3850,60 +4080,35 @@ function vizMount(visual, { label = '', onSelect = null, compact = false } = {})
   const stage = h('div', { class: 'viz-stage' });
   const detail = h('div', { class: 'viz-detail', 'aria-live': 'polite' });
   const root = h('div', { class: `viz viz-${drawer ? visual.kind : 'unknown'}${compact ? ' is-compact' : ''}` }, stage, detail);
+  if (!drawer) {
+    fill(stage, h('p', { class: 'empty' }, `This visual kind (${text(visual && visual.kind, 'none')}) is not in the kit.`));
+    return { root, select: () => null, count: () => 0, selected: () => null };
+  }
   const id = vizUid('viz');
   let drawing = null;
   let svg = null;
   let selected = null;
   let drawn = false;
+  const count = () => (drawing ? drawing.parts.length : 0);
 
-  if (!drawer) {
-    fill(stage, h('p', { class: 'empty' }, `This visual kind (${text(visual && visual.kind, 'none')}) is not in the kit.`));
-    return { root, select: () => null, count: () => 0, selected: () => null };
-  }
-
-  function paint() {
-    if (!drawing) return;
-    drawing.parts.forEach((part, i) => {
-      const on = i === selected;
-      part.el.classList.toggle('is-selected', on);
-      part.el.setAttribute('aria-selected', String(on));
-      part.el.setAttribute('tabindex', on || (selected === null && i === 0) ? '0' : '-1');
-    });
-    svg.classList.toggle('has-selection', selected !== null);
-    if (drawing.highlight) drawing.highlight(selected);
-  }
-
-  function renderDetail() {
-    if (selected === null || !drawing) {
-      fill(detail, chEmptyDetail('Pick any part of the drawing', 'Click a part, or Tab to the drawing and use the arrow keys. Each part shows what it does here.'));
-      return;
-    }
-    const part = drawing.parts[selected];
-    fill(detail,
-      h('p', { class: 'eyebrow quiet' }, part.kicker || `Part ${selected + 1} of ${drawing.parts.length}`),
-      h('h3', null, softBreaks(part.label)),
-      part.detail && h('p', { class: 'viz-detail-text' }, softBreaks(part.detail)),
-      vizFacts(part.facts),
-      drawing.parts.length > 1 && chStepper(selected, drawing.parts.length, (i) => select(i, { focus: false })));
+  function select(index, { focus = false, silent = false } = {}) {
+    const next = index === null || index === undefined ? null : Math.min(Math.max(index, 0), count() - 1);
+    selected = count() ? next : null;
+    vizPaintSelection(drawing, svg, selected);
+    fill(detail, ...vizDetailChildren(drawing, selected, (i) => select(i, { focus: false })));
+    const el = selected !== null ? drawing.parts[selected].el : null;
+    if (focus && el) el.focus({ preventScroll: true });
+    if (!silent && onSelect) onSelect(selected);
+    return el;
   }
 
   function draw(width, { measured = true } = {}) {
     const focusedIndex = drawing ? drawing.parts.findIndex((p) => p.el === document.activeElement) : -1;
     const room = Math.max(VIZ_MIN_WIDTH, Math.floor(width));
     drawing = drawer(visual, room, `${id}-m`);
-    svg = s('svg', {
-      class: 'viz-svg', width: room, height: Math.ceil(drawing.height), viewBox: `0 0 ${room} ${Math.ceil(drawing.height)}`,
-      role: 'listbox', 'aria-label': text(label, VIZ_KIND_NAMES[visual.kind]), 'aria-orientation': 'vertical',
-    }, vizMarkers(`${id}-m`), drawing.nodes, drawing.parts.map((p) => p.el));
-    drawing.parts.forEach((part, i) => {
-      part.el.setAttribute('role', 'option');
-      part.el.setAttribute('aria-label', part.aria || [part.label, part.detail].filter(Boolean).join('. '));
-      part.el.dataset.part = String(i);
-      part.el.prepend(s('title', null, part.label));
-      part.el.addEventListener('click', () => select(selected === i ? null : i, { focus: false }));
-    });
+    svg = vizSvg(drawing, { room, id, label, kind: visual.kind, onClick: (i) => select(selected === i ? null : i, { focus: false }) });
     fill(stage, svg, drawing.legend || null);
-    paint();
+    vizPaintSelection(drawing, svg, selected);
     if (focusedIndex >= 0 && drawing.parts[focusedIndex]) drawing.parts[focusedIndex].el.focus({ preventScroll: true });
     // One-shot entrance, the first time the drawing is really on screen.
     if (!drawn && measured && stage.isConnected) {
@@ -3912,45 +4117,12 @@ function vizMount(visual, { label = '', onSelect = null, compact = false } = {})
     }
   }
 
-  function select(index, { focus = false, silent = false } = {}) {
-    const count = drawing ? drawing.parts.length : 0;
-    const next = index === null || index === undefined ? null : Math.min(Math.max(index, 0), count - 1);
-    selected = count ? next : null;
-    paint();
-    renderDetail();
-    const el = selected !== null && drawing ? drawing.parts[selected].el : null;
-    if (focus && el) el.focus({ preventScroll: true });
-    if (!silent && onSelect) onSelect(selected);
-    return el;
-  }
-
-  stage.addEventListener('keydown', (event) => {
-    const host = event.target.closest && event.target.closest('[data-part]');
-    if (!host || !drawing) return;
-    const index = Number(host.dataset.part);
-    const count = drawing.parts.length;
-    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
-    let next = null;
-    if (step) next = (index + step + count) % count;
-    if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = count - 1;
-    if (event.key === 'Enter' || event.key === ' ') next = index;
-    if (event.key === 'Escape' && selected !== null) {
-      event.preventDefault();
-      select(null);
-      host.focus();
-      return;
-    }
-    if (next === null) return;
-    event.preventDefault();
-    select(next, { focus: true });
-  });
-
+  vizKeys(stage, { count, selected: () => selected, select });
   // Drawn at the width it gets, and again when that width changes.
   draw(640, { measured: false });
-  renderDetail();
+  fill(detail, ...vizDetailChildren(drawing, selected, (i) => select(i, { focus: false })));
   chOnWidth(stage, (width) => { if (width > 0) draw(width); });
-  return { root, select, count: () => (drawing ? drawing.parts.length : 0), selected: () => selected };
+  return { root, select, count, selected: () => selected };
 }
 
 /** A visual with its title and caption (the takeaway) above the drawing. */
@@ -4051,63 +4223,56 @@ function vizCycleExit(cx, cy, r, angle, dir, half) {
   return angle + dir * 0.3;
 }
 
-/** cycle: a loop. Wide: nodes on a circle; narrow: a column with a return line. */
+// Wide cycle: boxes on a circle, each arc trimmed to leave its boxes.
+function vizCycleCircle(n, width) {
+  const boxW = Math.min(160, Math.round(width * 0.28));
+  const r = Math.min(width / 2 - boxW / 2 - 8, 60 + n * 22);
+  const cx = width / 2;
+  const cy = r + VIZ_CYCLE.boxH / 2 + VIZ_CYCLE.pad;
+  const angleOf = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const half = { w: boxW / 2, h: VIZ_CYCLE.boxH / 2 };
+  const boxes = [];
+  const links = [];
+  for (let i = 0; i < n; i += 1) {
+    const a1 = vizCycleExit(cx, cy, r, angleOf(i), 1, half);
+    const a2 = vizCycleExit(cx, cy, r, angleOf(i + 1), -1, half);
+    const p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+    const p2 = [cx + r * Math.cos(a2), cy + r * Math.sin(a2)];
+    links.push(`M${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`);
+    boxes.push({ x: cx + r * Math.cos(angleOf(i)) - boxW / 2, y: cy + r * Math.sin(angleOf(i)) - VIZ_CYCLE.boxH / 2, w: boxW, h: VIZ_CYCLE.boxH });
+  }
+  return { boxes, links, height: cy * 2 };
+}
+
+// Narrow cycle: a column of boxes; the loop closes on the right, from the last box back to the first.
+function vizCycleColumn(n, width) {
+  const boxW = width - VIZ_CYCLE.gutter;
+  const boxes = [];
+  const links = [];
+  let y = 1;
+  for (let i = 0; i < n; i += 1) {
+    boxes.push({ x: 0, y, w: boxW, h: VIZ_CYCLE.boxH });
+    y += VIZ_CYCLE.boxH;
+    if (i < n - 1) {
+      links.push(`M${boxW / 2},${y + 2} L${boxW / 2},${y + 15}`);
+      y += 18;
+    }
+  }
+  const first = boxes[0];
+  const last = boxes[boxes.length - 1];
+  const lane = boxW + VIZ_CYCLE.gutter / 2;
+  links.push(`M${boxW + 2},${last.y + last.h / 2} H${lane - 6} Q${lane},${last.y + last.h / 2} ${lane},${last.y + last.h / 2 - 6} V${first.y + first.h / 2 + 6} Q${lane},${first.y + first.h / 2} ${lane - 6},${first.y + first.h / 2} H${boxW + 5}`);
+  return { boxes, links, height: y + 2 };
+}
+
+/** cycle: a loop. Wide: nodes on a circle; narrow: a column with a return line. Link i leaves item i. */
 function vizDrawCycle(visual, width, marker) {
   const items = list(visual.items);
-  const n = Math.max(items.length, 1);
-  const wide = width >= VIZ_CYCLE.wideAt;
-  const nodes = [];
-  const links = [];
-  const boxes = [];
-  let height;
-  if (wide) {
-    const boxW = Math.min(160, Math.round(width * 0.28));
-    const r = Math.min(width / 2 - boxW / 2 - 8, 60 + n * 22);
-    const cx = width / 2;
-    const cy = r + VIZ_CYCLE.boxH / 2 + VIZ_CYCLE.pad;
-    const angleOf = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const half = { w: boxW / 2, h: VIZ_CYCLE.boxH / 2 };
-    items.forEach((_, i) => {
-      const a1 = vizCycleExit(cx, cy, r, angleOf(i), 1, half);
-      const a2 = vizCycleExit(cx, cy, r, angleOf(i + 1), -1, half);
-      const p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-      const p2 = [cx + r * Math.cos(a2), cy + r * Math.sin(a2)];
-      const link = s('path', { class: 'viz-link', d: `M${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker });
-      links.push(link);
-      nodes.push(link);
-      boxes.push({ x: cx + r * Math.cos(angleOf(i)) - boxW / 2, y: cy + r * Math.sin(angleOf(i)) - VIZ_CYCLE.boxH / 2, w: boxW, h: VIZ_CYCLE.boxH });
-    });
-    height = cy * 2;
-  } else {
-    const boxW = width - VIZ_CYCLE.gutter;
-    let y = 1;
-    items.forEach((_, i) => {
-      boxes.push({ x: 0, y, w: boxW, h: VIZ_CYCLE.boxH });
-      y += VIZ_CYCLE.boxH;
-      if (i < items.length - 1) {
-        const link = vizArrow(boxW / 2, y + 2, boxW / 2, y + 15, marker);
-        links.push(link);
-        nodes.push(link);
-        y += 18;
-      }
-    });
-    // The loop closes on the right: from the last box back up to the first.
-    const first = boxes[0];
-    const last = boxes[boxes.length - 1];
-    const lane = boxW + VIZ_CYCLE.gutter / 2;
-    const back = s('path', {
-      class: 'viz-link', 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker,
-      d: `M${boxW + 2},${last.y + last.h / 2} H${lane - 6} Q${lane},${last.y + last.h / 2} ${lane},${last.y + last.h / 2 - 6} V${first.y + first.h / 2 + 6} Q${lane},${first.y + first.h / 2} ${lane - 6},${first.y + first.h / 2} H${boxW + 5}`,
-    });
-    links.push(back);
-    nodes.push(back);
-    height = y + 2;
-  }
+  const layout = width >= VIZ_CYCLE.wideAt ? vizCycleCircle(Math.max(items.length, 1), width) : vizCycleColumn(items.length, width);
+  const links = layout.links.map((d) => s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }));
   const parts = items.map((item, i) => {
-    const box = boxes[i];
+    const box = layout.boxes[i];
     const lines = vizWrap(vizItemLabel(item), vizChars(box.w - 20), 2);
-    const next = items[(i + 1) % items.length];
-    const prev = items[(i - 1 + items.length) % items.length];
     return vizPart([
       vizRoundRect(box.x, box.y, box.w, box.h),
       vizText(lines, { x: box.x + box.w / 2, y: box.y + box.h / 2, anchor: 'middle' }),
@@ -4115,11 +4280,11 @@ function vizDrawCycle(visual, width, marker) {
       label: vizItemLabel(item),
       detail: vizItemDetail(item),
       kicker: `Step ${i + 1} of ${items.length} in the loop`,
-      facts: [['Comes after', vizItemLabel(prev)], ['Leads to', vizItemLabel(next)]],
+      facts: [['Comes after', vizItemLabel(items[(i - 1 + items.length) % items.length])], ['Leads to', vizItemLabel(items[(i + 1) % items.length])]],
     });
   });
   return {
-    nodes, parts, height,
+    nodes: links, parts, height: layout.height,
     highlight(index) {
       links.forEach((link, i) => vizLinkOn(link, index === i));
       parts.forEach((part, i) => part.el.classList.toggle('is-related', index !== null && i === (index + 1) % parts.length));
@@ -4304,97 +4469,91 @@ function vizStateRow(order, transitions, width, top) {
   return { boxes, geo, chars: vizChars(Math.max(slot * 1.4, 80), VIZ_STATE.label), floor: top + VIZ_STATE.boxH + (down ? 26 + down * VIZ_STATE.level : 8) };
 }
 
-/** state: boxes in a row (wide) or a column (narrow); transitions as arcs. */
-function vizDrawState(visual, width, marker) {
-  const states = list(visual.states).filter((st) => st && st.id !== undefined);
-  const transitions = list(visual.transitions).filter((t) => t && states.some((st) => st.id === t.from) && states.some((st) => st.id === t.to));
-  const order = vizStateOrder(states, transitions);
-  const pos = new Map(order.map((id, i) => [id, i]));
-  const row = width / Math.max(order.length, 1) >= VIZ_STATE.rowSlot;
-  const label = (id) => text((states.find((st) => st.id === id) || {}).label, String(id));
+function vizStatePath(d, marker) {
+  return s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker });
+}
+
+// Row: lay out and place labels; lay out again lower when anything would leave the top.
+function vizStateRowDraw(order, transitions, width, marker) {
+  let top = 40;
+  let layout;
+  let placed;
+  for (let pass = 0; pass < 3; pass += 1) {
+    layout = vizStateRow(order, transitions, width, top);
+    placed = vizPlaceLabels(layout.geo.filter((g) => text(g.tr.label)).map((g) => ({ key: g, value: g.tr.label, ...g.anchor, chars: layout.chars })),
+      { paths: layout.geo, boxes: [...layout.boxes.values()], width, size: VIZ_STATE.label });
+    const highest = Math.min(top, ...placed.map((p) => p.rect.y), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1])));
+    if (highest >= 4) break;
+    top += 4 - highest;
+  }
   const links = [];
   const geometry = { paths: [], labels: [] };
-  let boxes;
-  let height;
-  let keyList = null;
+  layout.geo.forEach((g) => {
+    const item = placed.find((p) => p.key === g);
+    links.push({ t: g.tr, path: vizStatePath(g.d, marker), label: item ? vizLabelPill(item) : null });
+    geometry.paths.push({ key: g.tr, points: g.points });
+    if (item) geometry.labels.push({ key: g.tr, rect: item.rect, onLine: false });
+  });
+  const height = Math.max(layout.floor, ...placed.map((p) => p.rect.y + p.rect.h + 4), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1] + 4)));
+  return { links, geometry, boxes: layout.boxes, height, legend: null };
+}
 
-  if (row) {
-    // Lay out and place labels; lay out again lower when anything would leave the top.
-    let top = 40;
-    let layout;
-    let placed;
-    for (let pass = 0; pass < 3; pass += 1) {
-      layout = vizStateRow(order, transitions, width, top);
-      placed = vizPlaceLabels(layout.geo.filter((g) => text(g.tr.label)).map((g) => ({ key: g, value: g.tr.label, ...g.anchor, chars: layout.chars })),
-        { paths: layout.geo, boxes: [...layout.boxes.values()], width, size: VIZ_STATE.label });
-      const highest = Math.min(top, ...placed.map((p) => p.rect.y), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1])));
-      if (highest >= 4) break;
-      top += 4 - highest;
+// Column geometry: self-loops in their own lane on the left; next-door steps
+// down are straight; every other transition bends right on its own level.
+function vizStateColumn(order, transitions, width) {
+  const pos = new Map(order.map((id, i) => [id, i]));
+  const lane = 30;
+  const boxW = Math.min(200, Math.max(120, Math.round(width * 0.42)));
+  const boxes = new Map(order.map((id, i) => [id, { x: lane, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }]));
+  const right = lane + boxW;
+  const straight = (tr) => pos.get(tr.to) - pos.get(tr.from) === 1;
+  const bends = transitions.filter((tr) => tr.from !== tr.to && !straight(tr));
+  const levels = vizArcLevels(bends.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+  const step = Math.min(VIZ_STATE.level, Math.max(18, (width - right - 24) / Math.max(1, ...levels)));
+  const geo = transitions.map((tr) => {
+    const a = boxes.get(tr.from);
+    const b = boxes.get(tr.to);
+    if (tr.from === tr.to) {
+      const p = [[a.x, a.y + 12], [a.x - 26, a.y + 4], [a.x - 26, a.y + a.h - 4], [a.x - 3, a.y + a.h - 12]];
+      return { tr, p, points: vizCubic(...p), badge: [a.x - 19, a.y + a.h / 2] };
     }
-    boxes = layout.boxes;
-    layout.geo.forEach((g) => {
-      const item = placed.find((p) => p.key === g);
-      links.push({ t: g.tr, path: s('path', { class: 'viz-link', d: g.d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: item ? vizLabelPill(item) : null });
-      geometry.paths.push({ key: g.tr, points: g.points });
-      if (item) geometry.labels.push({ key: g.tr, rect: item.rect, onLine: false });
-    });
-    height = Math.max(layout.floor, ...placed.map((p) => p.rect.y + p.rect.h + 4), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1] + 4)));
-  } else {
-    const lane = 30;
-    const boxW = Math.min(200, Math.max(120, Math.round(width * 0.42)));
-    boxes = new Map(order.map((id, i) => [id, { x: lane, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }]));
-    const right = lane + boxW;
-    const span = (tr) => Math.abs(pos.get(tr.to) - pos.get(tr.from));
-    const ahead = (tr) => pos.get(tr.to) > pos.get(tr.from);
-    // Self-loops sit in their own lane on the left; next-door steps down are
-    // straight; every other transition bends out to the right on its own level.
-    const bends = transitions.filter((tr) => tr.from !== tr.to && !(ahead(tr) && span(tr) === 1));
-    const levels = vizArcLevels(bends.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
-    const maxLevel = Math.max(1, ...levels);
-    const step = Math.min(VIZ_STATE.level, Math.max(18, (width - right - 24) / maxLevel));
-    // Labels would cross the arcs here, so each arc gets a numbered badge on
-    // its own line and the key under the drawing spells it out.
-    transitions.forEach((tr, k) => {
-      const a = boxes.get(tr.from);
-      const b = boxes.get(tr.to);
-      let p;
-      let points;
-      let bx;
-      let by;
-      if (tr.from === tr.to) {
-        p = [[a.x, a.y + 12], [a.x - 26, a.y + 4], [a.x - 26, a.y + a.h - 4], [a.x - 3, a.y + a.h - 12]];
-        points = vizCubic(...p);
-        bx = a.x - 19;
-        by = a.y + a.h / 2;
-      } else if (ahead(tr) && span(tr) === 1) {
-        p = [[a.x + a.w / 2, a.y + a.h], [b.x + b.w / 2, b.y - 3]];
-        points = vizSegment(...p);
-        bx = a.x + a.w / 2;
-        by = (a.y + a.h + b.y) / 2;
-      } else {
-        const bulge = right + 8 + levels[bends.indexOf(tr)] * step;
-        const y1 = a.y + a.h / 2 + (ahead(tr) ? 8 : -8);
-        const y2 = b.y + b.h / 2 + (ahead(tr) ? -8 : 8);
-        const reach = right + (bulge - right) * 1.33;
-        p = [[right, y1], [reach, y1], [reach, y2], [right + 3, y2]];
-        points = vizCubic(...p);
-        bx = bulge;
-        by = (y1 + y2) / 2;
-      }
-      const d = p.length === 2 ? `M${p[0]} L${p[1]}` : `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`;
-      const badge = s('g', { class: 'viz-badge' }, s('circle', { cx: bx, cy: by, r: 8 }),
-        s('text', { x: bx, y: by, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, String(k + 1)));
-      links.push({ t: tr, path: s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: badge });
-      geometry.paths.push({ key: tr, points });
-      geometry.labels.push({ key: tr, rect: { x: bx - 8, y: by - 8, w: 16, h: 16 }, onLine: true });
-    });
-    keyList = h('ol', { class: 'viz-key-list', 'aria-label': 'Transitions' }, transitions.map((tr, k) => h('li', null,
-      h('span', { class: 'viz-key-n', 'aria-hidden': 'true' }, String(k + 1)),
-      h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} → ${label(tr.to)}`)))));
-    height = order.length * (VIZ_STATE.boxH + VIZ_STATE.vGap) - VIZ_STATE.vGap + 2;
-  }
+    if (straight(tr)) {
+      const p = [[a.x + a.w / 2, a.y + a.h], [b.x + b.w / 2, b.y - 3]];
+      return { tr, p, points: vizSegment(...p), badge: [a.x + a.w / 2, (a.y + a.h + b.y) / 2] };
+    }
+    const bulge = right + 8 + levels[bends.indexOf(tr)] * step;
+    const forward = pos.get(tr.to) > pos.get(tr.from);
+    const y1 = a.y + a.h / 2 + (forward ? 8 : -8);
+    const y2 = b.y + b.h / 2 + (forward ? -8 : 8);
+    const reach = right + (bulge - right) * 1.33;
+    const p = [[right, y1], [reach, y1], [reach, y2], [right + 3, y2]];
+    return { tr, p, points: vizCubic(...p), badge: [bulge, (y1 + y2) / 2] };
+  });
+  return { boxes, geo, height: order.length * (VIZ_STATE.boxH + VIZ_STATE.vGap) - VIZ_STATE.vGap + 2 };
+}
 
-  const parts = states.map((st, i) => {
+// Column: labels would cross the arcs, so each arc gets a numbered badge on its
+// own line and the key under the drawing spells it out.
+function vizStateColumnDraw(order, transitions, width, marker, label) {
+  const layout = vizStateColumn(order, transitions, width);
+  const links = [];
+  const geometry = { paths: [], labels: [] };
+  layout.geo.forEach(({ tr, p, points, badge: [bx, by] }, k) => {
+    const d = p.length === 2 ? `M${p[0]} L${p[1]}` : `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`;
+    const badge = s('g', { class: 'viz-badge' }, s('circle', { cx: bx, cy: by, r: 8 }),
+      s('text', { x: bx, y: by, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, String(k + 1)));
+    links.push({ t: tr, path: vizStatePath(d, marker), label: badge });
+    geometry.paths.push({ key: tr, points });
+    geometry.labels.push({ key: tr, rect: { x: bx - 8, y: by - 8, w: 16, h: 16 }, onLine: true });
+  });
+  const legend = h('ol', { class: 'viz-key-list', 'aria-label': 'Transitions' }, transitions.map((tr, k) => h('li', null,
+    h('span', { class: 'viz-key-n', 'aria-hidden': 'true' }, String(k + 1)),
+    h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} → ${label(tr.to)}`)))));
+  return { links, geometry, boxes: layout.boxes, height: layout.height, legend };
+}
+
+function vizStateParts(states, transitions, boxes, label) {
+  return states.map((st, i) => {
     const box = boxes.get(st.id);
     const out = transitions.filter((t) => t.from === st.id);
     const into = transitions.filter((t) => t.to === st.id && t.from !== st.id);
@@ -4413,131 +4572,152 @@ function vizDrawState(visual, width, marker) {
       id: st.id,
     });
   });
+}
+
+// Selecting a state lights its transitions and the states they connect.
+function vizStateHighlight(links, parts) {
+  return (index) => {
+    const id = index === null ? null : parts[index].id;
+    links.forEach((l) => {
+      const on = id !== null && (l.t.from === id || l.t.to === id);
+      vizLinkOn(l.path, on);
+      if (l.label) l.label.classList.toggle('is-on', on);
+    });
+    parts.forEach((part, i) => part.el.classList.toggle('is-related', id !== null && i !== index
+      && links.some((l) => (l.t.from === id && l.t.to === part.id) || (l.t.to === id && l.t.from === part.id))));
+  };
+}
+
+/** state: boxes in a row (wide) or a column (narrow); transitions as arcs. */
+function vizDrawState(visual, width, marker) {
+  const states = list(visual.states).filter((st) => st && st.id !== undefined);
+  const transitions = list(visual.transitions).filter((t) => t && states.some((st) => st.id === t.from) && states.some((st) => st.id === t.to));
+  const order = vizStateOrder(states, transitions);
+  const label = (id) => text((states.find((st) => st.id === id) || {}).label, String(id));
+  const drawn = width / Math.max(order.length, 1) >= VIZ_STATE.rowSlot
+    ? vizStateRowDraw(order, transitions, width, marker)
+    : vizStateColumnDraw(order, transitions, width, marker, label);
+  const parts = vizStateParts(states, transitions, drawn.boxes, label);
   return {
-    nodes: [links.map((l) => l.path), links.map((l) => l.label)],
+    nodes: [drawn.links.map((l) => l.path), drawn.links.map((l) => l.label)],
     parts,
-    height,
-    legend: keyList,
+    height: drawn.height,
+    legend: drawn.legend,
     // For tests: every edge as points, every label as a box, every state box.
-    geometry: { ...geometry, boxes: [...boxes.values()] },
-    highlight(index) {
-      const id = index === null ? null : parts[index].id;
-      links.forEach((l) => {
-        const on = id !== null && (l.t.from === id || l.t.to === id);
-        vizLinkOn(l.path, on);
-        if (l.label) l.label.classList.toggle('is-on', on);
-      });
-      parts.forEach((part, i) => part.el.classList.toggle('is-related', id !== null && i !== index
-        && links.some((l) => (l.t.from === id && l.t.to === part.id) || (l.t.to === id && l.t.from === part.id))));
-    },
+    geometry: { ...drawn.geometry, boxes: [...drawn.boxes.values()] },
+    highlight: vizStateHighlight(drawn.links, parts),
   };
 }
 
 const VIZ_TREE = { boxH: 44, level: 40, slot: 112, row: 40, rowGap: 8, indent: 22 };
 
-/** hierarchy: a top-down tree when its leaves fit, else an indented outline. */
-function vizDrawHierarchy(visual, width, marker) {
+// The tree as data: parents, children, depth-first order from the roots, leaves.
+function vizTreeModel(visual) {
   const nodes = list(visual.nodes).filter((n) => n && n.id !== undefined);
   const ids = new Set(nodes.map((n) => n.id));
   const parentOf = (n) => (n.parent !== undefined && ids.has(n.parent) && n.parent !== n.id ? n.parent : null);
   const children = (id) => nodes.filter((n) => parentOf(n) === id);
   const roots = nodes.filter((n) => parentOf(n) === null);
-  const boxes = new Map();
   const depth = new Map();
-  const seen = new Set();
-  const walk = (n, d, visit) => {
-    if (seen.has(n.id)) return;
-    seen.add(n.id);
+  const walkOrder = [];
+  const walk = (n, d) => {
+    if (depth.has(n.id)) return;
     depth.set(n.id, d);
-    visit(n, d);
-    children(n.id).forEach((c) => walk(c, d + 1, visit));
+    walkOrder.push(n);
+    children(n.id).forEach((c) => walk(c, d + 1));
   };
-  const leaves = [];
-  roots.forEach((r) => walk(r, 0, (n) => { if (!children(n.id).length) leaves.push(n.id); }));
+  roots.forEach((r) => walk(r, 0));
+  const leaves = walkOrder.filter((n) => !children(n.id).length).map((n) => n.id);
+  return { nodes, parentOf, children, roots, depth, walkOrder, leaves };
+}
+
+// Top down: leaves share the width, each parent centred over its children.
+function vizTreeTopDown(model, width) {
+  const { nodes, parentOf, children, roots, depth, leaves } = model;
+  const slot = width / leaves.length;
+  const boxW = Math.min(slot - 10, 180);
+  const centre = new Map();
+  const place = (n) => {
+    const kids = children(n.id).filter((c) => depth.get(c.id) === depth.get(n.id) + 1);
+    if (!kids.length) centre.set(n.id, (leaves.indexOf(n.id) + 0.5) * slot);
+    else {
+      kids.forEach(place);
+      centre.set(n.id, (centre.get(kids[0].id) + centre.get(kids[kids.length - 1].id)) / 2);
+    }
+  };
+  roots.forEach(place);
+  const boxes = new Map(nodes.map((n) => [n.id, { x: (centre.get(n.id) ?? width / 2) - boxW / 2, y: 1 + (depth.get(n.id) ?? 0) * (VIZ_TREE.boxH + VIZ_TREE.level), w: boxW, h: VIZ_TREE.boxH }]));
+  const links = nodes.filter((n) => parentOf(n) !== null).map((n) => {
+    const a = boxes.get(parentOf(n));
+    const b = boxes.get(n.id);
+    const mid = a.y + a.h + VIZ_TREE.level / 2;
+    return { from: parentOf(n), to: n.id, d: `M${a.x + a.w / 2},${a.y + a.h} V${mid} H${b.x + b.w / 2} V${b.y}` };
+  });
   const maxDepth = Math.max(0, ...depth.values());
-  const topDown = width / Math.max(leaves.length, 1) >= VIZ_TREE.slot;
-  const links = [];
-  let height;
+  return { boxes, links, height: (maxDepth + 1) * (VIZ_TREE.boxH + VIZ_TREE.level) - VIZ_TREE.level + 2 };
+}
 
-  if (topDown) {
-    const slot = width / leaves.length;
-    const boxW = Math.min(slot - 10, 180);
-    const centre = new Map();
-    const place = (n) => {
-      const kids = children(n.id).filter((c) => depth.get(c.id) === depth.get(n.id) + 1);
-      if (!kids.length) centre.set(n.id, (leaves.indexOf(n.id) + 0.5) * slot);
-      else {
-        kids.forEach(place);
-        centre.set(n.id, (centre.get(kids[0].id) + centre.get(kids[kids.length - 1].id)) / 2);
-      }
-    };
-    roots.forEach(place);
-    nodes.forEach((n) => {
-      const cx = centre.get(n.id) ?? width / 2;
-      boxes.set(n.id, { x: cx - boxW / 2, y: 1 + depth.get(n.id) * (VIZ_TREE.boxH + VIZ_TREE.level), w: boxW, h: VIZ_TREE.boxH });
-    });
-    nodes.forEach((n) => {
-      const p = parentOf(n);
-      if (p === null) return;
-      const a = boxes.get(p);
-      const b = boxes.get(n.id);
-      const mid = a.y + a.h + VIZ_TREE.level / 2;
-      links.push({ from: p, to: n.id, path: s('path', { class: 'viz-link', d: `M${a.x + a.w / 2},${a.y + a.h} V${mid} H${b.x + b.w / 2} V${b.y}` }) });
-    });
-    height = (maxDepth + 1) * (VIZ_TREE.boxH + VIZ_TREE.level) - VIZ_TREE.level + 2;
-  } else {
-    let y = 1;
-    seen.clear();
-    roots.forEach((r) => walk(r, 0, (n, d) => {
-      const x = 1 + d * VIZ_TREE.indent;
-      boxes.set(n.id, { x, y, w: width - x - 1, h: VIZ_TREE.row });
-      y += VIZ_TREE.row + VIZ_TREE.rowGap;
-    }));
-    nodes.forEach((n) => {
-      const p = parentOf(n);
-      if (p === null || !boxes.has(n.id)) return;
-      const a = boxes.get(p);
-      const b = boxes.get(n.id);
-      links.push({ from: p, to: n.id, path: s('path', { class: 'viz-link', d: `M${a.x + 11},${a.y + a.h} V${b.y + b.h / 2} H${b.x}` }) });
-    });
-    height = y - VIZ_TREE.rowGap + 1;
-  }
+// Outline: one row per node in depth-first order, indented by depth.
+function vizTreeOutline(model, width) {
+  const boxes = new Map();
+  let y = 1;
+  model.walkOrder.forEach((n) => {
+    const x = 1 + model.depth.get(n.id) * VIZ_TREE.indent;
+    boxes.set(n.id, { x, y, w: width - x - 1, h: VIZ_TREE.row });
+    y += VIZ_TREE.row + VIZ_TREE.rowGap;
+  });
+  const links = model.nodes.filter((n) => model.parentOf(n) !== null && boxes.has(n.id)).map((n) => {
+    const a = boxes.get(model.parentOf(n));
+    const b = boxes.get(n.id);
+    return { from: model.parentOf(n), to: n.id, d: `M${a.x + 11},${a.y + a.h} V${b.y + b.h / 2} H${b.x}` };
+  });
+  return { boxes, links, height: y - VIZ_TREE.rowGap + 1 };
+}
 
-  const labelOf = (id) => text((nodes.find((n) => n.id === id) || {}).label, String(id));
-  const parts = nodes.filter((n) => boxes.has(n.id)).map((n) => {
+function vizTreeParts(model, boxes, topDown) {
+  const labelOf = (id) => text((model.nodes.find((n) => n.id === id) || {}).label, String(id));
+  return model.nodes.filter((n) => boxes.has(n.id)).map((n) => {
     const box = boxes.get(n.id);
-    const kids = children(n.id);
-    const p = parentOf(n);
+    const p = model.parentOf(n);
     const lines = vizWrap(text(n.label, String(n.id)), vizChars(box.w - 20), topDown ? 2 : 1);
     return vizPart([
       vizRoundRect(box.x, box.y, box.w, box.h),
       vizText(lines, { x: topDown ? box.x + box.w / 2 : box.x + 12, y: box.y + box.h / 2, anchor: topDown ? 'middle' : 'start' }),
     ], {
       label: text(n.label, String(n.id)),
-      kicker: p === null ? 'The whole' : `Level ${depth.get(n.id) + 1}`,
-      facts: [['Part of', p !== null ? labelOf(p) : null], ['Made of', vizRelationList(kids.map((k) => labelOf(k.id)))]],
+      kicker: p === null ? 'The whole' : `Level ${model.depth.get(n.id) + 1}`,
+      facts: [['Part of', p !== null ? labelOf(p) : null], ['Made of', vizRelationList(model.children(n.id).map((k) => labelOf(k.id)))]],
       id: n.id,
     });
   });
-  return {
-    nodes: links.map((l) => l.path),
-    parts,
-    height,
-    highlight(index) {
-      const id = index === null ? null : parts[index].id;
-      const line = new Set();
-      for (let at = id; at !== null && at !== undefined;) {
-        const node = nodes.find((n) => n.id === at);
-        const up = node ? parentOf(node) : null;
-        if (up === null) break;
-        line.add(`${up}>${at}`);
-        at = up;
-      }
-      links.forEach((l) => l.path.classList.toggle('is-on', line.has(`${l.from}>${l.to}`) || (id !== null && l.from === id)));
-      parts.forEach((part) => part.el.classList.toggle('is-related', id !== null && part.id !== id
-        && (links.some((l) => l.from === id && l.to === part.id) || [...line].some((key) => key.startsWith(`${part.id}>`)))));
-    },
+}
+
+// Selecting a node lights its line up to the root and the links to its children.
+function vizTreeHighlight(model, links, parts) {
+  return (index) => {
+    const id = index === null ? null : parts[index].id;
+    const line = new Set();
+    for (let at = id; at !== null && at !== undefined;) {
+      const node = model.nodes.find((n) => n.id === at);
+      const up = node ? model.parentOf(node) : null;
+      if (up === null) break;
+      line.add(`${up}>${at}`);
+      at = up;
+    }
+    links.forEach((l) => l.path.classList.toggle('is-on', line.has(`${l.from}>${l.to}`) || (id !== null && l.from === id)));
+    parts.forEach((part) => part.el.classList.toggle('is-related', id !== null && part.id !== id
+      && (links.some((l) => l.from === id && l.to === part.id) || [...line].some((key) => key.startsWith(`${part.id}>`)))));
   };
+}
+
+/** hierarchy: a top-down tree when its leaves fit, else an indented outline. */
+function vizDrawHierarchy(visual, width) {
+  const model = vizTreeModel(visual);
+  const topDown = width / Math.max(model.leaves.length, 1) >= VIZ_TREE.slot;
+  const layout = topDown ? vizTreeTopDown(model, width) : vizTreeOutline(model, width);
+  const links = layout.links.map((l) => ({ ...l, path: s('path', { class: 'viz-link', d: l.d }) }));
+  const parts = vizTreeParts(model, layout.boxes, topDown);
+  return { nodes: links.map((l) => l.path), parts, height: layout.height, highlight: vizTreeHighlight(model, links, parts) };
 }
 
 // ---- chapters/viz-grid.js ----
@@ -4619,61 +4799,68 @@ function vizDrawCompare(visual, width) {
 
 const VIZ_PANEL = { head: 34, item: 40, gap: 6, pad: 10, between: 44, wideAt: 560 };
 
-/** beforeAfter: two panels with what moved; items in one side only get + or −. */
-function vizDrawBeforeAfter(visual, width, marker) {
+// Both panels and every item box: side by side when wide, stacked when narrow.
+// An item whose label is on both sides stays; otherwise it is gone (before) or new (after).
+function vizBeforeAfterLayout(visual, width) {
   const sides = [['before', 'Before'], ['after', 'After']].map(([key, name]) => ({
     key, name, items: list(visual[key] && visual[key].items).filter((item) => vizItemLabel(item)),
   }));
   const wide = width >= VIZ_PANEL.wideAt;
   const panelW = wide ? (width - VIZ_PANEL.between) / 2 : width;
-  const labelsOf = (side) => new Set(side.items.map((item) => vizItemLabel(item).trim().toLowerCase()));
-  const sets = sides.map(labelsOf);
-  const nodes = [];
-  const parts = [];
-  let bottom = 0;
+  const sets = sides.map((side) => new Set(side.items.map((item) => vizItemLabel(item).trim().toLowerCase())));
+  const panels = [];
+  const items = [];
   let nextTop = 1;
-  const panelBottoms = [];
   sides.forEach((side, sideIndex) => {
     const x = wide ? sideIndex * (panelW + VIZ_PANEL.between) : 0;
     const top = wide ? 1 : nextTop;
-    const other = sets[1 - sideIndex];
     let y = top + VIZ_PANEL.head;
     side.items.forEach((item, i) => {
       const label = vizItemLabel(item);
-      const shared = other.has(label.trim().toLowerCase());
-      const glyph = shared ? '' : sideIndex === 0 ? '−' : '+';
       const lines = vizWrap(label, vizChars(panelW - VIZ_PANEL.pad * 2 - 34), 2);
       const itemH = Math.max(VIZ_PANEL.item, lines.length * VIZ_LINE + 14);
-      const boxTop = y;
+      items.push({ item, label, lines, side, sideIndex, i, shared: sets[1 - sideIndex].has(label.trim().toLowerCase()), box: { x: x + VIZ_PANEL.pad, y, w: panelW - VIZ_PANEL.pad * 2, h: itemH } });
       y += itemH + VIZ_PANEL.gap;
-      parts.push(vizPart([
-        vizRoundRect(x + VIZ_PANEL.pad, boxTop, panelW - VIZ_PANEL.pad * 2, itemH),
-        glyph && s('text', { class: 'viz-glyph', x: x + VIZ_PANEL.pad + 14, y: boxTop + itemH / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, glyph),
-        vizText(lines, { x: x + VIZ_PANEL.pad + 28, y: boxTop + itemH / 2 }),
-      ], {
-        label,
-        detail: vizItemDetail(item),
-        kicker: `${side.name}, ${i + 1} of ${side.items.length}`,
-        facts: [['Change', shared ? 'Stays the same' : sideIndex === 0 ? 'Gone after the change' : 'New after the change']],
-      }));
     });
-    const panelBottom = y - VIZ_PANEL.gap + VIZ_PANEL.pad;
-    nodes.push(vizRoundRect(x, top, panelW, panelBottom - top, 'viz-panel'),
-      s('text', { class: 'viz-panel-head', x: x + VIZ_PANEL.pad + 2, y: top + VIZ_PANEL.head / 2 + 2, 'dominant-baseline': 'central' }, side.name.toUpperCase()));
-    bottom = Math.max(bottom, panelBottom);
-    panelBottoms.push(panelBottom);
-    nextTop = panelBottom + VIZ_PANEL.between;
+    const bottom = y - VIZ_PANEL.gap + VIZ_PANEL.pad;
+    panels.push({ name: side.name, x, top, bottom });
+    nextTop = bottom + VIZ_PANEL.between;
   });
+  const lowest = Math.max(0, ...panels.map((p) => p.bottom));
   const arrow = wide
-    ? s('path', { class: 'viz-link is-flow', d: `M${panelW + 10},${Math.min(bottom, 120) / 2 + 10} H${panelW + VIZ_PANEL.between - 10}`, 'marker-end': `url(#${marker}-rest)` })
-    : s('path', { class: 'viz-link is-flow', d: `M${width / 2},${panelBottoms[0] + 8} V${panelBottoms[0] + VIZ_PANEL.between - 10}`, 'marker-end': `url(#${marker}-rest)` });
-  nodes.push(arrow);
+    ? `M${panelW + 10},${Math.min(lowest, 120) / 2 + 10} H${panelW + VIZ_PANEL.between - 10}`
+    : `M${width / 2},${panels[0].bottom + 8} V${panels[0].bottom + VIZ_PANEL.between - 10}`;
+  return { panelW, panels, items, arrow, height: (wide ? lowest : nextTop - VIZ_PANEL.between) + 1 };
+}
+
+function vizBeforeAfterLegend(visual, moved) {
   const notes = list(visual.notes).filter((note) => typeof note === 'string' && note.trim());
-  const glyphs = parts.some((p) => p.facts[0][1] !== 'Stays the same');
-  const legend = (notes.length || glyphs) && h('div', { class: 'viz-notes' },
-    glyphs && h('p', { class: 'viz-legend' }, h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '+'), 'New'), h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '−'), 'Gone')),
+  if (!notes.length && !moved) return false;
+  return h('div', { class: 'viz-notes' },
+    moved && h('p', { class: 'viz-legend' }, h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '+'), 'New'), h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '−'), 'Gone')),
     notes.length > 0 && h('ul', { class: 'viz-note-list', 'aria-label': 'Notes' }, notes.map((note) => h('li', null, softBreaks(note)))));
-  return { nodes, parts, height: (wide ? bottom : nextTop - VIZ_PANEL.between) + 1, legend };
+}
+
+/** beforeAfter: two panels with what moved; items in one side only get + or −. */
+function vizDrawBeforeAfter(visual, width, marker) {
+  const layout = vizBeforeAfterLayout(visual, width);
+  const nodes = layout.panels.flatMap((panel) => [vizRoundRect(panel.x, panel.top, layout.panelW, panel.bottom - panel.top, 'viz-panel'),
+    s('text', { class: 'viz-panel-head', x: panel.x + VIZ_PANEL.pad + 2, y: panel.top + VIZ_PANEL.head / 2 + 2, 'dominant-baseline': 'central' }, panel.name.toUpperCase())]);
+  nodes.push(s('path', { class: 'viz-link is-flow', d: layout.arrow, 'marker-end': `url(#${marker}-rest)` }));
+  const parts = layout.items.map(({ item, label, lines, side, sideIndex, i, shared, box }) => {
+    const glyph = shared ? '' : sideIndex === 0 ? '−' : '+';
+    return vizPart([
+      vizRoundRect(box.x, box.y, box.w, box.h),
+      glyph && s('text', { class: 'viz-glyph', x: box.x + 14, y: box.y + box.h / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, glyph),
+      vizText(lines, { x: box.x + 28, y: box.y + box.h / 2 }),
+    ], {
+      label,
+      detail: vizItemDetail(item),
+      kicker: `${side.name}, ${i + 1} of ${side.items.length}`,
+      facts: [['Change', shared ? 'Stays the same' : sideIndex === 0 ? 'Gone after the change' : 'New after the change']],
+    });
+  });
+  return { nodes, parts, height: layout.height, legend: vizBeforeAfterLegend(visual, layout.items.some((it) => !it.shared)) };
 }
 
 const VIZ_QUAD = { axis: 30, foot: 38, dot: 6, label: 12.5 };
@@ -4756,18 +4943,10 @@ function vizRegionCentre(layout, inside) {
   return [own[0] + (own[0] - all[0]) * push, own[1] + (own[1] - all[1]) * push];
 }
 
-/** venn: 2 or 3 circles; each item sits in the region of the sets it belongs to. */
-function vizDrawVenn(visual, width) {
-  const sets = list(visual.sets).filter((set) => set && set.id !== undefined).slice(0, 3);
-  const layout = vizVennLayout(sets.length, width);
-  const circles = sets.map((set, i) => s('circle', { class: 'viz-set', cx: layout.centres[i][0], cy: layout.centres[i][1], r: layout.r }));
-  const setLabels = sets.map((set, i) => {
-    const [cx, cy] = layout.centres[i];
-    const below = i === 2;
-    return s('text', { class: 'viz-set-label', x: cx, y: below ? cy + layout.r + 14 : cy - layout.r - 12, 'text-anchor': 'middle', 'dominant-baseline': 'central' },
-      vizWrap(text(set.label, String(set.id)), vizChars(sets.length === 2 ? layout.r * 1.6 : layout.r * 1.3, VIZ_VENN.label), 1)[0]);
-  });
-  const items = list(visual.items).filter((item) => item && typeof item === 'object');
+// Where each item sits: the region of its sets, items of one region stacked
+// around its centre, up to two lines each, kept inside the drawing.
+function vizVennPlace(items, sets, layout, width) {
+  const LINE = 14;
   const regionOf = (item) => sets.map((set, i) => (list(item.in).includes(set.id) ? i : -1)).filter((i) => i >= 0);
   const groups = new Map();
   items.forEach((item, i) => {
@@ -4775,35 +4954,42 @@ function vizDrawVenn(visual, width) {
     groups.set(key, [...(groups.get(key) || []), i]);
   });
   const roomFor = (inside) => layout.r * (inside.length === 1 ? 0.92 : inside.length === sets.length ? 0.66 : 0.8);
-  // Up to two lines per item; a region's items stack around its centre.
-  const LINE = 14;
   const wrapped = items.map((item) => vizWrap(text(item.label), vizChars(roomFor(regionOf(item)), VIZ_VENN.label), 2));
   const heightOf = (i) => wrapped[i].length * LINE + 4;
-  const parts = items.map((item, i) => {
+  return items.map((item, i) => {
     const inside = regionOf(item);
     const group = groups.get(inside.join(','));
     const total = group.reduce((sum, j) => sum + heightOf(j) + 3, -3);
     const before = group.slice(0, group.indexOf(i)).reduce((sum, j) => sum + heightOf(j) + 3, 0);
     const [cx, ry] = inside.length ? vizRegionCentre(layout, inside) : [width / 2, layout.height - 10];
     const top = ry - total / 2 + before;
-    const lines = wrapped[i];
-    const w = Math.min(width - 2, Math.max(...lines.map((line) => vizTextWidth(line, VIZ_VENN.label))) + 12);
-    // Kept inside the drawing when a region sits near its edge.
-    const rx = Math.min(Math.max(cx, w / 2 + 1), width - w / 2 - 1);
-    const y = top + heightOf(i) / 2;
-    return vizPart([
-      s('rect', { class: 'viz-chip', x: rx - w / 2, y: top, width: w, height: heightOf(i) }),
-      vizText(lines, { x: rx, y, cls: 'viz-item-label', anchor: 'middle', lineHeight: LINE }),
-    ], {
-      label: text(item.label),
-      kicker: inside.length > 1 ? `In ${inside.length} groups` : 'In one group',
-      facts: [
-        ['In', sets.filter((_, j) => inside.includes(j)).map((set) => text(set.label, String(set.id))).join(', ')],
-        ['Not in', sets.filter((_, j) => !inside.includes(j)).map((set) => text(set.label, String(set.id))).join(', ')],
-      ],
-      inside,
-    });
+    const w = Math.min(width - 2, Math.max(...wrapped[i].map((line) => vizTextWidth(line, VIZ_VENN.label))) + 12);
+    const x = Math.min(Math.max(cx, w / 2 + 1), width - w / 2 - 1);
+    return { item, inside, lines: wrapped[i], line: LINE, chip: { x: x - w / 2, y: top, w, h: heightOf(i) }, x, y: top + heightOf(i) / 2 };
   });
+}
+
+/** venn: 2 or 3 circles; each item sits in the region of the sets it belongs to. */
+function vizDrawVenn(visual, width) {
+  const sets = list(visual.sets).filter((set) => set && set.id !== undefined).slice(0, 3);
+  const layout = vizVennLayout(sets.length, width);
+  const circles = sets.map((set, i) => s('circle', { class: 'viz-set', cx: layout.centres[i][0], cy: layout.centres[i][1], r: layout.r }));
+  const setLabels = sets.map((set, i) => {
+    const [cx, cy] = layout.centres[i];
+    return s('text', { class: 'viz-set-label', x: cx, y: i === 2 ? cy + layout.r + 14 : cy - layout.r - 12, 'text-anchor': 'middle', 'dominant-baseline': 'central' },
+      vizWrap(text(set.label, String(set.id)), vizChars(sets.length === 2 ? layout.r * 1.6 : layout.r * 1.3, VIZ_VENN.label), 1)[0]);
+  });
+  const names = (keep) => sets.filter((_, j) => keep(j)).map((set) => text(set.label, String(set.id))).join(', ');
+  const placed = vizVennPlace(list(visual.items).filter((item) => item && typeof item === 'object'), sets, layout, width);
+  const parts = placed.map(({ item, inside, lines, line, chip, x, y }) => vizPart([
+    s('rect', { class: 'viz-chip', x: chip.x, y: chip.y, width: chip.w, height: chip.h }),
+    vizText(lines, { x, y, cls: 'viz-item-label', anchor: 'middle', lineHeight: line }),
+  ], {
+    label: text(item.label),
+    kicker: inside.length > 1 ? `In ${inside.length} groups` : 'In one group',
+    facts: [['In', names((j) => inside.includes(j))], ['Not in', names((j) => !inside.includes(j))]],
+    inside,
+  }));
   return {
     nodes: [circles, setLabels],
     parts,
@@ -4811,7 +4997,7 @@ function vizDrawVenn(visual, width) {
     highlight(index) {
       const inside = index === null ? [] : parts[index].inside;
       circles.forEach((c, j) => c.classList.toggle('is-on', inside.includes(j)));
-      setLabels.forEach((t, j) => t.classList.toggle('is-on', inside.includes(j)));
+      setLabels.forEach((label, j) => label.classList.toggle('is-on', inside.includes(j)));
     },
   };
 }
@@ -4825,6 +5011,33 @@ function chDiagramId(diagram, index) {
   return text(diagram && typeof diagram.id === 'string' ? diagram.id : '', String(index));
 }
 
+function chVisualPick(diagram, i) {
+  return h('button', { class: 'ch-pick', type: 'button', 'aria-pressed': 'false' },
+    h('span', { class: 'ch-pick-top' }, h('span', null, String(i + 1).padStart(2, '0')), h('span', null, VIZ_KIND_NAMES[diagram.kind] || text(diagram.kind, 'Visual'))),
+    h('span', { class: 'ch-pick-title' }, softBreaks(text(diagram.title, chDiagramId(diagram, i)))));
+}
+
+// Figures are drawn the first time they are shown, then kept. A part pick
+// writes #visuals/<id>/<part> only while that figure is the one on show.
+function chVisualFigures(diagrams, stage, isCurrent) {
+  const figures = new Map();
+  return {
+    get(i) {
+      if (!figures.has(i)) {
+        const id = chDiagramId(diagrams[i], i);
+        const figure = vizFigure(diagrams[i], {
+          headingLevel: 'h2',
+          onSelect: (part) => { if (isCurrent(i)) setDeepLink(part === null ? `visuals/${linkPart(id)}` : `visuals/${linkPart(id)}/${part}`); },
+        });
+        figures.set(i, figure);
+        stage.append(figure.root);
+      }
+      return figures.get(i);
+    },
+    showOnly(i) { figures.forEach((f, j) => { f.root.hidden = j !== i; }); },
+  };
+}
+
 /**
  * @param {object} data explainer data (reads data.diagrams)
  * @param {HTMLElement} mount the chapter body
@@ -4836,52 +5049,30 @@ function chRenderVisuals(data, mount) {
     mount.append(h('p', { class: 'empty' }, 'No diagrams in this explainer.'));
     return null;
   }
-  const figures = new Map();
   const stage = h('div', { class: 'ch-viz-stage' });
   let current = 0;
-
-  const picks = diagrams.map((diagram, i) => h('button', {
-    class: 'ch-pick', type: 'button', 'aria-pressed': 'false', onclick: () => show(i),
-  },
-  h('span', { class: 'ch-pick-top' }, h('span', null, String(i + 1).padStart(2, '0')), h('span', null, VIZ_KIND_NAMES[diagram.kind] || text(diagram.kind, 'Visual'))),
-  h('span', { class: 'ch-pick-title' }, softBreaks(text(diagram.title, chDiagramId(diagram, i))))));
-  chRoving(picks, { onMove: (i) => show(i) });
-
-  function figureFor(i) {
-    if (!figures.has(i)) {
-      const diagram = diagrams[i];
-      const id = chDiagramId(diagram, i);
-      const figure = vizFigure(diagram, {
-        headingLevel: 'h2',
-        onSelect: (part) => { if (current === i) setDeepLink(part === null ? `visuals/${linkPart(id)}` : `visuals/${linkPart(id)}/${part}`); },
-      });
-      figures.set(i, figure);
-      stage.append(figure.root);
-    }
-    return figures.get(i);
-  }
-
+  const figures = chVisualFigures(diagrams, stage, (i) => current === i);
+  const picks = diagrams.map(chVisualPick);
   function show(i, { link = true } = {}) {
     current = i;
-    const figure = figureFor(i);
-    figures.forEach((f, j) => { f.root.hidden = j !== i; });
+    const figure = figures.get(i);
+    figures.showOnly(i);
     chMarkCurrent(picks, i);
     if (link) setDeepLink(`visuals/${linkPart(chDiagramId(diagrams[i], i))}`);
     return figure;
   }
-
+  picks.forEach((pick, i) => pick.addEventListener('click', () => show(i)));
+  chRoving(picks, { onMove: (i) => show(i) });
   show(0, { link: false });
   mount.append(h('div', { class: 'ch-visuals' },
     diagrams.length > 1 && h('div', { class: 'ch-pick-list', role: 'group', 'aria-label': 'Diagrams' }, picks),
     stage));
   return {
     open([id, part] = []) {
-      if (id === undefined) return null;
-      const index = diagrams.findIndex((d, i) => chDiagramId(d, i) === id);
+      const index = id === undefined ? -1 : diagrams.findIndex((d, i) => chDiagramId(d, i) === id);
       if (index < 0) return null;
       const figure = show(index, { link: false });
-      const wanted = chIndexPart(part, figure.count());
-      return figure.select(wanted, { silent: true }) || figure.root;
+      return figure.select(chIndexPart(part, figure.count()), { silent: true }) || figure.root;
     },
   };
 }
@@ -4975,6 +5166,48 @@ function chDiffBar(lines, max) {
     h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`));
 }
 
+function chDiffRow(entry, max) {
+  const lines = chParseLines(entry.lines);
+  return h('button', {
+    class: `ch-file is-${CH_STATUS_LABELS[entry.status] ? entry.status : 'modified'}`, type: 'button', 'aria-pressed': 'false', 'data-path': entry.path,
+    'aria-label': `${entry.path}, ${CH_STATUS_LABELS[entry.status] || 'Changed'}${lines ? `, ${lines.add} added and ${lines.del} removed lines` : ''}${entry.key ? ', key file' : ''}`,
+    style: `--size:${lines ? (lines.add + lines.del) / max : 0}`,
+  },
+  chStatusMark(entry.status),
+  h('span', { class: 'ch-file-name' }, truncatable(h('span', { class: 'ch-file-path' }), entry.path, { mode: 'middle' }),
+    entry.key && h('span', { class: 'tag tag-key' }, 'Key')),
+  chDiffBar(lines, max));
+}
+
+function chDiffNodeLink(id, nodeIndex) {
+  const node = nodeIndex.get(id);
+  return h('li', null, h('a', { class: 'ch-node-link', href: `#map/${linkPart(id)}` },
+    node && node.status && node.status !== 'unchanged' ? chStatusMark(node.status) : null,
+    softBreaks(text(node && node.label, String(id)))));
+}
+
+function chDiffDetail(entry, nodeIndex) {
+  const lines = chParseLines(entry.lines);
+  return [
+    h('div', { class: 'step-top' }, chStatusTag(entry.status), entry.key && tag('Key file', 'tag-key'), lines && h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`)),
+    h('h3', { class: 'ch-detail-path' }, breakablePath(entry.path)),
+    entry.status === 'renamed' && text(entry.from) && h('p', { class: 'ch-from' }, 'Was ', h('code', null, breakablePath(entry.from))),
+    h('p', null, softBreaks(text(entry.summary, 'No summary yet.'))),
+    list(entry.nodes).length > 0 && [h('div', { class: 'detail-label' }, 'Part of'), h('ul', { class: 'ch-node-links' }, list(entry.nodes).map((id) => chDiffNodeLink(id, nodeIndex)))],
+  ];
+}
+
+// The totals, files per status, and the bar legend.
+function chDiffSummary(entries) {
+  const totals = chDiffTotals(entries);
+  const counts = Object.keys(CH_STATUS_LABELS).filter((key) => key !== 'changed' && key !== 'unchanged')
+    .map((key) => [key, entries.filter((e) => e.status === key).length]).filter(([, n]) => n > 0);
+  return h('div', { class: 'ch-diff-summary' },
+    h('p', { class: 'ch-diff-total' }, h('b', null, chCount(entries.length, 'file')), h('span', { class: 'ch-bar-num' }, `+${totals.add} −${totals.del}`)),
+    h('ul', { class: 'ch-legend', 'aria-label': 'Files by status' }, counts.map(([key, n]) => h('li', null, chStatusMark(key), `${n} ${CH_STATUS_LABELS[key].toLowerCase()}`))),
+    h('p', { class: 'ch-legend ch-legend-bars', 'aria-hidden': 'true' }, h('span', null, h('i', { class: 'ch-swatch is-add' }), 'Added lines'), h('span', null, h('i', { class: 'ch-swatch is-del' }), 'Removed lines')));
+}
+
 /**
  * @param {object} data explainer data (reads data.diff, data.nodes)
  * @param {HTMLElement} mount the chapter body
@@ -4987,74 +5220,21 @@ function chRenderDiff(data, mount) {
     return null;
   }
   const nodeIndex = byId(data.nodes);
-  const totals = chDiffTotals(entries);
   const max = Math.max(1, ...entries.map((e) => { const l = chParseLines(e.lines); return l ? l.add + l.del : 0; }));
   const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
-  let selected = null;
-
-  const rows = entries.map((entry, i) => {
-    const lines = chParseLines(entry.lines);
-    const share = lines ? (lines.add + lines.del) / max : 0;
-    return h('button', {
-      class: `ch-file is-${CH_STATUS_LABELS[entry.status] ? entry.status : 'modified'}`, type: 'button', 'aria-pressed': 'false', 'data-path': entry.path,
-      'aria-label': `${entry.path}, ${CH_STATUS_LABELS[entry.status] || 'Changed'}${lines ? `, ${lines.add} added and ${lines.del} removed lines` : ''}${entry.key ? ', key file' : ''}`,
-      style: `--size:${share}`, onclick: () => select(selected === i ? null : i),
-    },
-    chStatusMark(entry.status),
-    h('span', { class: 'ch-file-name' }, truncatable(h('span', { class: 'ch-file-path' }), entry.path, { mode: 'middle' }),
-      entry.key && h('span', { class: 'tag tag-key' }, 'Key')),
-    chDiffBar(lines, max));
+  const rows = entries.map((entry) => chDiffRow(entry, max));
+  const select = chSelection({
+    buttons: rows, detail, chapter: 'diff', noun: 'file', axis: 'y', hash: (i) => `diff/${linkPart(entries[i].path)}`,
+    empty: () => chEmptyDetail('Pick a file', 'Each bar is one file, as long as its changed lines. Key files are the ones a reviewer must read.'),
+    describe: (i) => chDiffDetail(entries[i], nodeIndex),
   });
-  chRoving(rows, { axis: 'y', onMove: (i) => select(i) });
-
-  function select(index, { link = true } = {}) {
-    selected = index;
-    chMarkCurrent(rows, index);
-    renderDetail();
-    if (link) setDeepLink(index === null ? 'diff' : `diff/${linkPart(entries[index].path)}`);
-    return index === null ? null : rows[index];
-  }
-
-  function nodeLink(id) {
-    const node = nodeIndex.get(id);
-    return h('li', null, h('a', { class: 'ch-node-link', href: `#map/${linkPart(id)}` },
-      node && node.status && node.status !== 'unchanged' ? chStatusMark(node.status) : null,
-      softBreaks(text(node && node.label, String(id)))));
-  }
-
-  function renderDetail() {
-    if (selected === null) {
-      fill(detail, chEmptyDetail('Pick a file', 'Each bar is one file, as long as its changed lines. Key files are the ones a reviewer must read.'));
-      return;
-    }
-    const entry = entries[selected];
-    const lines = chParseLines(entry.lines);
-    fill(detail,
-      h('div', { class: 'step-top' }, chStatusTag(entry.status), entry.key && tag('Key file', 'tag-key'), lines && h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`)),
-      h('h3', { class: 'ch-detail-path' }, breakablePath(entry.path)),
-      entry.status === 'renamed' && text(entry.from) && h('p', { class: 'ch-from' }, 'Was ', h('code', null, breakablePath(entry.from))),
-      h('p', null, softBreaks(text(entry.summary, 'No summary yet.'))),
-      list(entry.nodes).length > 0 && [h('div', { class: 'detail-label' }, 'Part of'), h('ul', { class: 'ch-node-links' }, list(entry.nodes).map(nodeLink))],
-      chStepper(selected, entries.length, (i) => { select(i); rows[i].focus(); }, 'file'));
-  }
-
-  const counts = Object.keys(CH_STATUS_LABELS).filter((key) => key !== 'changed' && key !== 'unchanged')
-    .map((key) => [key, entries.filter((e) => e.status === key).length]).filter(([, n]) => n > 0);
-  const summary = h('div', { class: 'ch-diff-summary' },
-    h('p', { class: 'ch-diff-total' }, h('b', null, chCount(entries.length, 'file')), h('span', { class: 'ch-bar-num' }, `+${totals.add} −${totals.del}`)),
-    h('ul', { class: 'ch-legend', 'aria-label': 'Files by status' }, counts.map(([key, n]) => h('li', null, chStatusMark(key), `${n} ${CH_STATUS_LABELS[key].toLowerCase()}`))),
-    h('p', { class: 'ch-legend ch-legend-bars', 'aria-hidden': 'true' }, h('span', null, h('i', { class: 'ch-swatch is-add' }), 'Added lines'), h('span', null, h('i', { class: 'ch-swatch is-del' }), 'Removed lines')));
-
-  select(null, { link: false });
   mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-split' },
-    h('div', { class: 'panel ch-diff' }, summary, h('div', { class: 'ch-file-list', role: 'group', 'aria-label': 'Changed files' }, rows)),
+    h('div', { class: 'panel ch-diff' }, chDiffSummary(entries), h('div', { class: 'ch-file-list', role: 'group', 'aria-label': 'Changed files' }, rows)),
     detail)));
   rows.forEach((row, i) => riseIn(row, Math.min(i, 8) * 30));
   return {
     open(parts = []) {
-      if (!parts.length) return null;
-      const want = parts.join('/');
-      const index = entries.findIndex((e) => e.path === want);
+      const index = parts.length ? entries.findIndex((e) => e.path === parts.join('/')) : -1;
       return index >= 0 ? select(index, { link: false }) : null;
     },
   };
@@ -5070,6 +5250,42 @@ function chMarks(count, cls) {
   return h('span', { class: `ch-marks ${cls}`, 'aria-hidden': 'true' }, Array.from({ length: Math.min(count, 5) }, () => h('i')));
 }
 
+function chOptionScore(option, i) {
+  const pros = list(option.pros).length;
+  const cons = list(option.cons).length;
+  return h('button', {
+    class: `ch-score${option.chosen === true ? ' is-chosen' : ''}`, type: 'button', 'aria-pressed': 'false',
+    'aria-label': `${text(option.title)}: ${chCount(pros, 'pro')}, ${chCount(cons, 'con')}${option.chosen === true ? ', chosen' : ''}`,
+  },
+  h('span', { class: 'ch-score-title' }, softBreaks(text(option.title, `Option ${i + 1}`))),
+  h('span', { class: 'ch-score-marks' }, chMarks(pros, 'is-pro'), h('span', { class: 'ch-score-axis' }), chMarks(cons, 'is-con')),
+  option.chosen === true && h('span', { class: 'ch-chosen' }, 'Chosen'));
+}
+
+// One matrix column: the same five rows for every option.
+function chOptionColumn(option, i) {
+  const section = (label, body) => h('div', { class: 'ch-opt-cell' }, h('p', { class: 'detail-label' }, label), body);
+  return h('article', { class: `ch-opt-col${option.chosen === true ? ' is-chosen' : ''}`, 'aria-label': text(option.title, `Option ${i + 1}`) },
+    h('header', { class: 'ch-opt-head' },
+      h('span', { class: 'step-count' }, `Option ${i + 1}`),
+      h('h3', null, softBreaks(text(option.title))),
+      option.chosen === true && h('span', { class: 'ch-chosen' }, 'Chosen')),
+    section('In short', h('p', null, softBreaks(text(option.summary)))),
+    section(`Pros · ${list(option.pros).length}`, chMarkedList(option.pros, 'is-pro', 'Pros') || h('p', { class: 'ch-ctx-none' }, 'None listed.')),
+    section(`Cons · ${list(option.cons).length}`, chMarkedList(option.cons, 'is-con', 'Cons') || h('p', { class: 'ch-ctx-none' }, 'None listed.')),
+    h('div', { class: 'ch-opt-cell' }, text(option.why) && [h('p', { class: 'detail-label' }, 'Why this one'), h('p', null, softBreaks(option.why))],
+      safeUrl(option.url) && h('a', { class: 'link', href: safeUrl(option.url), rel: 'noopener noreferrer', target: '_blank' }, 'Read more')));
+}
+
+// The strip's head: the chosen option, or the status while undecided, and the legend.
+function chOptionHead(options, chosen, status) {
+  const decision = chosen >= 0
+    ? h('p', { class: 'ch-decision' }, h('span', { class: 'ch-chosen' }, 'Chosen'), softBreaks(text(options[chosen].title)))
+    : h('p', { class: 'ch-decision' }, chStatusWord(status || 'proposed'), 'No option is chosen yet.');
+  return h('div', { class: 'ch-strip-head' }, decision,
+    h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, h('span', null, chMarks(1, 'is-pro'), 'Pro'), h('span', null, chMarks(1, 'is-con'), 'Con')));
+}
+
 /**
  * @param {object} data explainer data (reads data.options, data.meta.status)
  * @param {HTMLElement} mount the chapter body
@@ -5081,63 +5297,23 @@ function chRenderOptions(data, mount) {
     mount.append(h('p', { class: 'empty' }, 'No options listed.'));
     return null;
   }
-  const status = text(data.meta && data.meta.status);
   const chosen = options.findIndex((o) => o.chosen === true);
-  let selected = chosen >= 0 ? chosen : 0;
-
-  const strip = options.map((option, i) => {
-    const pros = list(option.pros).length;
-    const cons = list(option.cons).length;
-    return h('button', {
-      class: `ch-score${option.chosen === true ? ' is-chosen' : ''}`, type: 'button', 'aria-pressed': 'false',
-      'aria-label': `${text(option.title)}: ${chCount(pros, 'pro')}, ${chCount(cons, 'con')}${option.chosen === true ? ', chosen' : ''}`,
-      onclick: () => select(i),
-    },
-    h('span', { class: 'ch-score-title' }, softBreaks(text(option.title, `Option ${i + 1}`))),
-    h('span', { class: 'ch-score-marks' }, chMarks(pros, 'is-pro'), h('span', { class: 'ch-score-axis' }), chMarks(cons, 'is-con')),
-    option.chosen === true && h('span', { class: 'ch-chosen' }, 'Chosen'));
-  });
-  chRoving(strip, { axis: 'y', onMove: (i) => select(i) });
-
-  const section = (label, body) => h('div', { class: 'ch-opt-cell' }, h('p', { class: 'detail-label' }, label), body);
-  const columns = options.map((option, i) => h('article', {
-    class: `ch-opt-col${option.chosen === true ? ' is-chosen' : ''}`, 'aria-label': text(option.title, `Option ${i + 1}`),
-  },
-  h('header', { class: 'ch-opt-head' },
-    h('span', { class: 'step-count' }, `Option ${i + 1}`),
-    h('h3', null, softBreaks(text(option.title))),
-    option.chosen === true && h('span', { class: 'ch-chosen' }, 'Chosen')),
-  section('In short', h('p', null, softBreaks(text(option.summary)))),
-  section(`Pros · ${list(option.pros).length}`, chMarkedList(option.pros, 'is-pro', 'Pros') || h('p', { class: 'ch-ctx-none' }, 'None listed.')),
-  section(`Cons · ${list(option.cons).length}`, chMarkedList(option.cons, 'is-con', 'Cons') || h('p', { class: 'ch-ctx-none' }, 'None listed.')),
-  h('div', { class: 'ch-opt-cell' }, text(option.why) && [h('p', { class: 'detail-label' }, 'Why this one'), h('p', null, softBreaks(option.why))],
-    safeUrl(option.url) && h('a', { class: 'link', href: safeUrl(option.url), rel: 'noopener noreferrer', target: '_blank' }, 'Read more'))));
-
+  const strip = options.map(chOptionScore);
+  const columns = options.map(chOptionColumn);
   function select(index, { link = true } = {}) {
-    selected = index;
     chMarkCurrent(strip, index);
     columns.forEach((col, i) => col.classList.toggle('is-selected', i === index));
     if (link) setDeepLink(`options/${index}`);
     return columns[index];
   }
-
-  const decision = chosen >= 0
-    ? h('p', { class: 'ch-decision' }, h('span', { class: 'ch-chosen' }, 'Chosen'), softBreaks(text(options[chosen].title)))
-    : h('p', { class: 'ch-decision' }, chStatusWord(status || 'proposed'), 'No option is chosen yet.');
-
+  strip.forEach((button, i) => button.addEventListener('click', () => select(i)));
+  chRoving(strip, { axis: 'y', onMove: (i) => select(i) });
   mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-options' },
-    h('div', { class: 'panel ch-strip' },
-      h('div', { class: 'ch-strip-head' }, decision,
-        h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, h('span', null, chMarks(1, 'is-pro'), 'Pro'), h('span', null, chMarks(1, 'is-con'), 'Con'))),
+    h('div', { class: 'panel ch-strip' }, chOptionHead(options, chosen, text(data.meta && data.meta.status)),
       h('div', { class: 'ch-strip-rows', role: 'group', 'aria-label': 'Options' }, strip)),
     h('div', { class: 'ch-matrix', style: `--opts:${options.length}` }, columns))));
-  select(selected, { link: false });
-  return {
-    open([raw] = []) {
-      const index = chIndexPart(raw, options.length);
-      return index === null ? null : select(index, { link: false });
-    },
-  };
+  select(chosen >= 0 ? chosen : 0, { link: false });
+  return chIndexOpener(select, options.length);
 }
 
 // ---- chapters/risks.js ----
@@ -5151,6 +5327,40 @@ function chImpactMeter(level) {
   return h('span', { class: 'ch-meter', 'aria-hidden': 'true' }, [1, 2, 3].map((n) => h('i', { class: n <= level ? 'is-on' : '' })));
 }
 
+// Button positions, high impact first; each holds a data index.
+function chRiskOrder(risks) {
+  return CH_IMPACTS.flatMap(([key]) => risks.map((risk, i) => [risk, i]).filter(([risk]) => chImpactOf(risk) === key).map(([, i]) => i));
+}
+
+function chImpactOf(risk) {
+  return CH_IMPACTS.some(([key]) => key === risk.impact) ? risk.impact : 'medium';
+}
+
+function chRiskCard(risk) {
+  return h('button', { class: 'ch-risk', type: 'button', 'aria-pressed': 'false' },
+    h('span', { class: 'ch-risk-text' }, softBreaks(text(risk.risk))), text(risk.owner) && h('span', { class: 'ch-risk-owner' }, softBreaks(risk.owner)));
+}
+
+function chRiskDetail(risk) {
+  const [, label, level] = CH_IMPACTS.find(([key]) => key === chImpactOf(risk));
+  return [
+    h('div', { class: 'step-top' }, h('span', { class: 'ch-impact' }, chImpactMeter(level), `${label} impact`)),
+    h('h3', null, softBreaks(text(risk.risk))),
+    h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'How it is handled'), h('p', null, softBreaks(text(risk.mitigation, 'No mitigation recorded.')))),
+    text(risk.owner) && h('p', { class: 'ch-owner' }, h('span', { class: 'detail-label' }, 'Owner'), softBreaks(risk.owner)),
+  ];
+}
+
+// Three rows, high to low; each row holds the cards of its impact.
+function chRiskGrid(risks, order, buttons) {
+  return h('div', { class: 'panel ch-impact-grid', role: 'group', 'aria-label': 'Risks by impact' }, CH_IMPACTS.map(([key, label, level]) => {
+    const inRow = order.map((i, k) => [i, k]).filter(([i]) => chImpactOf(risks[i]) === key);
+    return h('div', { class: `ch-impact-row is-${key}` },
+      h('div', { class: 'ch-impact-head' }, chImpactMeter(level), h('span', { class: 'ch-impact-name' }, label), h('span', { class: 'ch-impact-count' }, String(inRow.length))),
+      h('div', { class: 'ch-impact-cells' }, inRow.length ? inRow.map(([, k]) => buttons[k]) : h('span', { class: 'ch-ctx-none' }, 'None')));
+  }));
+}
+
 /**
  * @param {object} data explainer data (reads data.risks)
  * @param {HTMLElement} mount the chapter body
@@ -5162,61 +5372,18 @@ function chRenderRisks(data, mount) {
     mount.append(h('p', { class: 'empty' }, 'No risks listed.'));
     return null;
   }
-  const impactOf = (risk) => (CH_IMPACTS.some(([key]) => key === risk.impact) ? risk.impact : 'medium');
   const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
-  const cards = new Map();
-  let selected = null;
-
   // Visual order: high first; the deep-link index stays the data index.
-  const order = CH_IMPACTS.flatMap(([key]) => risks.map((risk, i) => [risk, i]).filter(([risk]) => impactOf(risk) === key).map(([, i]) => i));
-  order.forEach((i) => {
-    const risk = risks[i];
-    cards.set(i, h('button', {
-      class: 'ch-risk', type: 'button', 'aria-pressed': 'false', onclick: () => select(selected === i ? null : i),
-    }, h('span', { class: 'ch-risk-text' }, softBreaks(text(risk.risk))), text(risk.owner) && h('span', { class: 'ch-risk-owner' }, softBreaks(risk.owner))));
+  const order = chRiskOrder(risks);
+  const buttons = order.map((i) => chRiskCard(risks[i]));
+  const select = chSelection({
+    buttons, detail, order, chapter: 'risks', noun: 'risk',
+    empty: () => chEmptyDetail('Pick a risk', 'Risks sit in rows by impact, the worst at the top. Each one shows how it is handled.'),
+    describe: (i) => chRiskDetail(risks[i]),
   });
-  const buttons = order.map((i) => cards.get(i));
-  chRoving(buttons, { onMove: (k) => select(order[k]) });
-
-  function select(index, { link = true } = {}) {
-    selected = index;
-    chMarkCurrent(buttons, index === null ? null : order.indexOf(index));
-    renderDetail();
-    if (link) setDeepLink(index === null ? 'risks' : `risks/${index}`);
-    return index === null ? null : cards.get(index);
-  }
-
-  function renderDetail() {
-    if (selected === null) {
-      fill(detail, chEmptyDetail('Pick a risk', 'Risks sit in rows by impact, the worst at the top. Each one shows how it is handled.'));
-      return;
-    }
-    const risk = risks[selected];
-    const [, label, level] = CH_IMPACTS.find(([key]) => key === impactOf(risk));
-    const at = order.indexOf(selected);
-    fill(detail,
-      h('div', { class: 'step-top' }, h('span', { class: 'ch-impact' }, chImpactMeter(level), `${label} impact`)),
-      h('h3', null, softBreaks(text(risk.risk))),
-      h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'How it is handled'), h('p', null, softBreaks(text(risk.mitigation, 'No mitigation recorded.')))),
-      text(risk.owner) && h('p', { class: 'ch-owner' }, h('span', { class: 'detail-label' }, 'Owner'), softBreaks(risk.owner)),
-      chStepper(at, order.length, (k) => { select(order[k]); buttons[k].focus(); }, 'risk'));
-  }
-
-  const grid = h('div', { class: 'panel ch-impact-grid', role: 'group', 'aria-label': 'Risks by impact' }, CH_IMPACTS.map(([key, label, level]) => {
-    const inRow = order.filter((i) => impactOf(risks[i]) === key);
-    return h('div', { class: `ch-impact-row is-${key}` },
-      h('div', { class: 'ch-impact-head' }, chImpactMeter(level), h('span', { class: 'ch-impact-name' }, label), h('span', { class: 'ch-impact-count' }, String(inRow.length))),
-      h('div', { class: 'ch-impact-cells' }, inRow.length ? inRow.map((i) => cards.get(i)) : h('span', { class: 'ch-ctx-none' }, 'None')));
-  }));
-  select(null, { link: false });
-  mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-split' }, grid, detail)));
+  mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-split' }, chRiskGrid(risks, order, buttons), detail)));
   buttons.forEach((card, k) => riseIn(card, Math.min(k, 8) * 30));
-  return {
-    open([raw] = []) {
-      const index = chIndexPart(raw, risks.length);
-      return index === null ? null : select(index, { link: false });
-    },
-  };
+  return chIndexOpener(select, risks.length);
 }
 
 // ---- chapters/rollout.js ----
@@ -5225,6 +5392,47 @@ function chRenderRisks(data, mount) {
 // Deep link: #rollout/<index> (from 0).
 
 const CH_TRACK_STEP = 132;
+
+const CH_STEP_WORDS = { done: 'Done', next: 'Next up', todo: 'Not started' };
+
+// Each step's state: done, the first not done (next), or not started.
+function chRolloutStates(steps) {
+  const next = steps.findIndex((st) => st.done !== true);
+  return steps.map((st, i) => (st.done === true ? 'done' : i === next ? 'next' : 'todo'));
+}
+
+function chRolloutButton(step, i, state) {
+  return h('button', {
+    class: `ch-step is-${state}`, type: 'button', 'aria-pressed': 'false', 'aria-label': `Step ${i + 1}: ${text(step.label)}, ${CH_STEP_WORDS[state]}`,
+  },
+  h('span', { class: 'ch-step-node', 'aria-hidden': 'true' }, state === 'done' ? '✓' : String(i + 1)),
+  h('span', { class: 'ch-step-text' },
+    h('span', { class: 'ch-step-state' }, CH_STEP_WORDS[state]),
+    h('span', { class: 'ch-step-label' }, softBreaks(text(step.label)))));
+}
+
+function chRolloutDetail(step, i, count, state) {
+  return [
+    h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Step ${i + 1} of ${count}`),
+      h('span', { class: `ch-state${state === 'done' ? ' is-settled' : ''}${state === 'next' ? ' is-next' : ''}` }, h('span', { class: 'ch-state-mark', 'aria-hidden': 'true' }), CH_STEP_WORDS[state])),
+    h('h3', null, softBreaks(text(step.label))),
+    text(step.detail) && h('p', null, softBreaks(step.detail)),
+    text(step.command) && chCommand(step.command),
+  ];
+}
+
+// Progress and the track; across only when every step gets CH_TRACK_STEP pixels.
+function chRolloutPanel(steps, buttons, states) {
+  const done = states.filter((st) => st === 'done').length;
+  const track = h('ol', { class: 'ch-track', style: `--steps:${steps.length}` }, buttons.map((b, i) => h('li', { class: `is-${states[i]}` }, b)));
+  const panel = h('div', { class: 'panel ch-track-panel' },
+    h('div', { class: 'ch-progress' },
+      h('p', null, h('b', null, `${done} of ${steps.length}`), ' steps done'),
+      h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${done / steps.length}` }))),
+    track);
+  chOnWidth(panel, (width) => track.classList.toggle('is-across', width - 48 >= steps.length * CH_TRACK_STEP));
+  return panel;
+}
 
 /**
  * @param {object} data explainer data (reads data.rollout)
@@ -5237,64 +5445,18 @@ function chRenderRollout(data, mount) {
     mount.append(h('p', { class: 'empty' }, 'No rollout steps listed.'));
     return null;
   }
-  const done = steps.filter((st) => st.done === true).length;
-  const next = steps.findIndex((st) => st.done !== true);
-  const stateOf = (i) => (steps[i].done === true ? 'done' : i === next ? 'next' : 'todo');
-  const stateWord = { done: 'Done', next: 'Next up', todo: 'Not started' };
+  const states = chRolloutStates(steps);
+  const next = states.indexOf('next');
   const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
-  let selected = null;
-
-  const buttons = steps.map((step, i) => h('button', {
-    class: `ch-step is-${stateOf(i)}`, type: 'button', 'aria-pressed': 'false',
-    'aria-label': `Step ${i + 1}: ${text(step.label)}, ${stateWord[stateOf(i)]}`,
-    onclick: () => select(selected === i ? null : i),
-  },
-  h('span', { class: 'ch-step-node', 'aria-hidden': 'true' }, stateOf(i) === 'done' ? '✓' : String(i + 1)),
-  h('span', { class: 'ch-step-text' },
-    h('span', { class: 'ch-step-state' }, stateWord[stateOf(i)]),
-    h('span', { class: 'ch-step-label' }, softBreaks(text(step.label))))));
-  const track = h('ol', { class: 'ch-track', style: `--steps:${steps.length}` }, buttons.map((b, i) => h('li', { class: `is-${stateOf(i)}` }, b)));
-  chRoving(buttons, { onMove: (i) => select(i) });
-
-  function select(index, { link = true } = {}) {
-    selected = index;
-    chMarkCurrent(buttons, index);
-    renderDetail();
-    if (link) setDeepLink(index === null ? 'rollout' : `rollout/${index}`);
-    return index === null ? null : buttons[index];
-  }
-
-  function renderDetail() {
-    if (selected === null) {
-      fill(detail, chEmptyDetail(next >= 0 ? `Next: ${text(steps[next].label)}` : 'Every step is done', 'Pick a step on the track to see what it involves and how to run it.'));
-      return;
-    }
-    const step = steps[selected];
-    const state = stateOf(selected);
-    fill(detail,
-      h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Step ${selected + 1} of ${steps.length}`),
-        h('span', { class: `ch-state${state === 'done' ? ' is-settled' : ''}${state === 'next' ? ' is-next' : ''}` }, h('span', { class: 'ch-state-mark', 'aria-hidden': 'true' }), stateWord[state])),
-      h('h3', null, softBreaks(text(step.label))),
-      text(step.detail) && h('p', null, softBreaks(step.detail)),
-      text(step.command) && chCommand(step.command),
-      chStepper(selected, steps.length, (i) => { select(i); buttons[i].focus(); }, 'step'));
-  }
-
-  const progress = h('div', { class: 'ch-progress' },
-    h('p', null, h('b', null, `${done} of ${steps.length}`), ' steps done'),
-    h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${done / steps.length}` })));
-  const panel = h('div', { class: 'panel ch-track-panel' }, progress, track);
-  // Across only when every step gets CH_TRACK_STEP pixels.
-  chOnWidth(panel, (width) => track.classList.toggle('is-across', width - 48 >= steps.length * CH_TRACK_STEP));
-  select(null, { link: false });
-  mount.append(h('div', { class: 'ch-stack' }, panel, detail));
+  const buttons = steps.map((step, i) => chRolloutButton(step, i, states[i]));
+  const select = chSelection({
+    buttons, detail, chapter: 'rollout', noun: 'step',
+    empty: () => chEmptyDetail(next >= 0 ? `Next: ${text(steps[next].label)}` : 'Every step is done', 'Pick a step on the track to see what it involves and how to run it.'),
+    describe: (i) => chRolloutDetail(steps[i], i, steps.length, states[i]),
+  });
+  mount.append(h('div', { class: 'ch-stack' }, chRolloutPanel(steps, buttons, states), detail));
   buttons.forEach((b, i) => riseIn(b, Math.min(i, 8) * 40));
-  return {
-    open([raw] = []) {
-      const index = chIndexPart(raw, steps.length);
-      return index === null ? null : select(index, { link: false });
-    },
-  };
+  return chIndexOpener(select, steps.length);
 }
 
 // ---- chapters/timeline.js ----
@@ -5318,6 +5480,39 @@ function chEventMark(kind) {
     entry ? entry.shape() : s('circle', { cx: 7, cy: 7, r: 3 }));
 }
 
+function chEventButton(ev) {
+  return h('button', {
+    class: 'ch-event', type: 'button', 'aria-pressed': 'false',
+    'aria-label': `${text(ev.at)}: ${text(ev.label)}${CH_EVENT_KINDS[ev.kind] ? `, ${CH_EVENT_KINDS[ev.kind].label}` : ''}`,
+  },
+  h('span', { class: 'ch-event-dot' }, chEventMark(ev.kind)),
+  h('span', { class: 'ch-event-text' },
+    h('span', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
+    truncatable(h('span', { class: 'ch-event-label' }, softBreaks(text(ev.label))), text(ev.label))));
+}
+
+function chEventDetail(ev, i, count) {
+  const kind = CH_EVENT_KINDS[ev.kind];
+  return [
+    h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Event ${i + 1} of ${count}`),
+      kind && h('span', { class: 'ch-impact' }, chEventMark(ev.kind), kind.label)),
+    h('p', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
+    h('h3', null, softBreaks(text(ev.label))),
+    text(ev.detail) && h('p', null, softBreaks(ev.detail)),
+  ];
+}
+
+// The legend and the axis; across only when every event gets CH_EVENT_SLOT pixels.
+function chTimelinePanel(events, buttons) {
+  const used = Object.keys(CH_EVENT_KINDS).filter((k) => events.some((ev) => ev.kind === k));
+  const axis = h('ol', { class: 'ch-axis', style: `--events:${events.length}` }, buttons.map((b, i) => h('li', { class: i % 2 ? 'is-low' : 'is-high' }, b)));
+  const panel = h('div', { class: 'panel ch-timeline' },
+    used.length > 0 && h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, used.map((k) => h('span', null, chEventMark(k), CH_EVENT_KINDS[k].label))),
+    axis);
+  chOnWidth(panel, (width) => axis.classList.toggle('is-across', width - 48 >= events.length * CH_EVENT_SLOT));
+  return panel;
+}
+
 /**
  * @param {object} data explainer data (reads data.timeline)
  * @param {HTMLElement} mount the chapter body
@@ -5330,58 +5525,15 @@ function chRenderTimeline(data, mount) {
     return null;
   }
   const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
-  let selected = null;
-
-  const buttons = events.map((ev, i) => h('button', {
-    class: 'ch-event', type: 'button', 'aria-pressed': 'false',
-    'aria-label': `${text(ev.at)}: ${text(ev.label)}${CH_EVENT_KINDS[ev.kind] ? `, ${CH_EVENT_KINDS[ev.kind].label}` : ''}`,
-    onclick: () => select(selected === i ? null : i),
-  },
-  h('span', { class: 'ch-event-dot' }, chEventMark(ev.kind)),
-  h('span', { class: 'ch-event-text' },
-    h('span', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
-    truncatable(h('span', { class: 'ch-event-label' }, softBreaks(text(ev.label))), text(ev.label)))));
-  const axis = h('ol', { class: 'ch-axis', style: `--events:${events.length}` }, buttons.map((b, i) => h('li', { class: i % 2 ? 'is-low' : 'is-high' }, b)));
-  chRoving(buttons, { onMove: (i) => select(i) });
-
-  function select(index, { link = true } = {}) {
-    selected = index;
-    chMarkCurrent(buttons, index);
-    renderDetail();
-    if (link) setDeepLink(index === null ? 'timeline' : `timeline/${index}`);
-    return index === null ? null : buttons[index];
-  }
-
-  function renderDetail() {
-    if (selected === null) {
-      fill(detail, chEmptyDetail('Pick an event', 'Events run in the order of the record. The marker shape says what kind of moment it was.'));
-      return;
-    }
-    const ev = events[selected];
-    const kind = CH_EVENT_KINDS[ev.kind];
-    fill(detail,
-      h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Event ${selected + 1} of ${events.length}`),
-        kind && h('span', { class: 'ch-impact' }, chEventMark(ev.kind), kind.label)),
-      h('p', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
-      h('h3', null, softBreaks(text(ev.label))),
-      text(ev.detail) && h('p', null, softBreaks(ev.detail)),
-      chStepper(selected, events.length, (i) => { select(i); buttons[i].focus(); }, 'event'));
-  }
-
-  const used = Object.keys(CH_EVENT_KINDS).filter((k) => events.some((ev) => ev.kind === k));
-  const panel = h('div', { class: 'panel ch-timeline' },
-    used.length > 0 && h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, used.map((k) => h('span', null, chEventMark(k), CH_EVENT_KINDS[k].label))),
-    axis);
-  chOnWidth(panel, (width) => axis.classList.toggle('is-across', width - 48 >= events.length * CH_EVENT_SLOT));
-  select(null, { link: false });
-  mount.append(h('div', { class: 'ch-stack' }, panel, detail));
+  const buttons = events.map(chEventButton);
+  const select = chSelection({
+    buttons, detail, chapter: 'timeline', noun: 'event',
+    empty: () => chEmptyDetail('Pick an event', 'Events run in the order of the record. The marker shape says what kind of moment it was.'),
+    describe: (i) => chEventDetail(events[i], i, events.length),
+  });
+  mount.append(h('div', { class: 'ch-stack' }, chTimelinePanel(events, buttons), detail));
   buttons.forEach((b, i) => riseIn(b, Math.min(i, 10) * 30));
-  return {
-    open([raw] = []) {
-      const index = chIndexPart(raw, events.length);
-      return index === null ? null : select(index, { link: false });
-    },
-  };
+  return chIndexOpener(select, events.length);
 }
 
 // ---- chapters/code.js ----
@@ -5525,6 +5677,138 @@ function chCodeDots(count, current, go) {
   })));
 }
 
+function chCodeHead(walk) {
+  return [
+    h('h2', { class: 'ch-code-title' }, softBreaks(text(walk.title))),
+    text(walk.why) && h('p', { class: 'ch-code-why' }, softBreaks(walk.why)),
+    h('div', { class: 'ch-code-meta' },
+      walk.illustrative === true ? tag('Illustrative, not from a repo', 'ch-illustrative') : text(walk.file) && fileChip(walk.file),
+      text(walk.lang) && tag(walk.lang)),
+  ];
+}
+
+/** The line gutter and code: one row per line, numbers that a step covers jump to it. */
+function chCodeRows(walk, go) {
+  const range = chCodeRange(walk);
+  const tokens = { block: false };
+  const lang = text(walk.lang, 'text').toLowerCase();
+  return String(walk.code).replace(/\r\n?/g, '\n').split('\n').map((line, k) => {
+    const number = range.start + k;
+    const step = chCodeStepAt(walk, number);
+    const num = step >= 0
+      ? h('button', { class: 'ch-code-num', type: 'button', 'aria-label': `Line ${number}, step ${step + 1}`, onclick: () => go(step) }, String(number))
+      : h('span', { class: 'ch-code-num', 'aria-hidden': 'true' }, String(number));
+    const textEl = h('span', { class: 'ch-code-text' }, line ? chCodeTokens(line, lang, tokens).map(([cls, value]) => (cls ? h('span', { class: cls }, value) : value)) : ' ');
+    return h('div', { class: `ch-code-row${step >= 0 ? ' is-covered' : ''}`, 'data-line': String(number) }, num, textEl);
+  });
+}
+
+/** Mark the current step's lines; the panel dims the rest while a step is shown. */
+function chCodePaintRows(panel, rows, step) {
+  const lines = step ? chCodeLines(step.lines) : null;
+  panel.classList.toggle('has-step', Boolean(lines));
+  rows.forEach((row) => {
+    const n = Number(row.dataset.line);
+    row.classList.toggle('is-current', Boolean(lines) && n >= lines.from && n <= lines.to);
+  });
+}
+
+/** The annotation card for one step: lines, note, why, links, progress and controls. */
+function chCodeStepCard(walk, index, data, go) {
+  const steps = list(walk.steps);
+  const step = steps[index];
+  const lines = chCodeLines(step.lines);
+  return [
+    h('div', { class: 'step-top' },
+      h('span', { class: 'step-count' }, `Step ${index + 1} of ${steps.length}`),
+      CH_CODE_KINDS[step.kind] && tag(CH_CODE_KINDS[step.kind], `ch-code-kind is-${step.kind}`)),
+    h('p', { class: 'ch-code-lines' }, lines ? (lines.from === lines.to ? `Line ${lines.from}` : `Lines ${lines.from} to ${lines.to}`) : text(step.lines)),
+    h('p', { class: 'ch-code-note' }, softBreaks(text(step.note))),
+    text(step.why) && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it is written this way'), h('p', null, softBreaks(step.why))),
+    chCodeRefs(step.refs, data),
+    h('div', { class: 'step-controls' },
+      chCodeDots(steps.length, index, go),
+      h('button', { class: 'btn', type: 'button', disabled: index === 0, onclick: () => go(index - 1) }, 'Back'),
+      h('button', { class: 'btn primary', type: 'button', onclick: () => go(index + 1) }, index === steps.length - 1 ? 'Takeaway' : 'Continue')),
+    h('p', { class: 'kbd-hint' }, 'Tip: ', h('kbd', null, '→'), ' or ', h('kbd', null, 'j'), ' for the next step, ', h('kbd', null, '←'), ' or ', h('kbd', null, 'k'), ' to go back.'),
+  ];
+}
+
+/** The takeaway card, with Replay and, when there is one, Next walkthrough. */
+function chCodeDoneCard(walk, lineCount, { replay, next }) {
+  return [h('div', { class: 'ch-code-done' },
+    h('p', { class: 'eyebrow quiet' }, 'Takeaway'),
+    h('h3', null, softBreaks(text(walk.takeaway, text(walk.title)))),
+    h('p', { class: 'ch-code-done-line' }, `${chCount(list(walk.steps).length, 'step')} through ${chCount(lineCount, 'line')} of code.`),
+    h('div', { class: 'btn-row' },
+      h('button', { class: 'btn', type: 'button', onclick: replay }, 'Replay'),
+      next && h('button', { class: 'btn primary', type: 'button', onclick: next }, 'Next walkthrough')))];
+}
+
+/** Arrow keys and j / k step through, outside fields, pickers and the progress bar. */
+function chCodeKeys(root, view) {
+  root.addEventListener('keydown', (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey || (event.target.closest && event.target.closest('input, textarea, .ch-pick, .ch-code-dots'))) return;
+    const { done, step } = view.state();
+    if (event.key === 'ArrowRight' || event.key === 'j') { event.preventDefault(); if (!done) view.go(step + 1); }
+    if (event.key === 'ArrowLeft' || event.key === 'k') { event.preventDefault(); view.go(done ? view.stepCount() - 1 : step - 1); }
+  });
+}
+
+/** Re-fill a card and keep keyboard focus inside it (the old buttons are gone). */
+function chCodeRefill(card, children) {
+  const hadFocus = card.contains(document.activeElement);
+  fill(card, ...children);
+  if (!hadFocus) return;
+  const target = [...card.querySelectorAll('.btn.primary, .btn')].find((b) => !b.disabled);
+  if (target) target.focus({ preventScroll: true });
+}
+
+/** The picker for several walkthroughs. */
+function chCodePicks(walks, onPick) {
+  const picks = walks.map((walk, i) => h('button', { class: 'ch-pick', type: 'button', 'aria-pressed': 'false', onclick: () => onPick(i) },
+    h('span', { class: 'ch-pick-top' }, h('span', null, String(i + 1).padStart(2, '0')), h('span', null, chCount(list(walk.steps).length, 'step'))),
+    h('span', { class: 'ch-pick-title' }, softBreaks(text(walk.title, text(walk.id))))));
+  chRoving(picks, { onMove: onPick });
+  return picks;
+}
+
+/** Steps from 1 in the hash, or "done" for the takeaway. */
+function chCodeLink(walk, index, state) {
+  setDeepLink(`code/${linkPart(text(walk.id, String(index)))}/${state.done ? 'done' : state.step + 1}`);
+}
+
+/** #code/<id>, #code/<id>/<n> (steps from 1) and #code/<id>/done. */
+function chCodeOpener(walks, card, view) {
+  return {
+    open([id, n] = []) {
+      const index = id === undefined ? -1 : walks.findIndex((w, i) => text(w.id, String(i)) === id);
+      if (index < 0) return null;
+      if (index !== view.current()) view.pickWalk(index, { linkIt: false });
+      const count = list(walks[index].steps).length;
+      const wanted = Number.parseInt(n, 10);
+      if (n === 'done') view.go(count, { linkIt: false });
+      else view.go(Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0, { linkIt: false });
+      return card;
+    },
+  };
+}
+
+/** Draw a walkthrough's head and code; returns the line rows. */
+function chCodeDrawWalk(walk, head, panel, go) {
+  fill(head, ...chCodeHead(walk));
+  const rows = chCodeRows(walk, go);
+  const range = chCodeRange(walk);
+  fill(panel, h('div', { class: 'ch-code', role: 'group', 'aria-label': `Code, lines ${range.start} to ${range.end}` }, rows));
+  return rows;
+}
+
+/** The card follows the reader only while it fits on screen: no inner scroll areas. */
+function chCodeStickyCard(card) {
+  if (!('ResizeObserver' in window)) return;
+  new ResizeObserver(() => card.classList.toggle('is-static', card.offsetHeight > window.innerHeight - CH_CODE_STICKY)).observe(card);
+}
+
 /**
  * @param {object} data explainer data (reads data.walkthroughs)
  * @param {HTMLElement} mount the chapter body
@@ -5539,147 +5823,44 @@ function chRenderCode(data, mount) {
   const head = h('div', { class: 'ch-code-head' });
   const card = h('div', { class: 'panel ch-code-card', 'aria-live': 'polite' });
   const panel = h('div', { class: 'panel ch-code-panel' });
-  const layout = h('div', { class: 'ch-code-layout' }, panel, card);
   let state = { walk: 0, step: 0, done: false };
   let rows = [];
-
-  const picks = walks.map((walk, i) => h('button', { class: 'ch-pick', type: 'button', 'aria-pressed': 'false', onclick: () => pickWalk(i) },
-    h('span', { class: 'ch-pick-top' }, h('span', null, String(i + 1).padStart(2, '0')), h('span', null, chCount(list(walk.steps).length, 'step'))),
-    h('span', { class: 'ch-pick-title' }, softBreaks(text(walk.title, text(walk.id))))));
-  chRoving(picks, { onMove: (i) => pickWalk(i) });
-
   const walkOf = () => walks[state.walk];
-  const link = () => {
-    const walk = walkOf();
-    setDeepLink(`code/${linkPart(text(walk.id, String(state.walk)))}/${state.done ? 'done' : state.step + 1}`);
-  };
+  const steps = () => list(walkOf().steps);
 
-  function drawWalk() {
-    const walk = walkOf();
-    const range = chCodeRange(walk);
-    fill(head,
-      h('h2', { class: 'ch-code-title' }, softBreaks(text(walk.title))),
-      text(walk.why) && h('p', { class: 'ch-code-why' }, softBreaks(walk.why)),
-      h('div', { class: 'ch-code-meta' },
-        walk.illustrative === true ? tag('Illustrative, not from a repo', 'ch-illustrative') : text(walk.file) && fileChip(walk.file),
-        text(walk.lang) && tag(walk.lang)));
-    const tokens = { block: false };
-    const lang = text(walk.lang, 'text').toLowerCase();
-    rows = String(walk.code).replace(/\r\n?/g, '\n').split('\n').map((line, k) => {
-      const number = range.start + k;
-      const step = chCodeStepAt(walk, number);
-      const num = step >= 0
-        ? h('button', { class: 'ch-code-num', type: 'button', 'aria-label': `Line ${number}, step ${step + 1}`, onclick: () => go(step) }, String(number))
-        : h('span', { class: 'ch-code-num', 'aria-hidden': 'true' }, String(number));
-      const textEl = h('span', { class: 'ch-code-text' }, line ? chCodeTokens(line, lang, tokens).map(([cls, value]) => (cls ? h('span', { class: cls }, value) : value)) : ' ');
-      return h('div', { class: `ch-code-row${step >= 0 ? ' is-covered' : ''}`, 'data-line': String(number) }, num, textEl);
-    });
-    fill(panel, h('div', { class: 'ch-code', role: 'group', 'aria-label': `Code, lines ${range.start} to ${range.end}` }, rows));
-    chMarkCurrent(picks, state.walk);
-  }
-
-  function paintRows() {
-    const step = state.done ? null : list(walkOf().steps)[state.step];
-    const lines = step ? chCodeLines(step.lines) : null;
-    panel.classList.toggle('has-step', Boolean(lines));
-    rows.forEach((row) => {
-      const n = Number(row.dataset.line);
-      row.classList.toggle('is-current', Boolean(lines) && n >= lines.from && n <= lines.to);
-    });
-  }
-
-  function stepCard() {
-    const walk = walkOf();
-    const steps = list(walk.steps);
-    const step = steps[state.step];
-    const lines = chCodeLines(step.lines);
-    const last = state.step === steps.length - 1;
-    return [
-      h('div', { class: 'step-top' },
-        h('span', { class: 'step-count' }, `Step ${state.step + 1} of ${steps.length}`),
-        CH_CODE_KINDS[step.kind] && tag(CH_CODE_KINDS[step.kind], `ch-code-kind is-${step.kind}`)),
-      h('p', { class: 'ch-code-lines' }, lines ? (lines.from === lines.to ? `Line ${lines.from}` : `Lines ${lines.from} to ${lines.to}`) : text(step.lines)),
-      h('p', { class: 'ch-code-note' }, softBreaks(text(step.note))),
-      text(step.why) && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it is written this way'), h('p', null, softBreaks(step.why))),
-      chCodeRefs(step.refs, data),
-      h('div', { class: 'step-controls' },
-        chCodeDots(steps.length, state.step, go),
-        h('button', { class: 'btn', type: 'button', disabled: state.step === 0, onclick: () => go(state.step - 1) }, 'Back'),
-        h('button', { class: 'btn primary', type: 'button', onclick: () => go(state.step + 1) }, last ? 'Takeaway' : 'Continue')),
-      h('p', { class: 'kbd-hint' }, 'Tip: ', h('kbd', null, '→'), ' or ', h('kbd', null, 'j'), ' for the next step, ', h('kbd', null, '←'), ' or ', h('kbd', null, 'k'), ' to go back.'),
-    ];
-  }
-
-  function doneCard() {
-    const walk = walkOf();
-    const next = state.walk + 1 < walks.length ? state.walk + 1 : null;
-    return [h('div', { class: 'ch-code-done' },
-      h('p', { class: 'eyebrow quiet' }, 'Takeaway'),
-      h('h3', null, softBreaks(text(walk.takeaway, text(walk.title)))),
-      h('p', { class: 'ch-code-done-line' }, `${chCount(list(walk.steps).length, 'step')} through ${chCount(rows.length, 'line')} of code.`),
-      h('div', { class: 'btn-row' },
-        h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
-        next !== null && h('button', { class: 'btn primary', type: 'button', onclick: () => pickWalk(next) }, 'Next walkthrough')))];
-  }
-
-  function render({ direction = 0 } = {}) {
-    // Re-filling the card removes the focused button; keep keyboard readers in the card.
-    const hadFocus = card.contains(document.activeElement);
-    fill(card, ...(state.done ? doneCard() : stepCard()));
-    if (hadFocus) {
-      const target = [...card.querySelectorAll('.btn.primary, .btn')].find((b) => !b.disabled);
-      if (target) target.focus({ preventScroll: true });
-    }
-    paintRows();
+  function render(direction = 0) {
+    chCodeRefill(card, state.done
+      ? chCodeDoneCard(walkOf(), rows.length, { replay: () => go(0), next: state.walk + 1 < walks.length ? () => pickWalk(state.walk + 1) : null })
+      : chCodeStepCard(walkOf(), state.step, data, go));
+    chCodePaintRows(panel, rows, state.done ? null : steps()[state.step]);
     if (direction) slideIn(card.firstElementChild, direction);
   }
 
   function go(index, { linkIt = true } = {}) {
-    const steps = list(walkOf().steps);
-    const before = state.done ? steps.length : state.step;
-    if (index >= steps.length) state = { ...state, done: true };
-    else state = { ...state, step: Math.max(0, index), done: false };
-    const after = state.done ? steps.length : state.step;
-    render({ direction: after === before ? 0 : after > before ? 1 : -1 });
-    if (linkIt) link();
+    const before = state.done ? steps().length : state.step;
+    state = index >= steps().length ? { ...state, done: true } : { ...state, step: Math.max(0, index), done: false };
+    const after = state.done ? steps().length : state.step;
+    render(Math.sign(after - before));
+    if (linkIt) chCodeLink(walkOf(), state.walk, state);
   }
 
   function pickWalk(i, { linkIt = true } = {}) {
     state = { walk: i, step: 0, done: false };
-    drawWalk();
+    rows = chCodeDrawWalk(walkOf(), head, panel, go);
+    chMarkCurrent(picks, i);
     render();
-    if (linkIt) link();
+    if (linkIt) chCodeLink(walkOf(), i, state);
   }
 
+  const picks = chCodePicks(walks, (i) => pickWalk(i));
   const root = h('div', { class: 'ch-code-chapter' },
     walks.length > 1 && h('div', { class: 'ch-pick-list', role: 'group', 'aria-label': 'Walkthroughs' }, picks),
-    head,
-    h('div', { class: 'ch-cq' }, layout));
-  root.addEventListener('keydown', (event) => {
-    if (event.altKey || event.ctrlKey || event.metaKey || (event.target.closest && event.target.closest('input, textarea, .ch-pick, .ch-code-dots'))) return;
-    const steps = list(walkOf().steps);
-    if (event.key === 'ArrowRight' || event.key === 'j') { event.preventDefault(); if (!state.done) go(state.step + 1); }
-    if (event.key === 'ArrowLeft' || event.key === 'k') { event.preventDefault(); go(state.done ? steps.length - 1 : state.step - 1); }
-  });
-  // The card follows the reader only while it fits on screen: no inner scroll areas.
-  if ('ResizeObserver' in window) {
-    new ResizeObserver(() => card.classList.toggle('is-static', card.offsetHeight > window.innerHeight - CH_CODE_STICKY)).observe(card);
-  }
+    head, h('div', { class: 'ch-cq' }, h('div', { class: 'ch-code-layout' }, panel, card)));
+  chCodeKeys(root, { state: () => state, go, stepCount: () => steps().length });
+  chCodeStickyCard(card);
   pickWalk(0, { linkIt: false });
   mount.append(root);
-  return {
-    open([id, n] = []) {
-      if (id === undefined) return null;
-      const index = walks.findIndex((w, i) => text(w.id, String(i)) === id);
-      if (index < 0) return null;
-      if (index !== state.walk) pickWalk(index, { linkIt: false });
-      const count = list(walks[index].steps).length;
-      const wanted = Number.parseInt(n, 10);
-      if (n === 'done') go(count, { linkIt: false });
-      else go(Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0, { linkIt: false });
-      return card;
-    },
-  };
+  return chCodeOpener(walks, card, { current: () => state.walk, pickWalk, go });
 }
 
 // ---- chapters/hooks.js ----
@@ -6140,16 +6321,48 @@ const READING_PREFS = [
   },
 ];
 
-// Mirror of scripts/lib/config.mjs, so the form can explain a bad value
-// before anything is saved. The CLI and the server check again. Labels are
-// for people; the stored value stays the config value.
-const opt = (value, label, desc) => ({ value, label, desc });
+// The valid values come from the build (context.enums, scripts/lib/page-enums.mjs),
+// so the form never keeps its own list that can drift. The lists below are
+// labels for people, and the values for a page built before enums existed.
+// The CLI and the server check every value again.
+const PAGE_ENUMS = (() => {
+  const enums = readContext().enums;
+  return enums && typeof enums === 'object' && !Array.isArray(enums) ? enums : {};
+})();
+
+function enumList(name, fallback) {
+  const values = PAGE_ENUMS[name];
+  return Array.isArray(values) && values.length && values.every((v) => typeof v === 'string') ? values : fallback;
+}
+
+function enumNumber(name, fallback) {
+  const value = PAGE_ENUMS[name];
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+// Every value the build allows, labelled when the page has a label for it.
+function enumOptions(name, labelled, lead = []) {
+  const values = [...new Set([...lead, ...enumList(name, labelled.map((o) => o.value))])];
+  return values.map((value) => labelled.find((o) => o.value === value) || opt(value, value));
+}
+
+const LANGUAGE_PATTERN = (() => {
+  try {
+    return typeof PAGE_ENUMS.languagePattern === 'string' ? new RegExp(PAGE_ENUMS.languagePattern) : null;
+  } catch (error) {
+    return null;
+  }
+})() || /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
+
+function opt(value, label, desc) {
+  return { value, label, desc };
+}
 const ON_OFF = [opt('on', 'On'), opt('off', 'Off')];
 const CONFIG_FIELDS = {
   style: { label: 'Style', kind: 'style', help: 'The look new explainers open in. Readers can still switch.',
-    options: [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')] },
+    options: enumOptions('styles', [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')]) },
   defaultType: { label: 'Explainer type', kind: 'list', help: 'What the skill makes when you do not say.',
-    options: [
+    options: enumOptions('types', [
       opt('auto', 'Auto detect', 'The skill picks from what you point it at'),
       opt('repo', 'Repo', 'A whole codebase: parts, flows, data'),
       opt('pr', 'Pull request', 'One PR or MR, its diff and risks'),
@@ -6158,11 +6371,11 @@ const CONFIG_FIELDS = {
       opt('migration', 'Migration', 'Moving from one system to another'),
       opt('incident', 'Incident', 'What broke, why, and the fix'),
       opt('concept', 'Concept', 'An idea or technique, no code needed'),
-    ] },
+    ], ['auto']) },
   audience: { label: 'Audience', kind: 'cards', help: 'Sets tone, depth and how many terms get explained.',
-    options: [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')] },
+    options: enumOptions('audience', [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')]) },
   depth: { label: 'Depth', kind: 'cards', help: 'How many parts, flows and steps to trace.',
-    options: [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')] },
+    options: enumOptions('depth', [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')]) },
   language: { label: 'Language', kind: 'combo', help: 'A language tag, like en or pt-BR. Pick one or type your own.',
     options: [
       opt('en', 'en', 'English'), opt('en-GB', 'en-GB', 'English (UK)'), opt('es', 'es', 'Spanish'), opt('fr', 'fr', 'French'),
@@ -6172,13 +6385,13 @@ const CONFIG_FIELDS = {
       opt('zh-CN', 'zh-CN', 'Chinese (Simplified)'), opt('zh-TW', 'zh-TW', 'Chinese (Traditional)'), opt('hi', 'hi', 'Hindi'),
       opt('id', 'id', 'Indonesian'), opt('vi', 'vi', 'Vietnamese'), opt('fil', 'fil', 'Filipino'), opt('ar', 'ar', 'Arabic'), opt('he', 'he', 'Hebrew'),
     ] },
-  visuals: { label: 'Preferred visuals', kind: 'multi', options: ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn'], help: 'Picked first when a chapter can use a picture.' },
+  visuals: { label: 'Preferred visuals', kind: 'multi', options: enumList('visualKinds', ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn']), help: 'Picked first when a chapter can use a picture.' },
   codeWalkthrough: { label: 'Code walkthrough', kind: 'cards', help: 'A line-by-line tour of the few lines that carry the idea.',
-    options: [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')] },
+    options: enumOptions('codeWalkthrough', [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')]) },
   quiz: { label: 'Quiz', kind: 'onoff', help: 'End explainers with a few questions.' },
   analogies: { label: 'Analogies', kind: 'onoff', help: 'Add a "think of it like" line to key ideas.' },
   model: { label: 'Model for estimates', kind: 'list', help: 'Used to price a run before it starts.',
-    options: [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')] },
+    options: enumOptions('models', [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')]) },
   budgetUsd: { label: 'Budget in US dollars', kind: 'number', help: 'Start without asking when the estimate fits. Leave empty to always ask.' },
   confirmBeforeStart: { label: 'Confirm before starting', kind: 'onoff', help: 'Show the estimate and wait for a yes.' },
   instructions: { label: 'House instructions', kind: 'textarea', help: 'Plain text added to every run: house style, terms to use. Never overrides the truth rules.' },
@@ -6188,7 +6401,7 @@ const CONFIG_FIELD_DEFAULTS = {
   style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {}, codeWalkthrough: 'auto',
   quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
 };
-const INSTRUCTIONS_LIMIT = 2000;
+const INSTRUCTIONS_LIMIT = enumNumber('instructionsLimit', 2000);
 const CLI_NAME = 'concept-explainer';
 
 function readingValue(pref) {
@@ -6328,7 +6541,7 @@ function fieldErrors(key, value) {
   if (['style', 'list', 'cards'].includes(field.kind)) return optionValues(field).includes(value) ? [] : ['Pick one of the listed choices.'];
   if (field.kind === 'onoff') return typeof value === 'boolean' ? [] : ['Must be on or off.'];
   if (field.kind === 'multi') return Array.isArray(value) && value.every((v) => field.options.includes(v)) ? [] : ['Pick from the listed kinds.'];
-  if (key === 'language') return typeof value === 'string' && /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(value) ? [] : ['Use a language tag like en or pt-BR.'];
+  if (key === 'language') return typeof value === 'string' && LANGUAGE_PATTERN.test(value) ? [] : ['Use a language tag like en or pt-BR.'];
   if (key === 'budgetUsd') return value === null || (typeof value === 'number' && Number.isFinite(value) && value >= 0) ? [] : ['Use a number of 0 or more, or leave it empty.'];
   if (key === 'instructions') {
     if (typeof value !== 'string') return ['Must be text.'];
@@ -6428,11 +6641,12 @@ function defaultsGroup(context, initialConfig) {
       label, control.el, h('p', { class: 'setting-hint', id: `${id}-hint` }, field.help), error);
   });
   const counter = h('span', { class: 'setting-count', 'aria-live': 'polite' });
+  const submit = h('button', { class: 'btn primary', type: 'submit' }, serve ? 'Save' : 'Show the commands');
   const form = h('form', { class: 'settings-form', novalidate: true }, rows,
     h('p', { class: 'setting-hint' }, 'Chapters per type are set from the command line: ',
       h('code', null, `${CLI_NAME} config set chapters '{"repo":{"quiz":false}}'`)),
     h('div', { class: 'settings-actions' },
-      h('button', { class: 'btn primary', type: 'submit' }, serve ? 'Save' : 'Show the commands'),
+      submit,
       h('button', { class: 'btn', type: 'button', onclick: () => downloadBlob('config.json', `${JSON.stringify(current(), null, 2)}\n`) }, icon('download'), 'Download config.json'),
       status),
     commands);
@@ -6476,19 +6690,22 @@ function defaultsGroup(context, initialConfig) {
       return;
     }
     if (serve) {
+      // One save at a time: a second press while the first runs does nothing.
+      if (submit.disabled) return;
+      submit.disabled = true;
       status.textContent = 'Saving…';
-      fetch(serveApi(context, 'config'), {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-concept-explainer-token': serve.token },
+      serveFetch(context, serveApi(context, 'config'), {
+        method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
-      }).then((response) => response.json().catch(() => ({})).then((body) => ({ ok: response.ok, body })))
-        .then(({ ok, body }) => {
-          if (!ok) throw new Error(list(body && body.errors).join(' ') || (body && body.error) || 'The server refused the change.');
-          saved = normalizeDefaults(body && body.config ? body.config : values);
-          // The server rebuilt the pages with the new defaults: load them.
-          status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
-          window.setTimeout(() => window.location.reload(), 900);
-        })
-        .catch((error) => { status.textContent = `Could not save: ${error.message}`; });
+      }).then(({ json: body }) => {
+        saved = normalizeDefaults(body && body.config ? body.config : values);
+        // The server rebuilt the pages with the new defaults: load them.
+        status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
+        window.setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
+      }).catch((error) => {
+        submit.disabled = false;
+        status.textContent = `Could not save: ${error.message}`;
+      });
       return;
     }
     const lines = changed.map((key) => `${CLI_NAME} config set ${key} ${commandValue(key, values[key])}`);
@@ -6542,13 +6759,18 @@ function settingsView(registry, { context = {}, config = null, extra = [] } = {}
 }
 
 // ---------- Share ----------
-const BUNDLE_FORMAT = 'concept-explainer-bundle';
+const BUNDLE_FORMAT = typeof PAGE_ENUMS.bundleFormat === 'string' && PAGE_ENUMS.bundleFormat ? PAGE_ENUMS.bundleFormat : 'concept-explainer-bundle';
+const BUNDLE_MAX_BYTES = enumNumber('bundleMaxBytes', 10 * 1024 * 1024);
+const BUNDLE_MAX_LABEL = `${Math.round(BUNDLE_MAX_BYTES / 1024 / 1024)} MB`;
+// Long enough to read "Saved", short enough not to wait on.
+const RELOAD_DELAY_MS = 900;
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LOCAL_PATH_KEYS = new Set(['sourcePath', 'repoPath']);
 
-function slugFor(meta, context) {
-  if (context && typeof context.slug === 'string' && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(context.slug)) return context.slug;
-  const base = text(meta && meta.repo, text(meta && meta.title, 'explainer'));
-  return base.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'explainer';
+// The library slug when the page knows it. Otherwise the bundle leaves it
+// empty and the importer derives one, so there is one slug rule.
+function knownSlug(context) {
+  return context && typeof context.slug === 'string' && SLUG_PATTERN.test(context.slug) ? context.slug : '';
 }
 
 // Data only, without local paths: the importer rebuilds pages itself.
@@ -6569,8 +6791,47 @@ function escapeAttr(value) {
 
 // The page as it was built, from parts that never change after load: head
 // attributes, the style and script text, and the embedded data. The context
-// keeps only the style, so a shared copy has no token or library link.
-function pageSnapshot(style) {
+// keeps the style, chapters and choice lists, so a shared copy has no token or library link.
+// The library's font rules point at its fonts/ folder, which a saved
+// page does not have: they go, and the system fonts in each stack take over.
+// Spelled in pieces: built pages are checked for these words in their source.
+const FONT_FACE_BLOCK = new RegExp(`^(\\s*)(?:@${'font'}-face\\{[^}]*\\}\\n?)+`);
+const CSP_NAME = ['Content', 'Security', 'Policy'].join('-');
+
+function sha256Source(text) {
+  const subtle = window.crypto && window.crypto.subtle;
+  if (!subtle) return Promise.resolve(null);
+  return subtle.digest('SHA-256', new TextEncoder().encode(text)).then((buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    bytes.forEach((b) => { binary += String.fromCharCode(b); });
+    return `'sha256-${window.btoa(binary)}'`;
+  }).catch(() => null);
+}
+
+// The page's own policy, verbatim: the scripts are copied unchanged, so their
+// hashes still hold. Only the style hash follows the trimmed stylesheet.
+function savedCsp(styleText, styleHash) {
+  const tag = [...document.head.querySelectorAll('meta[http-equiv]')].find((m) => m.getAttribute('http-equiv') === CSP_NAME);
+  const policy = tag ? tag.getAttribute('content') : '';
+  if (!policy) return '';
+  const next = styleHash ? policy.replace(/style-src [^;]*/, `style-src ${styleHash}`) : policy;
+  // Quotes in the policy stay as they are, so it reads byte for byte the same.
+  return `<meta http-equiv="${CSP_NAME}" content="${next.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">`;
+}
+
+// Resolves to the page text. With no Web Crypto the stylesheet stays whole,
+// so the policy's hash for it still matches.
+function savedPage(style) {
+  const full = (document.head.querySelector('style') || {}).textContent || '';
+  const trimmed = full.replace(FONT_FACE_BLOCK, '$1');
+  if (trimmed === full) return Promise.resolve(pageSnapshot(style, full, savedCsp(full, null)));
+  return sha256Source(trimmed).then((hash) => (hash
+    ? pageSnapshot(style, trimmed, savedCsp(trimmed, hash))
+    : pageSnapshot(style, full, savedCsp(full, null))));
+}
+
+function pageSnapshot(style, styleText, cspTag) {
   const head = document.head;
   const meta = [...head.querySelectorAll('meta[name], meta[property], meta[charset]')].map((m) => {
     if (m.hasAttribute('charset')) return `<meta charset="${escapeAttr(m.getAttribute('charset'))}">`;
@@ -6582,12 +6843,15 @@ function pageSnapshot(style) {
     return `<link rel="${escapeAttr(l.getAttribute('rel'))}" href="${escapeAttr(l.getAttribute('href'))}"${cross}>`;
   });
   const prepaint = head.querySelector('script[data-prepaint]');
-  const styleText = (head.querySelector('style') || {}).textContent || '';
   const main = [...document.querySelectorAll('body > script:not([type])')].pop();
   const dataText = document.getElementById('explainer-data').textContent;
-  const contextText = JSON.stringify({ style }).replace(/</g, '\\u003c');
+  // The build's chapter list and choice lists carry over; the token, slug and
+  // library link do not.
+  const built = readContext();
+  const kept = { style, ...(Array.isArray(built.chapters) ? { chapters: built.chapters } : {}), ...(built.enums ? { enums: built.enums } : {}) };
+  const contextText = JSON.stringify(kept).replace(/</g, '\\u003c');
   return [
-    '<!doctype html>', '<html lang="en">', '<head>', ...meta, `<title>${escapeAttr(document.querySelector('title') ? document.querySelector('title').textContent : 'Explainer')}</title>`,
+    '<!doctype html>', '<html lang="en">', '<head>', ...meta.slice(0, 1), cspTag, ...meta.slice(1), `<title>${escapeAttr(document.querySelector('title') ? document.querySelector('title').textContent : 'Explainer')}</title>`,
     ...links, prepaint ? `<script data-prepaint>${prepaint.textContent}<\/script>` : '', `<style>${styleText}</style>`, '</head>', '<body>',
     '<a class="skip" href="#main">Skip to content</a>', '<div id="app" aria-busy="true"></div>',
     '<noscript><p class="noscript">This explainer needs JavaScript to draw its diagrams.</p></noscript>',
@@ -6604,17 +6868,21 @@ function shareRow(title, body, actions) {
 
 // Explainer page: export this one, or save the page itself.
 function explainerShareGroup(data, context) {
-  const slug = slugFor(data.meta, context);
+  const slug = knownSlug(context);
+  const fileName = `${slug || 'explainer'}.explainers.json`;
   const status = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
   const exportButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Export this explainer');
   exportButton.addEventListener('click', () => {
-    downloadBlob(`${slug}.explainers.json`, `${JSON.stringify(bundleOf([{ slug, data: withoutLocalPaths(data) }]), null, 2)}\n`);
-    status.textContent = `Downloaded ${slug}.explainers.json. Import it with ${CLI_NAME} import.`;
+    downloadBlob(fileName, `${JSON.stringify(bundleOf([{ slug, data: withoutLocalPaths(data) }]), null, 2)}\n`);
+    status.textContent = `Downloaded ${fileName}. Import it with ${CLI_NAME} import.`;
   });
   const pageButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Save as page');
   pageButton.addEventListener('click', () => {
-    downloadBlob(`${slug}.html`, pageSnapshot(storedStyle()), 'text/html');
-    status.textContent = `Downloaded ${slug}.html. It opens on its own, with no library.`;
+    const pageName = `${slug || 'explainer'}.html`;
+    savedPage(storedStyle()).then((page) => {
+      downloadBlob(pageName, page, 'text/html');
+      status.textContent = `Downloaded ${pageName}. It opens on its own, with no library.`;
+    }).catch((error) => { status.textContent = `Could not save the page: ${error.message}`; });
   });
   return h('section', { class: 'panel settings-group', 'aria-labelledby': 'settings-share-title' },
     h('div', { class: 'settings-legend' }, h('h2', { id: 'settings-share-title' }, 'Share'), h('span', { class: 'eyebrow quiet' }, 'Data only, no local paths')),
@@ -6672,12 +6940,16 @@ function hubShareGroup(context, getSelection) {
   const exportOut = h('div', { class: 'settings-commands' });
   const exportButton = h('button', { class: 'btn', type: 'button' }, icon('download'), 'Export');
   exportButton.addEventListener('click', () => {
-    const { slugs, params, args, label } = getSelection();
+    const { slugs, args, label, none } = getSelection();
+    if (none) {
+      status.textContent = 'No explainers match the filter, so there is nothing to export.';
+      fill(exportOut);
+      return;
+    }
     if (served) {
       status.textContent = 'Preparing the bundle…';
-      const query = slugs.length ? `slugs=${slugs.map(encodeURIComponent).join(',')}`
-        : Object.entries(params || {}).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
-      serveFetch(context, `${serveApi(context, 'export')}${query ? `?${query}` : ''}`)
+      const query = slugs.length ? `?slugs=${slugs.map(encodeURIComponent).join(',')}` : '';
+      serveFetch(context, `${serveApi(context, 'export')}${query}`)
         .then(({ body }) => {
           const many = `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
           downloadBlob(slugs.length === 1 ? `${slugs[0]}.explainers.json` : many, body);
@@ -6716,6 +6988,8 @@ function importServed(context, status, out) {
   const zone = h('div', { class: 'drop-zone', 'aria-describedby': 'import-file-hint' },
     icon('upload'), h('span', { class: 'drop-title' }, 'Drop a .explainers.json file'), choose, picked);
   let pending = null;
+  let busy = false;
+  let checkId = 0;
   let run = () => {};
   const conflict = optionGroup({
     variant: 'cards', value: 'rename', labelledBy: 'import-conflict-label', describedBy: 'import-conflict-hint',
@@ -6727,6 +7001,7 @@ function importServed(context, status, out) {
     onChange: () => run(true),
   });
   const clear = () => {
+    if (busy) return;
     pending = null;
     picked.hidden = true;
     zone.classList.remove('has-file');
@@ -6735,28 +7010,47 @@ function importServed(context, status, out) {
     status.textContent = '';
     choose.focus();
   };
-  run = (dryRun) => {
-    if (!pending) return;
+  run = (dryRun, applyButton) => {
+    // While an import runs, nothing else starts: a double press imports once.
+    if (!pending || busy) return;
+    const job = pending;
+    const id = ++checkId;
+    if (!dryRun) {
+      busy = true;
+      pending = null;
+      if (applyButton) applyButton.disabled = true;
+    }
     status.textContent = dryRun ? 'Checking the bundle…' : 'Importing…';
     serveFetch(context, `${serveApi(context, 'import')}?onConflict=${conflict.read()}${dryRun ? '&dryRun=1' : ''}`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: pending.text,
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: job.text,
     }).then(({ json: raw }) => {
+      // A newer check (the conflict choice changed) replaces this one.
+      if (dryRun && (id !== checkId || pending !== job)) return;
       // The server wraps the result in { summary }; accept the bare shape too.
       const json = raw && raw.summary && typeof raw.summary === 'object' ? raw.summary : raw;
       if (dryRun) {
-        status.textContent = `Here is what importing ${pending.name} would do. Nothing has changed yet.`;
-        const apply = h('button', { class: 'btn primary', type: 'button', onclick: () => run(false) }, 'Import');
+        status.textContent = `Here is what importing ${job.name} would do. Nothing has changed yet.`;
+        const apply = h('button', { class: 'btn primary', type: 'button' }, 'Import');
+        apply.addEventListener('click', () => run(false, apply));
         fill(out, importSummary(json), h('div', { class: 'btn-row' }, apply));
       } else {
         status.textContent = 'Imported. Reload the library to see the new explainers.';
         fill(out, importSummary(json), h('div', { class: 'btn-row' }, h('button', { class: 'btn', type: 'button', onclick: () => window.location.reload() }, 'Reload')));
-        pending = null;
+        busy = false;
       }
-    }).catch((error) => { status.textContent = `Could not import: ${error.message}`; });
+    }).catch((error) => {
+      if (!dryRun) {
+        // Nothing was imported: the same file can be tried again.
+        busy = false;
+        pending = job;
+        if (applyButton) applyButton.disabled = false;
+      }
+      status.textContent = `Could not import: ${error.message}`;
+    });
   };
   const take = (file) => {
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { status.textContent = `${file.name} is over 10 MB. Bundles must be smaller.`; return; }
+    if (!file || busy) return;
+    if (file.size > BUNDLE_MAX_BYTES) { status.textContent = `${file.name} is over ${BUNDLE_MAX_LABEL}. Bundles must be smaller.`; return; }
     file.text().then((body) => {
       pending = { name: file.name, text: body };
       zone.classList.add('has-file');
@@ -6775,7 +7069,7 @@ function importServed(context, status, out) {
     take(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]);
   });
   return h('div', { class: 'import-controls' }, input, zone,
-    h('p', { class: 'setting-hint', id: 'import-file-hint' }, 'A bundle someone exported. Up to 10 MB. Nothing changes until you press Import.'),
+    h('p', { class: 'setting-hint', id: 'import-file-hint' }, `A bundle someone exported. Up to ${BUNDLE_MAX_LABEL}. Nothing changes until you press Import.`),
     h('div', { class: 'import-field' },
       h('span', { class: 'setting-label', id: 'import-conflict-label' }, 'If it is already in your library'),
       conflict.el,
@@ -6860,7 +7154,7 @@ function progressCard(data, viewedCount, total) {
   const meta = data.meta;
   const rows = [
     ['Tour', `${tourMinutes(data)} min`],
-    meta.generatedAt && ['Generated', formatDate(meta.generatedAt)],
+    meta.generatedAt && ['Generated', displayDate(meta.generatedAt)],
     meta.commit && ['Commit', String(meta.commit).slice(0, 7)],
   ].filter(Boolean);
   return h('article', { class: 'panel progress-card' },
@@ -6878,7 +7172,9 @@ function glancePanel(data) {
     ['Flows', list(data.flows).length],
     ['Changes', list(data.changes).length],
     ['Files', citedFiles(data)],
-  ];
+  ].filter(([, value]) => value > 0);
+  // A PR or a concept has no changes log or layers: show what it has.
+  if (!stats.length) return null;
   return h('section', { class: 'panel glance', 'aria-label': 'At a glance' },
     h('p', { class: 'panel-bar' }, h('span', null, 'At a glance'), h('span', null, `${tourMinutes(data)} min tour`)),
     h('dl', { class: 'glance-grid' }, stats.map(([label, value]) => h('div', null,
@@ -6905,7 +7201,7 @@ function latestChanges(data) {
       h('a', { href: '#changes' }, 'All changes')),
     h('ul', { class: 'rows' }, changes.map(({ change, key }) => h('li', null,
       h('a', { class: 'row-link', href: `#changes/${linkPart(key)}` },
-        h('span', { class: 'row-date' }, formatDate(change.date)),
+        h('span', { class: 'row-date' }, displayDate(change.date, { fallback: 'undated' })),
         h('span', { class: 'row-title' }, softBreaks(change.title)),
         tag(change.authorType === 'agent' ? 'Agent' : 'Human'))))));
 }
@@ -6974,7 +7270,6 @@ function renderRunbook(data, mount) {
 // ---- app.js ----
 // Boot: read the embedded data and library context, build the dashboard
 // shell (sidebar, phone bar, menu sheet) and show one view per hash.
-const DESIGN_CREDIT = 'Lesson pacing inspired by Brilliant. Type and greys from Geist by Vercel. Not affiliated with either.';
 const CHAPTERS = [
   { key: 'context', nav: 'Context', title: 'Why this exists', lead: 'The problem first, then what this aims for and what it leaves out.', count: (d) => list(d.context && d.context.goals).length, unit: 'goals', has: (d) => Boolean(d.context && d.context.problem), render: chRenderContext },
   { key: 'diff', nav: 'Files changed', title: 'What the change touches', lead: 'Each bar is one file, as long as its changed lines. Pick one to read what changed and which part it belongs to.', count: (d) => list(d.diff).length, unit: 'files', has: (d) => list(d.diff).length > 0, render: chRenderDiff },
@@ -6997,29 +7292,15 @@ const CHAPTERS = [
 
 // Default chapter order per explainer type, copied from presets/types/*.json
 // (and TYPE_RULES.repo); test/type-chapters.test.mjs keeps them in step.
-const TYPE_CHAPTERS = {
-  repo: ['map', 'flows', 'changes', 'tree', 'data', 'concepts', 'quiz', 'glossary', 'run'],
-  pr: ['context', 'diff', 'map', 'flows', 'risks', 'rollout', 'quiz'],
-  change: ['context', 'diff', 'flows', 'risks', 'quiz'],
-  proposal: ['context', 'options', 'map', 'flows', 'risks', 'rollout', 'quiz'],
-  migration: ['context', 'options', 'map', 'flows', 'rollout', 'risks', 'quiz'],
-  incident: ['context', 'timeline', 'flows', 'risks', 'rollout', 'quiz'],
-  concept: ['concepts', 'map', 'flows', 'glossary', 'quiz'],
-};
-
-// meta.chapters wins. Without it, the type's default order comes first and
-// any other chapter that has data follows, so nothing written is hidden.
-function chooseChapters(data) {
-  const requested = list(data.meta && data.meta.chapters);
-  const typeOrder = TYPE_CHAPTERS[data.meta && data.meta.type] || TYPE_CHAPTERS.repo;
-  // The code walkthrough is optional in every type: when there is one, it
-  // follows the flows.
-  const flowsAt = typeOrder.indexOf('flows');
-  const withCode = list(data.walkthroughs).length && !typeOrder.includes('code')
-    ? [...typeOrder.slice(0, flowsAt + 1), 'code', ...typeOrder.slice(flowsAt + 1)]
-    : typeOrder;
-  const order = requested.length ? requested : [...withCode, ...CHAPTERS.map((c) => c.key).filter((key) => !withCode.includes(key))];
-  return order
+// The build embeds the chapter list (context.chapters, from the one rule in
+// scripts/lib/chapters.mjs), so the page never keeps its own copy. A page
+// without it (an older build) falls back to meta.chapters, else every chapter
+// with data in table order. Either way each key shows once, and only with data.
+function chooseChapters(data, context) {
+  const embedded = list(context && context.chapters).filter((key) => typeof key === 'string');
+  const requested = list(data.meta && data.meta.chapters).filter((key) => typeof key === 'string');
+  const order = embedded.length ? embedded : requested.length ? requested : CHAPTERS.map((c) => c.key);
+  return [...new Set(order)]
     .map((key) => CHAPTERS.find((c) => c.key === key))
     .filter((chapter) => chapter && chapter.has(data))
     .map((chapter) => {
@@ -7073,7 +7354,7 @@ function footBits(meta, context, registry, progressLines, links) {
     progress,
     library && h('div', { class: 'side-util' }, h('a', { class: 'util', href: library }, h('span', { class: 'util-ic' }, icon('library_shelf')), 'Library')),
     h('div', { class: 'foot-row' }, gear, themeSwitch(registry)),
-    (meta.generatedAt || meta.commit) && footMeta([meta.generatedAt && formatDate(meta.generatedAt), meta.commit && String(meta.commit).slice(0, 7)]),
+    (meta.generatedAt || meta.commit) && footMeta([meta.generatedAt && displayDate(meta.generatedAt), meta.commit && String(meta.commit).slice(0, 7)]),
   ];
 }
 
@@ -7182,10 +7463,7 @@ function createRouter(views, shell, chapters, viewed, meta) {
 
   function show(view) {
     views.forEach((v) => { v.section.hidden = v !== view; });
-    shell.links.forEach((a) => {
-      if (a.dataset.nav === view.key) a.setAttribute('aria-current', 'page');
-      else a.removeAttribute('aria-current');
-    });
+    setNavCurrent(shell.links, view.key);
     shell.barView.textContent = view.nav;
     document.title = view.key === 'overview' ? `${meta.title} · Concept Explainer` : `${view.title} · ${meta.title}`;
     if (view.key !== 'overview') viewed.add(view.key);
@@ -7241,7 +7519,7 @@ function boot() {
     fatal(app, 'The embedded data has no meta.title. Run concept-explainer validate to see what is missing.');
     return;
   }
-  const chapters = chooseChapters(data);
+  const chapters = chooseChapters(data, context);
   const viewed = viewedStore(data.meta);
   const registry = themeRegistry();
   const shell = buildShell(data, chapters, context, registry);
@@ -7249,17 +7527,18 @@ function boot() {
   const views = [overviewView(data, ctx), ...chapters.map((c, i) => chapterView(c, i, chapters, data, ctx)),
     settingsView(registry, { context, config: context.config || null, extra: [explainerShareGroup(data, context)] })];
   const meta = data.meta;
-  const stamp = [meta.generatedAt && `Generated ${formatDate(meta.generatedAt)}`, meta.commit && `at ${String(meta.commit).slice(0, 7)}`].filter(Boolean).join(' ');
+  const stamp = [meta.generatedAt && `Generated ${displayDate(meta.generatedAt)}`, meta.commit && `at ${String(meta.commit).slice(0, 7)}`].filter(Boolean).join(' ');
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' },
     shell.top,
     h('div', { class: 'wrap' }, views.map((v) => v.section),
       h('footer', { class: 'site-footer' },
         h('p', null, `${stamp ? `${stamp} ` : ''}with concept-explainer.`),
-        h('p', null, DESIGN_CREDIT))));
+        designCredit())));
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
   registry.paint();
   installThemeShortcut(registry);
+  watchNavMore(shell.side.querySelector(':scope > .links'));
   wireSkipLink(main);
   createRouter(views, shell, chapters, viewed, data.meta).route({ initial: true });
 }
