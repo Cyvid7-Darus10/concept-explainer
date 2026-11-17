@@ -12,6 +12,7 @@ The code: `scripts/lib/library.mjs` (fs), `scripts/lib/library-model.mjs` (slugs
 <home>/
   index.html                  the hub: manifest + search index embedded, works from file://
   library.json                the manifest
+  config.json                 library settings: { "style": "clean" }
   explainers/<slug>/
     explainer.json            a copy of the source data
     index.html                the built explainer, with the library context set
@@ -31,6 +32,7 @@ The source of truth stays in the repo, at `<repo>/.explainer/explainer.json`. Th
 | `library remove <slug>` | Deletes that explainer's folder and entry, then refreshes the hub. |
 | `library rebuild` | Re-renders every page and the hub from the stored data with the current template. Drops entries whose data is missing or broken, and adopts folders that have data but no entry. |
 | `library open` | Opens the hub in the default browser (writes an empty hub first if there is none). |
+| `library style [clean\|playful]` | Prints the default style, or sets it in `config.json`. Run `library rebuild` afterwards to restyle pages already in the library. |
 | `install [--force]` | Links this skill into `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/repo-explainer` and copies `rules/repo-explainer.md` into `${CLAUDE_CONFIG_DIR:-~/.claude}/rules/`. |
 
 Example:
@@ -50,6 +52,16 @@ $ repo-explainer build .explainer/explainer.json --repo .
 - A link that points somewhere else is replaced.
 - A real folder at the skill path, or a rule file you edited, is never replaced unless you pass `--force`. Even then it is moved aside to `<name>.backup-<time>`, not deleted.
 - It checks both targets before it changes anything, so a refusal leaves nothing half done.
+
+## Styles
+
+Two styles: `clean` (the default) and `playful`. The template draws both; the data never changes.
+
+- `--style clean|playful` works on `build`, `library add` and `library rebuild`. Any other value fails with `unknown style "<value>": use clean or playful`, before anything is written.
+- Without the flag, the style is the library default from `config.json` (`{ "style": "clean" }`). A missing or broken config, or an unknown value in it, means `clean`.
+- A standalone build gets `{"style":"<style>"}` as its context. A library page gets `{"libraryHref":"../../index.html","slug":"<slug>","style":"<style>"}`.
+- The hub always uses the library default.
+- The style of each page is not stored in the manifest. `library rebuild` restyles every page with the flag, else the default.
 
 ## Slugs
 
@@ -100,7 +112,7 @@ A slug names an explainer's folder and appears in every link.
 The hub page reads one JSON object from `<script type="application/json" id="explainer-data">`:
 
 ```json
-{ "manifest": { "version": 1, "updatedAt": "...", "explainers": [ ... ] }, "index": [ ... ] }
+{ "style": "clean", "manifest": { "version": 1, "updatedAt": "...", "explainers": [ ... ] }, "index": [ ... ] }
 ```
 
 It is embedded with the same escaping as explainer data, so no string can close the script tag. The page boots with `bootLibrary()`, built from `dom.js`, `icons.js`, `library.js` and `styles.css`.
@@ -140,4 +152,4 @@ A flat array. One entry per searchable thing:
 
 ## Explainer pages in the library
 
-A library page is built with `{"libraryHref":"../../index.html","slug":"<slug>"}` in its `<script type="application/json" id="explainer-context">` tag. A standalone build gets `{}`. When `libraryHref` is set, the page shows a Library link back to the hub.
+A library page is built with `{"libraryHref":"../../index.html","slug":"<slug>","style":"<style>"}` in its `<script type="application/json" id="explainer-context">` tag. A standalone build gets `{"style":"<style>"}`. When `libraryHref` is set, the page shows a Library link back to the hub.

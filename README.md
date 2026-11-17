@@ -68,6 +68,15 @@ Re-run it tomorrow and it only reads the new merges.
 
 Light, dark and system themes sit in the sidebar footer. On a phone, a Menu button opens the same chapter list.
 
+### Styles
+
+Every explainer comes in two styles. Readers can switch between them in the sidebar.
+
+- **Clean** (the default): the dashboard look described above.
+- **Playful**: brighter colors and rounder, pressable buttons, inspired by [Duolingo](https://www.duolingo.com)'s design language. Repo Explainer is not affiliated with or endorsed by Duolingo, and ships none of its logos, mascots or fonts.
+
+Pick the starting style with `--style clean|playful` on `build`, or set a default for your library with `repo-explainer library style playful`.
+
 ## The library
 
 Explainers pile up across repos and sessions. So every build also lands in one local folder, `~/.repo-explainer` (or `$REPO_EXPLAINER_HOME`), and its `index.html` puts them all in one place:
@@ -135,8 +144,8 @@ Needs Node 18.3 or newer. Nothing to install. The output is one HTML file you ca
 | `init <repo> [--preset id]` | A starter `explainer.json` with `TODO`s to fill |
 | `changes <repo> [--data f --write]` | Draft change entries from git: human or agent, type, PR link, parts touched |
 | `validate <file> [--repo dir] [--strict]` | Check references, lesson shape, writing style, and that every cited file exists |
-| `build <file> [--out f] [--repo dir]` | Validate, render the page, and publish it to the library (`--no-library` skips that) |
-| `library [list\|path\|add\|remove\|rebuild\|open]` | List, locate, add, remove, re-render or open the library |
+| `build <file> [--out f] [--repo dir] [--style s]` | Validate, render the page, and publish it to the library (`--no-library` skips that) |
+| `library [list\|path\|add\|remove\|rebuild\|open\|style]` | List, locate, add, remove, re-render or open the library, or set its default style |
 | `install [--force]` | Link the skill and the library rule into `~/.claude` |
 | `presets` | Presets for full stack, backend API, frontend, mobile, and library or CLI repos |
 | `patterns [id]` | Reusable flow shapes: auth, webhook, async job, cache, and more |

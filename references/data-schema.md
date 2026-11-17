@@ -47,7 +47,7 @@ Each step is `{ from, to, label, kind, detail?, why?, file, code?, lang? }`:
 | `kind` | `request`, `response` (dashed), `async` (dashed), `data` or `internal`. |
 | `label` | ≤ 6 words, an action: "Checks the session". |
 | `detail` | ≤ 2 sentences: what happens. |
-| `why` | Optional. The design reason, shown as a green callout. Use it sparingly, where a reader would ask "why like this?" |
+| `why` | Optional. The design reason, shown under "Why it works this way". Use it sparingly, where a reader would ask "why like this?" |
 | `file` | `path:line`. Required in practice: it is a warning without it, and an error under `--strict`. |
 | `code` | Optional. ≤ 8 lines of the real code at that line, trimmed. |
 
