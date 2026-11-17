@@ -4,6 +4,18 @@ import { dirname, resolve } from 'node:path';
 
 export const BIN = 'concept-explainer';
 
+// Text from explainers and bundles can carry escape sequences, bidi overrides
+// and invisible marks. Nothing printed may drive the terminal, so every write
+// goes through these. Newline and tab are kept; one-line fields lose them too.
+const UNSAFE = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g;
+export const terminalSafe = (text) => String(text).replace(UNSAFE, '\uFFFD');
+export const oneLine = (text) => terminalSafe(String(text).replace(/[\n\t]+/g, ' '));
+// JSON output stays valid and exact, with risky characters as \u escapes.
+export const jsonSafe = (value) => JSON.stringify(value, null, 2)
+  .replace(/[\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
+export const out = (text) => process.stdout.write(terminalSafe(text));
+export const err = (text) => process.stderr.write(terminalSafe(text));
+
 /** A mistake in how the CLI was called. Printed without a stack. */
 export class UsageError extends Error {}
 
@@ -19,20 +31,20 @@ export function readJson(path) {
 export function writeFile(path, content) {
   mkdirSync(dirname(resolve(path)), { recursive: true });
   writeFileSync(path, content);
-  process.stderr.write(`✔ wrote ${path}\n`);
+  err(`✔ wrote ${path}\n`);
 }
 
 export const toJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
 export function printJson(value) {
-  process.stdout.write(toJson(value));
+  process.stdout.write(`${jsonSafe(value)}\n`);
 }
 
 export function report({ errors, warnings }, strict) {
-  warnings.forEach((w) => process.stderr.write(`  ⚠ ${w}\n`));
-  errors.forEach((e) => process.stderr.write(`  ✖ ${e}\n`));
+  warnings.forEach((w) => err(`  ⚠ ${oneLine(w)}\n`));
+  errors.forEach((e) => err(`  ✖ ${oneLine(e)}\n`));
   const failed = errors.length > 0 || (strict && warnings.length > 0);
-  process.stderr.write(`${failed ? '✖' : '✔'} ${errors.length} error(s), ${warnings.length} warning(s)\n`);
+  err(`${failed ? '✖' : '✔'} ${errors.length} error(s), ${warnings.length} warning(s)\n`);
   return !failed;
 }
 

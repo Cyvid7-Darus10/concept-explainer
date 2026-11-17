@@ -172,6 +172,28 @@ function checkNoMarkup(report, data) {
   walk(data, '', '');
 }
 
+// Characters that are invisible, reorder text or drive a terminal: C0 and C1
+// controls, bidi overrides and isolates, zero-width marks. Newline and tab are
+// fine in prose and code; identifiers, paths and commands get none at all.
+const HIDDEN = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/;
+const HIDDEN_OR_BREAK = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/;
+const MULTILINE_KEYS = new Set(['code']);
+
+function checkHiddenCharacters(report, data) {
+  const walk = (value, path, key) => {
+    if (typeof value === 'string') {
+      const pattern = NON_PROSE_KEYS.has(key) && !MULTILINE_KEYS.has(key) ? HIDDEN_OR_BREAK : HIDDEN;
+      const hit = value.match(pattern);
+      if (hit) {
+        const code = hit[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+        report.error(path, `contains a control or invisible character (U+${code}). Remove it; text must read the same everywhere`);
+      }
+    } else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`, key));
+    else if (isObject(value)) Object.entries(value).forEach(([k, v]) => walk(v, path ? `${path}.${k}` : k, k));
+  };
+  walk(data, '', '');
+}
+
 function checkPlaceholders(report, data) {
   const hits = [];
   const walk = (value, path) => {
@@ -205,6 +227,7 @@ export function validateExplainer(data, options = {}) {
   checkV2(report, data, nodeIds);
   checkLessonShape(report, data);
   checkNoMarkup(report, data);
+  checkHiddenCharacters(report, data);
   checkProseStyle(report, data);
   checkPlaceholders(report, data);
   if (options.repoRoot) checkFilesExist(report, data, options.repoRoot);

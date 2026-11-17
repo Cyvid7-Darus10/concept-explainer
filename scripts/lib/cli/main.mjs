@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { migrateLegacyHome } from '../library.mjs';
 import { HELP } from './help.mjs';
-import { UsageError } from './io.mjs';
+import { UsageError, err, out } from './io.mjs';
 import { EXPLAIN_COMMANDS } from './explain-commands.mjs';
 import { LIBRARY_COMMANDS } from './library-commands.mjs';
 
@@ -56,7 +56,7 @@ export async function main(argv) {
   const { values, positionals } = parsed;
   const [command, ...rest] = positionals;
   if (!command || values.help) {
-    process.stdout.write(HELP);
+    out(HELP);
     return;
   }
   const run = COMMANDS[command];
@@ -64,9 +64,9 @@ export async function main(argv) {
   if (usesLibrary(command, values)) {
     try {
       const moved = migrateLegacyHome();
-      if (moved) process.stderr.write(`✔ ${moved}\n`);
+      if (moved) err(`✔ ${moved}\n`);
     } catch (error) {
-      process.stderr.write(`  ⚠ ${error.message}\n`);
+      err(`  ⚠ ${error.message}\n`);
     }
   }
   await run(rest, values, { skillDir: SKILL_DIR });
@@ -77,7 +77,7 @@ export async function runCli(argv) {
   try {
     await main(argv);
   } catch (error) {
-    process.stderr.write(`✖ ${error instanceof UsageError ? error.message : `concept-explainer failed: ${error.message}`}\n`);
+    err(`✖ ${error instanceof UsageError ? error.message : `concept-explainer failed: ${error.message}`}\n`);
     process.exitCode = 1;
   }
 }

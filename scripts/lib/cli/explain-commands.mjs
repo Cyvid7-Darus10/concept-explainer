@@ -16,7 +16,7 @@ import { measureDiff, measureSource } from '../estimate-input.mjs';
 import { readConfig, resolveHome } from '../library.mjs';
 import { openPath } from '../open.mjs';
 import {
-  BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
+  out, err, BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
 } from './io.mjs';
 import { chosenStyle, publish, validated } from './library-commands.mjs';
 
@@ -64,9 +64,9 @@ export const EXPLAIN_COMMANDS = {
     const type = typeOption(opts);
     const run = withConfig(estimateRun({ type, measure: measureFor(type, positionals[0], opts) }), readConfig(resolveHome()));
     if (opts.json) return printJson(run);
-    process.stdout.write(formatEstimate(run));
-    if (run.recommended.reason.startsWith('Set as your model')) process.stdout.write(`Your config picks ${run.recommended.model}.\n`);
-    if (run.budget) process.stdout.write(`Budget: $${run.budget.usd} (${run.budget.fits ? 'fits' : 'may not fit'} the recommended model's high end).\n`);
+    out(formatEstimate(run));
+    if (run.recommended.reason.startsWith('Set as your model')) out(`Your config picks ${run.recommended.model}.\n`);
+    if (run.budget) out(`Budget: $${run.budget.usd} (${run.budget.fits ? 'fits' : 'may not fit'} the recommended model's high end).\n`);
     return undefined;
   },
 
@@ -76,14 +76,14 @@ export const EXPLAIN_COMMANDS = {
     if (existsSync(out)) throw new UsageError(`${out} already exists. Pass --out to choose another path`);
     if (type !== 'repo') {
       writeFile(out, toJson(asUsage(() => createTypedStarter(type, { ref: positionals[0] }))));
-      process.stderr.write(`  type: ${type}\n  next: fill the TODOs, then \`${BIN} build ${out} --strict\`\n`);
+      err(`  type: ${type}\n  next: fill the TODOs, then \`${BIN} build ${out} --strict\`\n`);
       return;
     }
     const repo = resolve(requirePositional(positionals, '<repo>'));
     const scan = asUsage(() => scanRepo(repo));
     const preset = opts.preset || scan.suggestedPreset;
     writeFile(out, toJson(asUsage(() => createStarter(preset, scan))));
-    process.stderr.write(`  preset: ${preset}${opts.preset ? '' : ' (suggested by scan)'}\n  next: fill the TODOs, then \`${BIN} build ${out} --repo ${repo}\`\n`);
+    err(`  preset: ${preset}${opts.preset ? '' : ' (suggested by scan)'}\n  next: fill the TODOs, then \`${BIN} build ${out} --repo ${repo}\`\n`);
   },
 
   changes(positionals, opts) {
@@ -98,7 +98,7 @@ export const EXPLAIN_COMMANDS = {
     const known = new Set((data.changes || []).map((c) => c.id));
     const merged = { ...data, changes: [...(data.changes || []), ...drafted.filter((c) => !known.has(c.id))] };
     writeFile(opts.data, toJson(merged));
-    process.stderr.write(`  added ${merged.changes.length - (data.changes || []).length} change(s); fill each "why"\n`);
+    err(`  added ${merged.changes.length - (data.changes || []).length} change(s); fill each "why"\n`);
     return undefined;
   },
 
@@ -110,7 +110,7 @@ export const EXPLAIN_COMMANDS = {
     if (!data) throw new UsageError('--write needs --data <explainer.json>');
     writeFile(opts.data, toJson(mergeDiff(data, drafted)));
     const todo = drafted.diff.filter((d) => /TODO/.test(d.summary)).length;
-    process.stderr.write(`  ${drafted.diff.length} file(s) in diff; write each TODO summary from the code and the PR (${todo} drafted)\n`);
+    err(`  ${drafted.diff.length} file(s) in diff; write each TODO summary from the code and the PR (${todo} drafted)\n`);
     return undefined;
   },
 
@@ -140,17 +140,17 @@ export const EXPLAIN_COMMANDS = {
   },
 
   presets() {
-    process.stdout.write('Types (concept-explainer init --type <type>)\n');
-    process.stdout.write(`${'repo'.padEnd(16)} A whole codebase. Pick a stack preset below.\n`);
-    listTypePresets().forEach((p) => process.stdout.write(`${p.type.padEnd(16)} ${p.whenToUse}\n`));
-    process.stdout.write('\nRepo stack presets (concept-explainer init <repo> --preset <id>)\n');
-    listPresets().forEach((p) => process.stdout.write(`${p.id.padEnd(16)} ${p.name}\n${' '.repeat(17)}${p.whenToUse}\n`));
+    out('Types (concept-explainer init --type <type>)\n');
+    out(`${'repo'.padEnd(16)} A whole codebase. Pick a stack preset below.\n`);
+    listTypePresets().forEach((p) => out(`${p.type.padEnd(16)} ${p.whenToUse}\n`));
+    out('\nRepo stack presets (concept-explainer init <repo> --preset <id>)\n');
+    listPresets().forEach((p) => out(`${p.id.padEnd(16)} ${p.name}\n${' '.repeat(17)}${p.whenToUse}\n`));
   },
 
   patterns(positionals) {
     const all = listPatterns();
     if (!positionals[0]) {
-      all.forEach((p) => process.stdout.write(`${p.id.padEnd(18)} ${p.use}\n`));
+      all.forEach((p) => out(`${p.id.padEnd(18)} ${p.use}\n`));
       return;
     }
     const pattern = all.find((p) => p.id === positionals[0]);

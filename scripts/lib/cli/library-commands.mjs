@@ -10,7 +10,7 @@ import { applyImport, createBundle, planImport, readBundleFile } from '../bundle
 import { openPath } from '../open.mjs';
 import { validateExplainer } from '../validate.mjs';
 import {
-  BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
+  out, err, oneLine, BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
 } from './io.mjs';
 
 const home = () => resolveHome();
@@ -31,8 +31,8 @@ export function validated(file, opts) {
 
 export function publish(data, file, opts, style) {
   const result = publishExplainer(data, { home: home(), sourcePath: resolve(file), repoPath: opts.repo && resolve(opts.repo), style });
-  if (result.recovered) process.stderr.write('  ⚠ library.json was corrupt; it was backed up and rebuilt\n');
-  process.stderr.write(`✔ ${result.updated ? 'updated' : 'added'} ${result.slug} in the library\n  page: ${result.pagePath}\n  library: ${result.hubPath}\n`);
+  if (result.recovered) err('  ⚠ library.json was corrupt; it was backed up and rebuilt\n');
+  err(`✔ ${result.updated ? 'updated' : 'added'} ${result.slug} in the library\n  page: ${result.pagePath}\n  library: ${result.hubPath}\n`);
   return result;
 }
 
@@ -40,15 +40,15 @@ const LIBRARY = {
   list() {
     const entries = listExplainers({ home: home() });
     if (!entries.length) {
-      process.stdout.write(`The library is empty. Run \`${BIN} build <explainer.json>\` to add one.\n`);
+      out(`The library is empty. Run \`${BIN} build <explainer.json>\` to add one.\n`);
       return;
     }
     const width = Math.max(...entries.map((e) => e.slug.length)) + 2;
-    entries.forEach((e) => process.stdout.write(`${e.slug.padEnd(width)}${e.type.padEnd(11)}${e.title}  (${String(e.publishedAt).slice(0, 10)})\n`));
-    process.stdout.write(`\n${entries.length} explainer(s). Hub: ${libraryPaths(home()).hub}\n`);
+    entries.forEach((e) => out(`${e.slug.padEnd(width)}${e.type.padEnd(11)}${oneLine(e.title)}  (${String(e.publishedAt).slice(0, 10)})\n`));
+    out(`\n${entries.length} explainer(s). Hub: ${libraryPaths(home()).hub}\n`);
   },
   path() {
-    process.stdout.write(`${libraryPaths(home()).hub}\n`);
+    out(`${libraryPaths(home()).hub}\n`);
   },
   add(positionals, opts) {
     const file = requirePositional(positionals, '<explainer.json>');
@@ -59,32 +59,32 @@ const LIBRARY = {
   remove(positionals) {
     const slug = requirePositional(positionals, '<slug>');
     asUsage(() => removeExplainer(slug, { home: home() }));
-    process.stderr.write(`✔ removed ${slug}\n  library: ${libraryPaths(home()).hub}\n`);
+    err(`✔ removed ${slug}\n  library: ${libraryPaths(home()).hub}\n`);
   },
   rebuild(_positionals, opts) {
     const { rebuilt, skipped, hubPath } = rebuildLibrary({ home: home(), style: chosenStyle(opts) });
-    skipped.forEach((slug) => process.stderr.write(`  ⚠ dropped ${slug}: its explainer.json is missing or broken\n`));
-    process.stderr.write(`✔ rebuilt ${rebuilt.length} explainer(s)\n  library: ${hubPath}\n`);
+    skipped.forEach((slug) => err(`  ⚠ dropped ${slug}: its explainer.json is missing or broken\n`));
+    err(`✔ rebuilt ${rebuilt.length} explainer(s)\n  library: ${hubPath}\n`);
   },
   open() {
     openPath(ensureHub({ home: home() }));
   },
   style(positionals) {
     if (!positionals[0]) {
-      process.stdout.write(`${readConfig(home()).style}\n`);
+      out(`${readConfig(home()).style}\n`);
       return;
     }
     const config = asUsage(() => writeConfig(home(), { style: positionals[0] }));
-    process.stderr.write(`✔ default style: ${config.style}\n  run \`${BIN} library rebuild\` to restyle pages already in the library\n`);
+    err(`✔ default style: ${config.style}\n  run \`${BIN} library rebuild\` to restyle pages already in the library\n`);
   },
   async serve(_positionals, opts) {
     const port = opts.port === undefined ? 0 : Number(opts.port);
     if (!Number.isInteger(port) || port < 0 || port > 65535) throw new UsageError(`--port "${opts.port}" is not a port number`);
     ensureHub({ home: home() });
     const served = await startLibraryServer({ home: home(), port });
-    process.stdout.write(`Serving ${home()} on 127.0.0.1 only.\nOpen: ${served.url}\nSettings can save while this runs. Press Ctrl+C to stop.\n`);
+    out(`Serving ${home()} on 127.0.0.1 only.\nOpen: ${served.url}\nSettings can save while this runs. Press Ctrl+C to stop.\n`);
     process.once('SIGINT', () => {
-      served.close().then(() => process.stderr.write('\n✔ stopped\n'));
+      served.close().then(() => err('\n✔ stopped\n'));
     });
   },
 };
@@ -94,9 +94,9 @@ const CONFIG = {
     const config = readConfig(home());
     if (opts.json) return printJson(config);
     Object.entries(config).forEach(([key, value]) => {
-      process.stdout.write(`${key.padEnd(20)}${typeof value === 'string' ? value || '(empty)' : JSON.stringify(value)}\n`);
+      out(`${key.padEnd(20)}${typeof value === 'string' ? value || '(empty)' : JSON.stringify(value)}\n`);
     });
-    process.stdout.write(`\nSaved in ${libraryPaths(home()).config}\n`);
+    out(`\nSaved in ${libraryPaths(home()).config}\n`);
     return undefined;
   },
   get(positionals) {
@@ -104,18 +104,18 @@ const CONFIG = {
     const config = readConfig(home());
     if (!(key in config)) throw new UsageError(`unknown setting "${key}" (use ${Object.keys(config).join(', ')})`);
     const value = config[key];
-    process.stdout.write(`${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
+    out(`${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
   },
   set(positionals) {
     const [key, ...rest] = positionals;
     if (!key || !rest.length) throw new UsageError(`usage: ${BIN} config set <key> <value>`);
     const next = asUsage(() => setConfigValue(readConfig(home()), key, rest.join(' ')));
     asUsage(() => writeConfig(home(), next));
-    process.stderr.write(`✔ ${key} = ${JSON.stringify(key.startsWith('chapters.') ? next.chapters : next[key])}\n  run \`${BIN} library rebuild\` to show it in pages already built\n`);
+    err(`✔ ${key} = ${JSON.stringify(key.startsWith('chapters.') ? next.chapters : next[key])}\n  run \`${BIN} library rebuild\` to show it in pages already built\n`);
   },
   reset() {
     writeConfig(home(), CONFIG_DEFAULTS);
-    process.stderr.write('✔ config reset to the defaults\n');
+    err('✔ config reset to the defaults\n');
   },
 };
 
@@ -139,26 +139,26 @@ export const LIBRARY_COMMANDS = {
     const { bundle, slugs } = asUsage(() => createBundle(home(), selectors));
     const out = opts.out || `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
     writeFile(out, toJson(bundle));
-    process.stderr.write(`✔ exported ${slugs.length} explainer(s): ${slugs.join(', ')}\n  data only: no pages, no config, no local paths\n`);
+    err(`✔ exported ${slugs.length} explainer(s): ${slugs.join(', ')}\n  data only: no pages, no config, no local paths\n`);
   },
 
   import(positionals, opts) {
     const file = requirePositional(positionals, '<bundle.explainers.json>');
     const plan = asUsage(() => planImport(home(), readBundleFile(file), { onConflict: opts['on-conflict'] }));
     const summary = opts['dry-run'] ? plan.summary : applyImport(home(), plan);
-    const line = (verb, item) => `  ${verb.padEnd(8)}${item.slug || `#${item.index}`}${item.title ? `  ${item.title}` : ''}${item.note ? `  (${item.note})` : ''}${item.reason ? `  (${item.reason})` : ''}\n`;
-    process.stdout.write(summary.dryRun ? 'Dry run: nothing was written.\n' : 'Imported.\n');
-    summary.added.forEach((item) => process.stdout.write(line('add', item)));
-    summary.replaced.forEach((item) => process.stdout.write(line('replace', item)));
-    summary.skipped.forEach((item) => process.stdout.write(line('skip', item)));
-    summary.rejected.forEach((item) => process.stdout.write(`${line('reject', item)}${item.reasons.map((r) => `            ${r}\n`).join('')}`));
-    process.stdout.write(`${summary.added.length} added, ${summary.replaced.length} replaced, ${summary.skipped.length} skipped, ${summary.rejected.length} rejected.\n`);
-    if (!summary.dryRun) process.stdout.write(`Library: ${libraryPaths(home()).hub}\n`);
+    const line = (verb, item) => `  ${verb.padEnd(8)}${item.slug || `#${item.index}`}${item.title ? `  ${oneLine(item.title)}` : ''}${item.note ? `  (${oneLine(item.note)})` : ''}${item.reason ? `  (${oneLine(item.reason)})` : ''}\n`;
+    out(summary.dryRun ? 'Dry run: nothing was written.\n' : 'Imported.\n');
+    summary.added.forEach((item) => out(line('add', item)));
+    summary.replaced.forEach((item) => out(line('replace', item)));
+    summary.skipped.forEach((item) => out(line('skip', item)));
+    summary.rejected.forEach((item) => out(`${line('reject', item)}${item.reasons.map((r) => `            ${oneLine(r)}\n`).join('')}`));
+    out(`${summary.added.length} added, ${summary.replaced.length} replaced, ${summary.skipped.length} skipped, ${summary.rejected.length} rejected.\n`);
+    if (!summary.dryRun) out(`Library: ${libraryPaths(home()).hub}\n`);
   },
 
   install(_positionals, opts, context) {
     const actions = asUsage(() => installSkill({ skillDir: context.skillDir, configDir: resolveConfigDir(), force: Boolean(opts.force) }));
-    actions.forEach((line) => process.stderr.write(`✔ ${line}\n`));
-    process.stderr.write(`  library: ${libraryPaths(home()).hub}\n`);
+    actions.forEach((line) => err(`✔ ${line}\n`));
+    err(`  library: ${libraryPaths(home()).hub}\n`);
   },
 };
