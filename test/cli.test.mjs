@@ -257,3 +257,27 @@ test('config prints, gets, sets, resets and refuses bad values', () => {
   assert.equal(run('config', 'reset').status, 0);
   assert.equal(JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')).audience, 'engineer');
 });
+
+test('export writes a bundle and import reads it, with a dry run first', () => {
+  const { run, root, data } = setup();
+  run('build', data);
+  const out = join(root, 'share.explainers.json');
+  const exported = run('export', '--out', out);
+  assert.equal(exported.status, 0, exported.stderr);
+  assert.match(exported.stderr, /exported 1 explainer/);
+  assert.match(exported.stderr, /acme-taskflow/);
+  const other = setup();
+  const dry = other.run('import', out, '--dry-run');
+  assert.equal(dry.status, 0, dry.stderr);
+  assert.match(dry.stdout, /dry run/i);
+  assert.match(dry.stdout, /add\s+acme-taskflow/);
+  assert.ok(!existsSync(join(other.home, 'library.json')), 'the dry run wrote nothing');
+  const real = other.run('import', out);
+  assert.equal(real.status, 0, real.stderr);
+  assert.ok(existsSync(join(other.home, 'explainers', 'acme-taskflow', 'index.html')));
+  assert.match(other.run('import', out, '--on-conflict', 'skip').stdout, /skip\s+acme-taskflow/);
+  assert.match(other.run('import', out, '--on-conflict', 'merge').stderr, /--on-conflict "merge"/);
+  assert.match(run('export', '--type', 'incident', '--out', out).stderr, /nothing matches/);
+  writeFileSync(join(root, 'bad.json'), '{"format":"zip"}');
+  assert.match(other.run('import', join(root, 'bad.json')).stderr, /not a concept-explainer bundle/);
+});
