@@ -155,7 +155,8 @@ test('hostile titles stay inert in the hub', () => {
   const title = '</script><script>alert(1)</script><!--';
   publishExplainer({ meta: { title, summary: '<img src=x onerror=alert(1)>', repo: 'evil/x' } }, { home });
   const html = readFileSync(libraryPaths(home).hub, 'utf8');
-  assert.equal((html.match(/<\/script>/gi) || []).length, 2, 'only the two real closing tags');
+  const templateTags = (readFileSync(new URL('../template/library.html', import.meta.url), 'utf8').match(/<\/script>/gi) || []).length;
+  assert.equal((html.match(/<\/script>/gi) || []).length, templateTags, 'only the template\'s own closing tags');
   assert.doesNotMatch(html, /<img src=x/);
   assert.equal(embedded(html, 'explainer-data').manifest.explainers[0].title, title);
 });

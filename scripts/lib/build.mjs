@@ -83,7 +83,8 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR, LIBRARY_SCRIPT_ORDER, 'library.html');
   const count = manifest && Array.isArray(manifest.explainers) ? manifest.explainers.length : 0;
   const description = `${count} explainer${count === 1 ? '' : 's'}: search, browse and open them in one place.`;
-  return assemble(parts, 'Explainer library · Repo Explainer', { style: options.style || 'clean', manifest, index: searchIndex }, 'bootLibrary();', description);
+  const style = options.style || 'clean';
+  return assemble(parts, 'Explainer library · Repo Explainer', { style, manifest, index: searchIndex }, 'bootLibrary();', description, { style });
 }
 
 /**

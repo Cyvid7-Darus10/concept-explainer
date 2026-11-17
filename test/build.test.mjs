@@ -114,8 +114,12 @@ test('buildLibrary embeds the manifest and index and boots the hub', () => {
   assert.match(html, /^<!doctype html>/);
   assert.match(html, /bootLibrary\(\);/);
   assert.doesNotMatch(html, /\nboot\(\);/);
-  assert.doesNotMatch(html, /__TITLE__|__EXPLAINER_DATA__|__CONTEXT__|\/\*__STYLES__\*\/|\/\*__SCRIPTS__\*\//);
+  // Scripts may mention placeholder names (an unfilled-tag guard); only the slots must be filled.
+  assert.doesNotMatch(html, /<title>__TITLE__|>__EXPLAINER_DATA__<|>__CONTEXT__<|^\/\*__STYLES__\*\/$|^\/\*__SCRIPTS__\*\/$/m);
   assert.deepEqual(embeddedJson(html), { style: 'clean', manifest, index });
+  const context = html.match(/id="explainer-context">([\s\S]*?)<\/script>/);
+  if (context) assert.deepEqual(JSON.parse(context[1]), { style: 'clean' });
   assert.equal(embeddedJson(buildLibrary(manifest, index, { style: 'playful' })).style, 'playful');
-  assert.equal((html.match(/<\/script>/g) || []).length, 2);
+  const templateTags = (readFileSync(join(TEMPLATE_DIR, 'library.html'), 'utf8').match(/<\/script>/g) || []).length;
+  assert.equal((html.match(/<\/script>/g) || []).length, templateTags, 'only the template\'s own closing tags');
 });
