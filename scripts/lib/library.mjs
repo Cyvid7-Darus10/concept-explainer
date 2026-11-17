@@ -193,8 +193,18 @@ export function publishExplainer(data, options = {}) {
   const paths = libraryPaths(home);
   const style = styleFor(home, options.style);
   const { manifest, recovered } = readManifest(home);
-  const source = { repo: data.meta.repo, repoPath: options.repoPath, sourcePath: options.sourcePath };
-  const { slug, existing } = chooseSlug(manifest.explainers, baseSlugFor(data, options), source);
+  const meta = data.meta;
+  const source = {
+    type: entryFor(data, { slug: 'x', publishedAt: '' }).type,
+    repo: meta.repo,
+    ref: meta.source && typeof meta.source === 'object' ? meta.source.url || meta.source.ref : undefined,
+    repoPath: options.repoPath,
+    sourcePath: options.sourcePath,
+  };
+  // An explicit slug (from import) is used as is; otherwise pick one by source.
+  const { slug, existing } = options.slug
+    ? { slug: checkedSlug(options.slug), existing: manifest.explainers.some((e) => e.slug === options.slug) }
+    : chooseSlug(manifest.explainers, baseSlugFor(data, options), source);
   const at = now();
 
   writeAtomic(join(paths.dirFor(slug), 'explainer.json'), toJson(data));
@@ -202,8 +212,13 @@ export function publishExplainer(data, options = {}) {
   const entry = entryFor(data, { slug, sourcePath: options.sourcePath, repoPath: options.repoPath, publishedAt: at });
   const next = upsertEntry(manifest, entry, at);
   writeAtomic(paths.manifest, toJson(next));
-  const hubPath = writeHub(home, next, options);
+  const hubPath = options.skipHub ? paths.hub : writeHub(home, next, options);
   return { slug, updated: existing, pagePath, hubPath, recovered, style };
+}
+
+function checkedSlug(slug) {
+  if (typeof slug !== 'string' || !SLUG_PATTERN.test(slug)) throw new Error(`publish explainer: invalid slug "${slug}"`);
+  return slug;
 }
 
 /** Delete one explainer from the library and refresh the hub. */

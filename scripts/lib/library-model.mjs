@@ -29,12 +29,34 @@ export function slugify(value, max = SLUG_MAX) {
   return slug || FALLBACK_SLUG;
 }
 
+const typeOfMeta = (meta) => (EXPLAINER_TYPES.includes(meta.type) ? meta.type : DEFAULT_TYPE);
+
+// A short name for what a non-repo explainer is about: "#512" gives "512",
+// "docs/rfcs/0007-live-updates.md" gives "0007-live-updates".
+function refName(source) {
+  if (!isObject(source)) return null;
+  const raw = str(source.ref) || str(source.url);
+  if (!raw) return null;
+  const last = raw.replace(/[?#].*$/, (m) => (m.startsWith('#') && !raw.includes('/') ? m : '')).split('/').filter(Boolean).pop() || raw;
+  return last.replace(/\.[a-z0-9]{1,5}$/i, '');
+}
+
 /**
- * The slug an explainer would like: meta.repo, else the repo folder, else the
- * data file's folder (".explainer" stands for the repo folder above it).
+ * The slug an explainer would like. A repo: meta.repo, else the repo folder,
+ * else the data file's folder (".explainer" stands for the folder above it).
+ * Other types: "<repo>-<type>-<ref>" when the repo and source are known
+ * ("acme-taskflow-pr-512"), else the title ("idempotency-keys").
  */
 export function baseSlugFor(data, { repoPath, sourcePath } = {}) {
-  const repo = isObject(data) && isObject(data.meta) ? str(data.meta.repo) : null;
+  const meta = isObject(data) && isObject(data.meta) ? data.meta : {};
+  const repo = str(meta.repo);
+  const type = typeOfMeta(meta);
+  if (type !== DEFAULT_TYPE) {
+    const ref = refName(meta.source);
+    if (repo && ref) return slugify(`${repo} ${type} ${ref}`);
+    const title = str(meta.title);
+    if (title) return slugify(title.replace(/,\s*explained\s*$/i, ''));
+  }
   if (repo) return slugify(repo);
   if (str(repoPath)) return slugify(basename(repoPath));
   if (str(sourcePath)) {
@@ -44,11 +66,22 @@ export function baseSlugFor(data, { repoPath, sourcePath } = {}) {
   return FALLBACK_SLUG;
 }
 
+const sourceRef = (value) => (isObject(value) ? str(value.url) || str(value.ref) : null);
+
 /**
- * Two entries describe the same explainer when their repo names match, else
- * their repo folders, else their data files.
+ * Two entries describe the same explainer only when they have the same type.
+ * A repo then matches by repo name, else repo folder, else data file. Other
+ * types match by their source reference (and repo, when both have one),
+ * else by data file.
  */
 export function sameSource(entry, source) {
+  if ((entry.type || DEFAULT_TYPE) !== (source.type || DEFAULT_TYPE)) return false;
+  if ((source.type || DEFAULT_TYPE) !== DEFAULT_TYPE) {
+    const a = sourceRef(entry.source) || str(entry.ref);
+    const b = str(source.ref);
+    if (a && b) return a === b && (!str(entry.repo) || !str(source.repo) || entry.repo === source.repo);
+    return Boolean(str(entry.sourcePath) && str(source.sourcePath) && entry.sourcePath === source.sourcePath);
+  }
   if (str(entry.repo) && str(source.repo)) return entry.repo === source.repo;
   if (str(entry.repoPath) && str(source.repoPath)) return entry.repoPath === source.repoPath;
   if (str(entry.sourcePath) && str(source.sourcePath)) return entry.sourcePath === source.sourcePath;
