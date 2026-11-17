@@ -19,9 +19,12 @@ These are in scope:
 - Rendering uses `textContent` / `setAttribute` only. A test bans `innerHTML`, `eval` and `new Function`.
 - Embedded JSON escapes `<`, `>`, `&`, U+2028 and U+2029.
 - The scanner skips symlinks and only reads env var *names* from `.env.example`-style files.
-- Git is invoked with `execFileSync` and an argument array, never through a shell.
+- Git runs only through `scripts/lib/git.mjs`, with an argument array and never a shell. Every call turns off the repo's own fsmonitor, external diff, textconv, pager, hooks, signature checks (gpg, ssh, x509), ssh command, credential helpers and network protocols, ignores system config and never prompts. Refs come after `--end-of-options`.
+- The validator rejects control characters, bidi overrides and isolates, and zero-width marks in every string, and everything the CLI prints is sanitized, so explainer text cannot drive a terminal or hide a command.
+- Pages carry a Content Security Policy fixed at build time (their own inline blocks by hash, no remote sources), load self-hosted fonts and embed no private config (`instructions`) and no local paths.
+- The library is private (`0700` folders, `0600` files) and has one writer at a time (`<home>/.lock`).
 - Opening a file uses `open`, `xdg-open` or `explorer.exe` with the path as one argument, never `cmd /c start`, so shell metacharacters in a path do nothing.
-- `library serve` binds to 127.0.0.1, checks the Host header on every request (DNS rebinding) and the Origin on writes, needs a random per-run token in a header for its one write endpoint, validates the body with the config schema, caps it at 64 KB, and serves only files whose real path is inside the library. The token travels in the URL fragment, so it never reaches logs or Referer headers.
+- `library serve` binds to 127.0.0.1, checks the Host header on every request (DNS rebinding) and the Origin on writes, needs a random per-run token in a header for every API call, validates bodies with the same rules as the CLI, stops reading at the size cap, and serves only the hub, the kit, explainer pages and fonts: never `library.json`, `config.json` or any explainer data. The token travels in the URL fragment, so it never reaches logs or Referer headers.
 - `diff` and `estimate --base` refuse git refs that start with `-`, so a ref can never become a git option.
 - Library slugs are limited to `[a-z0-9-]`, so a repo name cannot point a write outside `<home>/explainers/`. Library files are written to a temp file and renamed.
 - The library hub only links into its own `explainers/` folder; any other href renders as text.

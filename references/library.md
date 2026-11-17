@@ -14,6 +14,8 @@ The code: `scripts/lib/library.mjs` (fs), `scripts/lib/library-model.mjs` (slugs
 <home>/
   index.html                  the hub: manifest, search index and config embedded, works from file://
   kit.html                    the kit page (icons, visuals, components, patterns), linked from the hub
+  fonts/                      the self-hosted fonts library pages load (woff2) and OFL.txt
+  .lock/                      present only while a write is in progress
   library.json                the manifest
   config.json                 explainer defaults (see Config)
   explainers/<slug>/
@@ -42,7 +44,11 @@ The source of truth stays where it was made, usually `<repo>/.explainer/explaine
 | `import <file> [--on-conflict rename\|skip\|replace] [--dry-run]` | Adds a bundle to the library, and prints what was added, replaced, skipped or rejected and why. |
 | `install [--force]` | Links this skill into `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/concept-explainer` and copies `rules/concept-explainer.md` into `${CLAUDE_CONFIG_DIR:-~/.claude}/rules/`. |
 
-Every write in the library goes to a temp file in the same folder and is renamed into place, so a reader never sees half a file.
+Every write in the library goes to a temp file in the same folder (created with `wx`, so an existing file is never reused) and is renamed into place, so a reader never sees half a file.
+
+**Private.** The home is `0700` and its files `0600`; a home created with looser permissions is tightened on the next write.
+
+**One writer at a time.** Every read-modify-write (publish, remove, rebuild, import, config, the hub) holds `<home>/.lock`, a folder with the owner's pid, shared by the CLI and `library serve`. A lock whose process is gone is cleared. A busy library waits up to 30 seconds, then fails with `library is busy: ... held by pid N`.
 
 ### `install`
 
@@ -127,6 +133,7 @@ A slug names an explainer's folder and appears in every link.
 - `type` is always set (`repo` for files without `meta.type`). `repo`, `sourcePath`, `repoPath`, `preset`, `status`, `source`, `commit` and `generatedAt` are `null` when unknown. `stack`, `tags` and `layers` are always arrays; `counts` always has all thirteen keys.
 - `counts.files` is the number of `tree` entries; `counts.diff` the number of diff files.
 - `source.url` is present only when it is http or https.
+- `origin: "import"` and `importedAt` mark entries that came from an import (kept through `library rebuild`); local builds have no `origin`. The hub can badge them.
 - `thumb` is a small picture for the hub card (`scripts/lib/thumb.mjs`), or `null`:
   - **Map** for repo, pr, change, proposal and migration: `{ kind: "map", layers: [{ id, color }], nodes: [{ id, layer, status? }], edges: [[from, to]] }`, at most 40 nodes and 60 edges, edges only between kept nodes.
   - **Otherwise the first visual** (diagrams first, then concept visuals), trimmed to its shape: `layers`, `cycle`: `items: [{ label }]`; `funnel`: `items: [{ label, value? }]`; `state`: `states: [{ id, label }]`, `transitions: [[from, to]]`; `compare`: `columns`, `rows: [{ label, values }]`; `hierarchy`: `nodes: [{ id, label, parent? }]`; `beforeAfter`: `before.items`, `after.items` (labels, 4 each); `quadrant`: `axes: { x, y }`, `points: [{ x, y }]`; `venn`: `sets: [{ id, label }]`, `items: [{ in }]`. Up to 8 items, 10 states, 6 rows, 12 points; labels cut to 24 characters; details dropped.
@@ -145,14 +152,16 @@ The hub reads one JSON object from `<script type="application/json" id="explaine
 ```json
 {
   "style": "clean",
-  "config": { "style": "clean", "defaultType": "auto", "audience": "engineer", "...": "every config key" },
+  "config": { "style": "clean", "defaultType": "auto", "audience": "engineer", "...": "every config key except instructions" },
   "kitHref": "kit.html",
   "manifest": { "version": 1, "updatedAt": "...", "explainers": [] },
   "index": []
 }
 ```
 
-Its `#explainer-context` tag holds `{ "style", "config" }`.
+Its `#explainer-context` tag holds `{ "style", "config" }`. The hub's `manifest.explainers` entries carry no `sourcePath` or `repoPath`; those absolute paths stay in `library.json`.
+
+**`config` in a page never includes `instructions`**, which may hold private notes. A page opened through `library serve` reads the full config from `GET /api/config` with the token. From `file://`, Settings shows the embedded values and the `config set` commands to copy.
 
 ### Explainer and kit context
 
@@ -164,6 +173,21 @@ Its `#explainer-context` tag holds `{ "style", "config" }`.
 | Library kit page (`kit.html`) | `{ "libraryHref": "index.html", "style", "config" }` |
 | Standalone build | `{ "style", "config" }` |
 | `build --no-library` | `{ "style" }` (no config: the page uses defaults) |
+
+### Fonts
+
+Library pages (explainers, the hub, the kit) start their inline stylesheet with `@font-face` rules for Geist, Geist Mono, Nunito and JetBrains Mono (latin and latin-ext, `font-display: swap`), pointing at `fonts/` beside the hub with relative URLs (`../../fonts/` from an explainer page). The template's own styles follow. Standalone builds get no `@font-face` and fall back to system fonts. Nothing loads from Google.
+
+### Content Security Policy
+
+Every built page carries `<meta http-equiv="Content-Security-Policy">` right after `<meta charset>`, fixed at build time, so it holds from `file://` too:
+
+```
+default-src 'none'; script-src <hash of each inline script>; style-src <hash of each inline style>;
+style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'
+```
+
+JSON data blocks are not scripts, so they need no hash. `style-src-attr 'unsafe-inline'` allows only the style attributes the page's own code sets (CSS variables, positions); it allows no style element and no script. A page that needs a new inline block gets it by rebuilding, never by editing the file.
 
 When `libraryHref` is set, the page shows a Library link back to the hub.
 
@@ -216,9 +240,10 @@ A page opened from `file://` cannot write files, so Settings there shows the cur
 - Binds to **127.0.0.1 only**, on a random port unless `--port` is given. Prints `http://127.0.0.1:<port>/index.html#token=<token>` and runs until Ctrl+C.
 - A fresh random **token** per run (48 hex characters) travels to the page in the URL fragment, so it never reaches a server log or a Referer header.
 - **Host** must be `127.0.0.1:<port>` or `localhost:<port>` on every request (blocks DNS rebinding).
-- **Files:** `GET` and `HEAD` only, for files under the library home. A folder serves its `index.html`; there is no directory listing. `..`, encoded traversal, NUL bytes and symlinks that leave the library are refused. Responses carry `nosniff`, `no-store`, `no-referrer` and `DENY` framing headers.
+- **Files:** `GET` and `HEAD` only, and only these: `/` and `/index.html` (the hub), `/kit.html`, `/explainers/<slug>/` and `/explainers/<slug>/index.html`, and `/fonts/<name>.woff2` and `/fonts/OFL.txt`. Everything else is not found, with or without the token: `library.json`, `config.json`, every `explainer.json`, temp, backup and corrupt files, dotfiles and `.lock`. Symlinks that leave the library are refused. Responses carry `nosniff`, `no-store`, `no-referrer` and `DENY` framing headers.
+- **Bodies:** reading stops at the cap; the answer is 413 with `Connection: close` and the connection is dropped. Aborted uploads are dropped without an answer.
 - **API:** every call needs the token in `X-Concept-Explainer-Token`; writes also need the Origin. `GET /api/config` needs it too, since `instructions` may be private.
-- **CSP:** every page is served with `default-src 'none'`, its own inline `<script>` and `<style>` blocks allowed by sha256 hash (computed when served), Google Fonts for styles and fonts, `img-src 'self' data:`, `connect-src 'self'`, `base-uri 'none'`, `form-action 'none'` and `frame-ancestors 'none'`. `style-src-attr 'unsafe-inline'` allows the style attributes the page's own code sets (CSS variables, tooltip positions); hashes cannot cover attributes, and this permits no style elements and no script. Other files get `default-src 'none'`.
+- **CSP:** a page is served with the policy its build fixed (its meta tag), plus `frame-ancestors 'none'`, which works only as a header. The policy is never recomputed from the served file, so a page changed after its build gains nothing. A page without a meta tag gets `default-src 'none'`. Other files get `default-src 'none'; frame-ancestors 'none'`.
 
 | Endpoint | Request | Response |
 |---|---|---|
@@ -292,7 +317,9 @@ No HTML, no scripts, no config, no local paths. The importer rebuilds every page
 |---|---|---|---|
 | `rename` (default) | add | add as `<slug>-2` | add as `<slug>-2` |
 | `skip` | add | skip | skip |
-| `replace` | add | replace it | add as `<slug>-2` (never overwrites a different explainer) |
+| `replace` | add | replace it, keeping the old data as `explainer.json.replaced-<time>-<random>` | add as `<slug>-2` (never overwrites a different explainer) |
+
+Within one bundle, a later item aimed at a slug an earlier item already writes is **skipped** with the reason `duplicate in this bundle` (in `rename` mode, only when it is the same source). The first item wins, so a replace never backs up its own output. Backups are written with `wx` and a random suffix, so two can never overwrite each other. Imported entries are marked `origin: "import"`.
 
 "Same source" means the same type and, for a repo, the same `meta.repo`; for other types, the same `meta.source` reference.
 
@@ -302,7 +329,7 @@ No HTML, no scripts, no config, no local paths. The importer rebuilds every page
 {
   "dryRun": true,
   "added": [{ "slug": "acme-taskflow-pr-512-2", "title": "...", "note": "renamed from acme-taskflow-pr-512; dropped 1 unsafe link" }],
-  "replaced": [{ "slug": "...", "title": "...", "note": "" }],
+  "replaced": [{ "slug": "...", "title": "...", "note": "", "overwrites": { "slug": "...", "title": "the local explainer's title" } }],
   "skipped": [{ "index": 0, "title": "...", "slug": "...", "reason": "already in the library" }],
   "rejected": [{ "index": 2, "title": "...", "reasons": ["concepts[0].body: contains HTML markup..."] }]
 }

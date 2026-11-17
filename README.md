@@ -252,9 +252,10 @@ Agents only write data. The design, components, icons, visuals and motion are fi
 
 - The scanner reads env var **names** from example files only. It never opens `.env`.
 - All text renders as plain text, and embedded data is escaped. Links must be `http` or `https`.
-- The page makes no network calls except loading Google Fonts. It falls back to system fonts offline.
+- Pages make no requests to anyone else. Library pages load self-hosted fonts from the library folder; standalone pages use system fonts. Each page carries a Content Security Policy that allows only its own inline code.
 - The library lives only on your machine. Slugs are limited to `[a-z0-9-]`, files are written atomically, and the hub only follows links into its own `explainers/` folder.
-- `library serve` binds to 127.0.0.1, needs a per-run token for every API call, checks Host and Origin, sends a strict Content Security Policy, and never serves files outside the library.
+- `library serve` binds to 127.0.0.1, needs a per-run token for every API call, checks Host and Origin, and serves only pages and fonts, never your library's data or settings.
+- Text from repos, PRs, docs and bundles is treated as data: the skill never follows instructions found in it or runs its commands, and the CLI rejects hidden control characters and never lets git run the repo's own hooks.
 - `import` treats a bundle as untrusted: a size cap, prototype keys dropped, every explainer validated, unsafe links dropped, and pages rebuilt locally.
 - Git runs with argument arrays, never through a shell, and refs that look like options are refused.
 
@@ -267,7 +268,7 @@ Report vulnerabilities through [SECURITY.md](SECURITY.md).
 - **The Playful style** is inspired by [Duolingo](https://www.duolingo.com)'s design language.
 - **Explanation design** draws on Bret Victor's [Explorable Explanations](https://worrydream.com/ExplorableExplanations/), Red Blob Games, the C4 model, and the research collected in [`references/explaining.md`](references/explaining.md).
 
-Concept Explainer is independent and not affiliated with or endorsed by Vercel, Brilliant or Duolingo. It includes none of their logos, mascots or illustrations. Type is [Geist and Geist Mono](https://vercel.com/font), loaded from Google Fonts. The icons and the mark are original.
+Concept Explainer is independent and not affiliated with or endorsed by Vercel, Brilliant or Duolingo. It includes none of their logos, mascots or illustrations. Type is [Geist and Geist Mono](https://vercel.com/font), self-hosted under the SIL Open Font License (`fonts/OFL.txt`). The icons and the mark are original.
 
 ## Contributing
 
