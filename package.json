@@ -1,6 +1,6 @@
 {
   "name": "concept-explainer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An agent skill that explains a repo, a PR, a change, a proposal, a migration, an incident or a concept as one interactive page: diagrams first, broken into parts, every claim cited.",
   "type": "module",
   "bin": {

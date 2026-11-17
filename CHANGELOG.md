@@ -2,11 +2,11 @@
 
 All notable changes to this project are documented here. This project follows [Semantic Versioning](https://semver.org).
 
-## 0.2.0 (Unreleased)
+## 0.2.0 (2026-11-18)
 
 Repo Explainer is now **Concept Explainer**. It explains a repo, a PR or MR, a change, a proposal, a migration, an incident or a concept, and the main point is the picture: diagrams first, ideas broken into parts, every claim cited.
 
-TODO before release: the GitHub repository is still `Cyvid7-Darus10/repo-explainer`. Renaming it needs the owner's approval; after that, update `repository`, `bugs` and `homepage` in `package.json` and the links in README, CONTRIBUTING and SECURITY. GitHub redirects the old URL.
+<!-- After the GitHub rename from Cyvid7-Darus10/repo-explainer: update repository, bugs and homepage in package.json and the links in README, CONTRIBUTING and SECURITY. GitHub redirects the old URL. -->
 
 ### Added
 
@@ -18,7 +18,7 @@ TODO before release: the GitHub repository is still `Cyvid7-Darus10/repo-explain
 - **Concepts in parts:** 2 to 6 `parts` per concept and an optional `visual`.
 - **Code walkthroughs:** a few real lines, annotated step by step with Back and Continue (`walkthroughs[]`, chapter `code`). `snippet <repo> <path:start-end>` prints the exact lines.
 - **Explaining playbook** (`references/explaining.md`): the root card, picking diagrams by the question they answer, misconceptions and transfer quizzes. `validate` warns when an analogy does not say where it breaks, a caption is a label rather than a takeaway, or quiz feedback skips the tempting wrong answer.
-- **Examples** for `pr`, `proposal` and `concept`, all passing `--strict`, plus walkthroughs in the Taskflow and PR examples.
+- **Examples** for `pr`, `proposal` and `concept`, all passing `--strict`, plus walkthroughs in the Taskflow and PR examples. All four built pages are committed in `examples/` and checked in CI.
 
 **The page**
 
@@ -52,6 +52,7 @@ TODO before release: the GitHub repository is still `Cyvid7-Darus10/repo-explain
 - **The look** is a Geist dashboard: Geist type and greys, one orange accent, hairline rings, one 6px radius, and layer colors as small markers. The previous look lives on as the Playful style.
 - **Credits:** Geist (Vercel) for type and greys and Brilliant for lesson pacing; the Playful style credits Duolingo's design language.
 - `--repo` file checks and file citation warnings apply only to types that cite code (repo, pr, change, migration).
+- **Page code is split** into small files (`dom.js`, `truncate.js`, `theme.js`, `hub-search.js`, Settings in three parts, chapter layout, drawing and wiring apart), with every function under 50 lines and a test that keeps it so. Behaviour is unchanged.
 
 ### Security
 
@@ -75,6 +76,11 @@ TODO before release: the GitHub repository is still `Cyvid7-Darus10/repo-explain
 - `install` on Windows links the skill as a junction (no admin rights needed), and a relink renames the new link over the old one instead of removing it first. CI runs the unit tests on Windows.
 - Only a writer holding the lock moves a corrupt `library.json` aside; readers recover it in memory.
 - A bad `chapters.<type>.<chapter>` value names that setting in the error.
+- The hub exports exactly the explainers on screen (picks, else the search and filters, else the whole library) by slug, and says so when a filter leaves none.
+- Import and Save run one at a time, and Save as page keeps the page's CSP.
+- Pages show timestamps in the reader's own day, and date-only values as the day they name.
+- UI audit: Large text no longer pushes the sidebar footer and the phone Menu off screen; the current chapter scrolls into view in the nav; the phone theme menu stays on screen; touch targets are at least 44px; text that failed AA contrast now passes; the hub shows titles on up to two lines.
+- Long-name watchers no longer pile up across hub re-renders.
 - A PR, proposal or concept explainer for the same repo as a repo explainer no longer overwrites it in the library.
 - Template code containing `</script>` can no longer end the inlined script block.
 - `--open` on Windows used `cmd /c start`, which ran shell metacharacters in a path. It now uses `explorer.exe` with the path as one argument.
