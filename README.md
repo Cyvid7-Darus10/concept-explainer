@@ -17,8 +17,6 @@
 <p align="center">
   <a href="https://cyvid7-darus10.github.io/repo-explainer/examples/taskflow.html"><b>Live demo</b></a>
   &nbsp;·&nbsp;
-  <a href="https://cyvid7-darus10.github.io/repo-explainer/examples/gallery.html"><b>Kit</b></a>
-  &nbsp;·&nbsp;
   <a href="#quick-start"><b>Quick start</b></a>
   &nbsp;·&nbsp;
   <a href="#what-it-can-explain"><b>Types</b></a>
@@ -26,13 +24,15 @@
   <a href="#the-library"><b>Library</b></a>
   &nbsp;·&nbsp;
   <a href="#what-a-run-costs"><b>Cost</b></a>
+  &nbsp;·&nbsp;
+  <a href="#security"><b>Security</b></a>
 </p>
 
 <p align="center">
-  <a href="https://cyvid7-darus10.github.io/repo-explainer/examples/taskflow.html"><img src="docs/media/demo.gif" alt="A Concept Explainer tour: the overview, the architecture map, stepping through a request, recent changes, the data model and a quiz" width="860"></a>
+  <a href="https://cyvid7-darus10.github.io/repo-explainer/examples/taskflow.html"><img src="docs/media/demo.gif" alt="A Concept Explainer page: the Overview, the architecture map, stepping through a request, a code walkthrough and the quiz" width="860"></a>
 </p>
 
-> Concept Explainer was called Repo Explainer. The `repo-explainer` command still works and prints a note; your library moves from `~/.repo-explainer` to `~/.concept-explainer` on the first run, without deleting anything.
+> Concept Explainer was called Repo Explainer. The `repo-explainer` command still works and prints a note, and your library moves from `~/.repo-explainer` to `~/.concept-explainer` on the first run, without deleting anything.
 
 ## Why
 
@@ -49,55 +49,60 @@ Reading every diff and doc does not scale. Concept Explainer has your agent do t
 
 ## What it can explain
 
-The agent identifies what you gave it, then fills the same format. The library can then filter by type.
+The agent works out what you gave it, then fills the same format. Your library can then filter by type.
 
 | Type | Explains | What you see |
 |---|---|---|
-| `repo` | A whole codebase | Architecture map, step-through request flows, data model, what changed and why |
-| `pr` | One PR or MR | The problem, a file by file diff walkthrough, the parts that move on the map, risks, rollout |
+| `repo` | A whole codebase | The architecture map, step-through request flows, the data model, what changed and why |
+| `pr` | One PR or MR | The problem, a file by file walkthrough of the diff, the parts that move on the map, risks, rollout |
 | `change` | One commit or a short range | What moved and why, and what could break |
 | `proposal` | An RFC, design doc or idea | Problem and goals, options side by side with the chosen one marked, before and after, rollout |
-| `migration` | An upgrade or re-platform | Before and after flows, options, the steps to get there, risks during the move |
+| `migration` | An upgrade or re-platform | Before and after flows, the options, the steps to get there, risks during the move |
 | `incident` | A post-mortem | A timeline from the record, how the failure flowed, every contributing cause, follow ups |
-| `concept` | An idea like OAuth or CRDTs | The idea broken into 2 to 6 parts, a diagram for each, a worked case, a transfer quiz |
+| `concept` | An idea like OAuth or CRDTs | The idea broken into 2 to 6 parts, a diagram for each, a worked case, a quiz that tests transfer |
 
 ## Show it, don't tell it
 
-Every chapter is a picture first and text second. Options are a comparison grid. Risks are an impact grid. A rollout is a stepped track. A timeline is a time axis. A diff is a file bar chart linked to the map, where moved parts are marked.
+Every chapter is a picture first and text second.
 
-For anything else there is a fixed kit of nine visuals, drawn from data only: `layers`, `cycle`, `state`, `compare`, `hierarchy`, `beforeAfter`, `quadrant`, `funnel` and `venn`. Every part is clickable with its own detail, and every view has a link.
+- **Chapters draw themselves.** Options are a comparison grid. Risks sit in an impact grid. A rollout is a stepped track. A timeline is a time axis. A diff is a bar per file, linked to the map, where the parts that moved are marked.
+- **A kit of nine diagrams** for everything else: `layers`, `cycle`, `state`, `compare`, `hierarchy`, `beforeAfter`, `quadrant`, `funnel` and `venn`. Data only, no drawing by hand. Every part is clickable and has its own detail.
+- **Big ideas come in parts.** A concept splits into 2 to 6 parts you click through, each named by what it does, often with its own diagram.
+- **Code walkthroughs.** When the idea lives in a few lines, the page walks through them one step at a time: which lines, what they do and why, then the takeaway. `concept-explainer snippet` pulls the exact lines from the repo, so nothing is retyped.
 
-Under the pictures is a method for explaining to the root: the agent writes a six line root card (problem, mechanism, invariant, what happens without it, the common misconception, the threshold idea) before it fills anything, picks each visual by the question it answers, and writes quiz questions that test transfer, not recall. See [`references/explaining.md`](references/explaining.md).
-
-## What you get
-
-One self-contained HTML page, laid out as a dashboard. A sidebar lists the chapters and marks where you are. The page opens on an **Overview**: the summary, counts, a card per chapter and where to start. Each chapter is its own view:
-
-- **The big picture.** A map of the parts. Click one to see what it does, its files, and who it talks to.
-- **End to end.** Step through each flow on a sequence diagram with a Continue button. Every hop cites `file:line`. Before and after flows sit side by side.
-- **What changed, and why.** Recent merges split by human and agent, or one PR file by file.
-- **Decisions.** Options against criteria, the chosen one marked, with the reason.
-- **Check yourself.** "What happens if" questions with instant feedback that also explains the tempting wrong answer.
+Under the pictures is a method for explaining to the root. Before it fills anything, the agent writes a six line root card: the problem, the mechanism, the invariant, what happens without it, the common misconception and the idea that makes the rest click. It picks each diagram by the question it answers and writes quiz questions that test transfer, not recall. See [`references/explaining.md`](references/explaining.md).
 
 | | |
 |---|---|
-| <img src="docs/media/hero.png" alt="Overview with the main request route"> | <img src="docs/media/map.png" alt="Architecture map with a part selected"> |
-| **Overview.** Summary, counts and where to start. | **Map.** Click a part to see its files, neighbours and flows. |
-| <img src="docs/media/flow.png" alt="Sequence diagram beside a step card with code"> | <img src="docs/media/changes.png" alt="Timeline of recent changes with reasons"> |
-| **Flows.** One hop at a time, with the code that does it. | **Changes.** Agent or human, the reason, and the risk. |
-| <img src="docs/media/data.png" alt="ER diagram with a field table"> | <img src="docs/media/quiz.png" alt="Quiz with instant feedback"> |
-| **Data.** Relationships first, then fields. | **Quiz.** Instant feedback, with the why. |
+| <img src="docs/media/visuals.png" alt="A state diagram with one part selected and its detail beside it"> | <img src="docs/media/code.png" alt="A code walkthrough with the current lines marked and a Continue button"> |
+| **Diagrams.** Pick a part to see what it does. | **Code walkthrough.** The few lines that carry the idea, step by step. |
+| <img src="docs/media/options.png" alt="Options side by side with the chosen one marked"> | <img src="docs/media/quiz.png" alt="A quiz question with instant feedback"> |
+| **Decisions.** Every option on the same rows, the chosen one marked. | **Check yourself.** Feedback explains the tempting wrong answer too. |
 
-**Every view has a link**, so you can send someone straight to a part, a step, a diff file or a diagram: `#map/<node>`, `#flows/<flow>/<step>`, `#diff/<path>`, `#options/<n>`, `#visuals/<diagram>/<part>`. Back and forward work. The full list is in [`references/data-schema.md`](references/data-schema.md#deep-links).
+## What you get
 
-### Styles
+One self-contained HTML page per explainer, laid out as a dashboard.
 
-Every explainer comes in two styles. Readers switch between them in Settings.
+- **An Overview first:** the summary, the counts, a card per chapter and where to start.
+- **One view per chapter**, from a sidebar that marks where you are and how much you have viewed. On a phone, a Menu button opens the same list.
+- **Flows you step through.** One hop at a time on a sequence diagram, each citing `file:line`, with a Continue button. Before and after flows sit side by side.
+- **Every view has a link**, so you can send someone straight to a part, a step, a diff file, a diagram part or a line of a walkthrough: `#map/<node>`, `#flows/<flow>/<step>`, `#diff/<path>`, `#visuals/<diagram>/<part>`, `#code/<walkthrough>/<step>`. Back and forward work. The full list is in [`references/data-schema.md`](references/data-schema.md#deep-links).
 
-- **Clean** (the default): the dashboard look above, in Geist type and greys with one orange accent.
-- **Playful**: brighter colors and rounder, pressable buttons, inspired by [Duolingo](https://www.duolingo.com)'s design language. Concept Explainer is not affiliated with or endorsed by Duolingo, and ships none of its logos, mascots or fonts.
+| | |
+|---|---|
+| <img src="docs/media/hero.png" alt="The Overview with the summary, counts and a card per chapter"> | <img src="docs/media/map.png" alt="The architecture map with a part selected"> |
+| **Overview.** The summary, counts and where to start. | **Map.** Pick a part to see its files, neighbours and flows. |
+| <img src="docs/media/flow.png" alt="A sequence diagram beside a step card with code"> | <img src="docs/media/settings.png" alt="Settings with Reading choices, explainer defaults and Share"> |
+| **Flows.** One hop at a time, with the code that does it. | **Settings.** Reading choices, explainer defaults and Share. |
 
-Pick the starting style with `--style clean|playful` on `build`, or set the default with `concept-explainer config set style playful`.
+### Looks and Settings
+
+- **Two styles.** **Clean** is the default: Geist type and greys with one orange accent. **Playful** has brighter colors and rounder, pressable buttons, inspired by [Duolingo](https://www.duolingo.com)'s design language (not affiliated or endorsed). Pick the starting style with `--style`, or set the default with `concept-explainer config set style playful`.
+- **Light, dark or system theme**, from a small menu by the gear or with **Shift+D**.
+- **Settings** (`#settings`) has three groups:
+  - **Reading**, kept in this browser: theme, style, motion, text size and density.
+  - **Explainer defaults**, which steer the agent: audience, depth, language, preferred visuals, chapters per type, quiz and analogies, the model for estimates, a budget, whether to confirm before starting, and up to 2,000 characters of your own instructions.
+  - **Share:** export this explainer as a bundle, or save the page as one file.
 
 ## Estimate before starting
 
@@ -116,7 +121,7 @@ Haiku 5.5   990K       12K         $0.016 to $0.033    2 to 6 min
 Recommended: Sonnet 5.5. A good balance of care and cost for a job this size.
 ```
 
-It sizes the input per type: source files for a repo, changed lines for a PR (`--base`), words for a doc (`--source`). Set `budgetUsd` in config and the agent skips the question whenever the estimate fits. How it works: [`references/estimate.md`](references/estimate.md).
+It sizes the input by type: source files for a repo, changed lines for a PR (`--base`), words for a doc (`--source`). Set `budgetUsd` in config and the agent skips the question whenever the estimate fits. How it works: [`references/estimate.md`](references/estimate.md).
 
 ## Quick start
 
@@ -127,7 +132,7 @@ git clone https://github.com/Cyvid7-Darus10/repo-explainer ~/side/concept-explai
 node ~/side/concept-explainer/bin/concept-explainer.mjs install
 ```
 
-`install` links the skill into `~/.claude/skills/concept-explainer` and writes [`rules/concept-explainer.md`](rules/concept-explainer.md) to `~/.claude/rules/` (both under `$CLAUDE_CONFIG_DIR` when set), so every session builds explainers the same way and files them in the library. It is safe to run again, never replaces a real folder or an edited rule unless you pass `--force` (which keeps a backup), and removes the old `repo-explainer` link and rule only when they are provably its own.
+`install` links the skill into `~/.claude/skills/concept-explainer` and writes [`rules/concept-explainer.md`](rules/concept-explainer.md) to `~/.claude/rules/` (both under `$CLAUDE_CONFIG_DIR` when set), so every session builds explainers the same way and files them in your library. It is safe to run again. It never replaces a real folder or a rule you edited unless you pass `--force`, which keeps a backup in `~/.claude/backups/`.
 
 Then ask your agent:
 
@@ -137,7 +142,7 @@ Then ask your agent:
 >
 > Explain this repo for a new engineer. Trace sign in and checkout end to end.
 
-The agent follows [`SKILL.md`](SKILL.md): it identifies the type, estimates, waits for your go-ahead, finds the root, fills `explainer.json`, builds the page and publishes it to your library. Any agent that can read a skill file and run Node can use it.
+The agent follows [`SKILL.md`](SKILL.md): it identifies the type, estimates, waits for your go-ahead, finds the root, fills `explainer.json`, builds the page and files it in your library. Any agent that can read a skill file and run Node can use it.
 
 ### From the command line
 
@@ -161,13 +166,14 @@ Needs Node 18.3 or newer. Nothing to install. The output is one HTML file you ca
 | `init <repo> [--preset id]` | A starter repo explainer with `TODO`s to fill |
 | `init [input] --type <type>` | A starter for pr, change, proposal, migration, incident or concept |
 | `diff <repo> --base <ref>` | Draft `diff[]` and node statuses from git; summaries stay TODO |
+| `snippet <repo> <path:start-end>` | Exact lines for a code walkthrough, as JSON |
 | `changes <repo> [--data f --write]` | Draft change entries from git: human or agent, type, PR link, parts touched |
 | `validate <file> [--repo dir] [--strict]` | Check references, shapes, lesson limits, writing style, and that cited files exist |
-| `build <file> [--out f] [--repo dir] [--style s]` | Validate, render the page, publish it to the library (`--no-library` skips that) |
+| `build <file> [--out f] [--repo dir] [--style s]` | Validate, render the page, file it in the library (`--no-library` skips that) |
 | `library [list\|path\|add\|remove\|rebuild\|open\|style\|serve]` | Work with the library |
-| `config [get\|set\|reset] [--json]` | The explainer defaults the skill reads first |
 | `export [slug...] [--type t] [--tag t] [--out f]` | Share explainers as a data-only bundle |
 | `import <file> [--dry-run] [--on-conflict mode]` | Add a bundle to your library |
+| `config [get\|set\|reset] [--json]` | The explainer defaults the skill reads first |
 | `install [--force]` | Link the skill and the library rule into `~/.claude` |
 | `presets` | One preset per type, and stack presets for repos |
 | `patterns [id]` | Reusable flow shapes: auth, webhook, async job, cache, and more |
@@ -180,32 +186,24 @@ The old `repo-explainer` command is an alias that prints a deprecation note.
 
 ## The library
 
-Explainers pile up across repos, PRs and sessions. So every build also lands in one local folder, `~/.concept-explainer` (or `$CONCEPT_EXPLAINER_HOME`), and its `index.html` puts them all in one place:
+Explainers pile up across repos, PRs and sessions. So every build also lands in one local folder, `~/.concept-explainer` (or `$CONCEPT_EXPLAINER_HOME`), and its `index.html` puts them all in one place.
 
-- **Search everything.** Parts, flows, single steps, diff files, options, risks, timeline events, diagrams, terms and folders across every explainer. Each result opens the exact view.
-- **Browse by type.** Repos, PRs, changes, proposals, migrations, incidents and concepts, each with its status and tags.
+- **Search everything:** parts, flows, single steps, diff files, options, risks, timeline events, diagrams, walkthroughs, quiz questions, terms and folders across every explainer. Each result opens the exact view.
+- **Browse and filter** by type, tag and stack, with a small drawing of each explainer on its card.
 - **The kit** sits beside it, one click away.
 
 ```sh
-concept-explainer build .explainer/explainer.json --repo .   # builds, then publishes
+concept-explainer build .explainer/explainer.json --repo .   # builds, then files it
 concept-explainer library                                    # list what is in it
 concept-explainer library open                               # open the hub
+concept-explainer library serve                              # serve it on 127.0.0.1 so Settings can save
 ```
 
-The hub is one HTML file that works offline from `file://`. The source of each explainer stays where it was made; the library keeps a copy and the built page. Pass `--no-library` for a throwaway build. Layout, manifest and search index: [`references/library.md`](references/library.md).
+The hub is one HTML file that works offline from `file://`. The source of each explainer stays where it was made; the library keeps a copy and the built page.
 
-### Settings
+<img src="docs/media/hub.png" alt="The library hub: search, type filters and explainer cards with thumbnails" width="860">
 
-Each page has a Settings view. **Reading** settings (theme, style, motion, text size, density) stay in your browser. **Explainer defaults** live in `<home>/config.json` and steer the agent: audience, depth, language, preferred visuals, chapters per type, quiz and analogies, model, budget, whether to confirm before starting, and up to 2,000 characters of your own instructions.
-
-```sh
-concept-explainer config                       # print them
-concept-explainer config set audience newcomer
-concept-explainer config set chapters.pr.risks off
-concept-explainer library serve                # Settings can save while this runs
-```
-
-From `file://`, Settings shows the values and gives you a `config set` command to copy. Through `library serve`, it saves directly. The server binds to 127.0.0.1 only, uses a fresh token per run, checks Host and Origin, and accepts exactly one write: the validated settings.
+**`library serve`.** From `file://`, a page cannot write, so Settings shows your values and the `config set` command to copy. Run `library serve` and Settings saves directly, and Share can export and import without the terminal. It binds to 127.0.0.1 only, uses a fresh token per run and serves only pages and fonts, never your library's data.
 
 ### Share
 
@@ -217,11 +215,11 @@ concept-explainer import payments.explainers.json --dry-run    # see what would 
 concept-explainer import payments.explainers.json              # rename on conflict by default
 ```
 
-A bundle holds explainer data only: no pages, no scripts, no settings, no local paths. The importer checks it as untrusted input (size cap, format, every explainer validated, unsafe links dropped) and rebuilds the pages with its own template. Each page can also export itself, or save itself as one HTML file, from Settings.
+A bundle holds explainer data only: no pages, no scripts, no settings, no local paths. The importer checks it as untrusted input and rebuilds the pages with its own template. Layout, manifest, search index and the serve API: [`references/library.md`](references/library.md).
 
 ## What a run costs
 
-The agent does the costly part: reading and writing the explainer. Estimated cost and agent time **per run** at a typical size, from [Claude API prices](https://claude.com/platform/api) checked November 18, 2026.
+The agent does the costly part: reading and writing the explainer. Estimated cost **per run** at a typical size, from [Claude API prices](https://claude.com/platform/api) checked November 18, 2026.
 
 | Run | Fable 5.2 | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 |
 |---|---|---|---|---|
@@ -239,27 +237,29 @@ These are estimates, not quotes. They assume most repeated context comes from th
 
 ## Built to stay consistent
 
-Agents only write data. The design, components, icons, visuals and motion are fixed and tested, so every explainer looks the same and readers learn it once. The look is a Geist dashboard: Geist type and greys, one orange accent for "where you are", hairline rings instead of shadows, one 6px radius, and layer colors as small markers. See [`references/design-system.md`](references/design-system.md).
+Agents only write data. The design, components, diagrams, icons and motion are fixed and tested, so every explainer looks the same and readers learn it once.
 
-- **One data contract**, checked on every build. See [`references/data-schema.md`](references/data-schema.md) and [`references/types.md`](references/types.md).
+- **One data contract**, checked on every build. See [`references/data-schema.md`](references/data-schema.md), [`references/types.md`](references/types.md) and [`references/visuals.md`](references/visuals.md).
 - **Presets per type** and **flow patterns**, so agents start from a proven shape.
-- **Explaining rules:** root card first, visuals picked by the question they answer, captions that state the takeaway, analogies that say where they break. Some are enforced as warnings.
+- **Explaining rules:** root card first, diagrams picked by the question they answer, captions that state the takeaway, analogies that say where they break. Some are enforced as warnings.
 - **Writing rules:** gist first, short sentences, no filler.
-- **Design guardrail tests** fail CI on blurred shadows, gradients, colors outside the tokens, stray radii, other fonts or `innerHTML`.
-- **Truthfulness:** code claims cite real files and `--repo` checks they exist; proposals never show planned parts as built; incident times come from the record; reasons come from PRs, commits and docs, never made up.
+- **Design guardrail tests** fail CI on blurred shadows, gradients, colors outside the tokens, stray radii, other fonts or `innerHTML`. The look is documented in [`references/design-system.md`](references/design-system.md).
+- **Truthfulness:** code claims cite real files and `--repo` checks they exist. Proposals never show planned parts as built, incident times come from the record, and reasons come from PRs, commits and docs, never made up.
 
-## Security and privacy
+## Security
 
-- The scanner reads env var **names** from example files only. It never opens `.env`.
-- All text renders as plain text, and embedded data is escaped. Links must be `http` or `https`.
-- Pages make no requests to anyone else. Library pages load self-hosted fonts from the library folder; standalone pages use system fonts. Each page carries a Content Security Policy that allows only its own inline code.
-- The library lives only on your machine. Slugs are limited to `[a-z0-9-]`, files are written atomically, and the hub only follows links into its own `explainers/` folder.
-- `library serve` binds to 127.0.0.1, needs a per-run token for every API call, checks Host and Origin, and serves only pages and fonts, never your library's data or settings.
-- Text from repos, PRs, docs and bundles is treated as data: the skill never follows instructions found in it or runs its commands, and the CLI rejects hidden control characters and never lets git run the repo's own hooks.
-- `import` treats a bundle as untrusted: a size cap, prototype keys dropped, every explainer validated, unsafe links dropped, and pages rebuilt locally.
-- Git runs with argument arrays, never through a shell, and refs that look like options are refused.
+- **Zero npm dependencies.** The CLI and the pages run on Node and the browser alone.
+- **Local only.** Your library lives in a private folder on your machine (`0700`). Pages make no request to anyone else: fonts are self-hosted, and each page carries a Content Security Policy that allows only its own code.
+- **`library serve`** binds to 127.0.0.1, needs a per-run token for every API call, checks Host and Origin, and never serves your library's data or settings.
+- **Content is data.** Text from repos, PRs, docs and imported bundles is evidence, never instructions: the skill does not follow instructions it finds there or run commands from them, and the CLI rejects hidden control characters. Git runs with the repo's own hooks, diff drivers and signature programs turned off.
+- **Secrets stay out.** The scanner reads env var **names** from example files only and never opens `.env`.
 
-Report vulnerabilities through [SECURITY.md](SECURITY.md).
+Details and how to report a vulnerability: [SECURITY.md](SECURITY.md).
+
+## Coming next
+
+- **An app on your Dock:** a launcher that starts the library server and opens it as an installable app (branch `feat/app-launcher`).
+- **It learns what to explain better:** readers mark sections "Explain more" or "Too basic", and the next update deepens what they asked about (branch `feat/learning-loop`).
 
 ## Credits
 
