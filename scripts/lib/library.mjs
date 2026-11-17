@@ -9,7 +9,8 @@ import { buildExplainer, buildGallery, buildLibrary } from './build.mjs';
 import { listPatterns } from './init.mjs';
 import { NODE_KINDS } from './schema.mjs';
 import { buildSearchIndex } from './search-index.mjs';
-import { DEFAULT_STYLE, parseStyle } from './style.mjs';
+import { parseStyle } from './style.mjs';
+import { normalizeConfig, validateConfig } from './config.mjs';
 import {
   SLUG_PATTERN, baseSlugFor, chooseSlug, emptyManifest, entryFor, isManifest, upsertEntry, withoutEntry,
 } from './library-model.mjs';
@@ -51,18 +52,24 @@ export function writeAtomic(path, content) {
 const now = () => new Date().toISOString();
 const toJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
-/** Library settings from <home>/config.json. Missing or broken means the defaults. */
+/** Explainer defaults from <home>/config.json. Missing or broken values mean the defaults. */
 export function readConfig(home) {
   try {
-    return { style: parseStyle(JSON.parse(readFileSync(libraryPaths(home).config, 'utf8')).style) };
+    return normalizeConfig(JSON.parse(readFileSync(libraryPaths(home).config, 'utf8')));
   } catch {
-    return { style: DEFAULT_STYLE };
+    return normalizeConfig({});
   }
 }
 
-/** Save library settings. Throws on an unknown style. */
-export function writeConfig(home, { style }) {
-  const config = { style: parseStyle(style) };
+/**
+ * Merge `changes` into the saved config. Throws, naming the key, on anything invalid.
+ * @returns {object} the full saved config
+ */
+export function writeConfig(home, changes) {
+  if (changes && changes.style !== undefined) parseStyle(changes.style);
+  const { errors } = validateConfig(changes);
+  if (errors.length) throw new Error(`save config: ${errors.join('; ')}`);
+  const config = normalizeConfig({ ...readConfig(home), ...changes });
   writeAtomic(libraryPaths(home).config, toJson(config));
   return config;
 }
@@ -133,17 +140,19 @@ function packageVersion() {
 /** Rewrite the hub page and the kit page beside it. */
 export function writeHub(home, manifest, options = {}) {
   const paths = libraryPaths(home);
-  const { style } = readConfig(home);
+  const config = readConfig(home);
+  const { style } = config;
   const index = manifest.explainers.flatMap((entry) => buildSearchIndex(entry.slug, readStoredData(paths, entry.slug) || { meta: entry }));
-  writeAtomic(paths.hub, buildLibrary(manifest, index, { templateDir: options.templateDir, style, kitHref: KIT_HREF }));
+  writeAtomic(paths.hub, buildLibrary(manifest, index, { templateDir: options.templateDir, style, config, kitHref: KIT_HREF }));
   const kit = { kinds: NODE_KINDS, patterns: listPatterns(), version: packageVersion() };
-  writeAtomic(paths.kit, buildGallery(kit, { templateDir: options.templateDir, context: { libraryHref: 'index.html', style } }));
+  writeAtomic(paths.kit, buildGallery(kit, { templateDir: options.templateDir, context: { libraryHref: 'index.html', style, config } }));
   return paths.hub;
 }
 
 function writePage(paths, slug, data, options, style) {
   const pagePath = join(paths.dirFor(slug), 'index.html');
-  writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context: { libraryHref: HUB_FROM_PAGE, slug, style } }));
+  const context = { libraryHref: HUB_FROM_PAGE, slug, style, config: readConfig(paths.home) };
+  writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context }));
   return pagePath;
 }
 

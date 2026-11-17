@@ -91,8 +91,15 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
   const count = manifest && Array.isArray(manifest.explainers) ? manifest.explainers.length : 0;
   const description = `${count} explainer${count === 1 ? '' : 's'}: search, browse and open them in one place.`;
   const style = options.style || 'clean';
-  const data = { style, ...(options.kitHref ? { kitHref: options.kitHref } : {}), manifest, index: searchIndex };
-  return assemble(parts, 'Explainer library · Repo Explainer', data, 'bootLibrary();', description, { style });
+  const data = {
+    style,
+    ...(options.config ? { config: options.config } : {}),
+    ...(options.kitHref ? { kitHref: options.kitHref } : {}),
+    manifest,
+    index: searchIndex,
+  };
+  const context = { style, ...(options.config ? { config: options.config } : {}) };
+  return assemble(parts, 'Explainer library · Repo Explainer', data, 'bootLibrary();', description, context);
 }
 
 /**
