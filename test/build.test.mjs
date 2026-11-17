@@ -115,6 +115,7 @@ test('buildLibrary embeds the manifest and index and boots the hub', () => {
   assert.match(html, /bootLibrary\(\);/);
   assert.doesNotMatch(html, /\nboot\(\);/);
   assert.doesNotMatch(html, /__TITLE__|__EXPLAINER_DATA__|__CONTEXT__|\/\*__STYLES__\*\/|\/\*__SCRIPTS__\*\//);
-  assert.deepEqual(embeddedJson(html), { manifest, index });
+  assert.deepEqual(embeddedJson(html), { style: 'clean', manifest, index });
+  assert.equal(embeddedJson(buildLibrary(manifest, index, { style: 'playful' })).style, 'playful');
   assert.equal((html.match(/<\/script>/g) || []).length, 2);
 });

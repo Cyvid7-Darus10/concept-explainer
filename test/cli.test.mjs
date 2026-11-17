@@ -105,7 +105,47 @@ test('install links into CLAUDE_CONFIG_DIR, is idempotent and refuses real folde
 test('help mentions the library and install commands', () => {
   const { run } = setup();
   const { stdout } = run('--help');
-  assert.match(stdout, /library \[list\|path\|add\|remove\|rebuild\|open\]/);
+  assert.match(stdout, /library \[list\|path\|add\|remove\|rebuild\|open\|style\]/);
   assert.match(stdout, /install \[--force\]/);
   assert.match(stdout, /--no-library/);
+});
+
+function contextOf(path) {
+  const match = readFileSync(path, 'utf8').match(/<script type="application\/json" id="explainer-context">([\s\S]*?)<\/script>/);
+  assert.ok(match, 'context tag present');
+  return JSON.parse(match[1]);
+}
+
+test('--style sets the page style, standalone and in the library', () => {
+  const { root, data, run, home } = setup();
+  const result = run('build', data, '--style', 'playful');
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(contextOf(join(root, 'taskflow.html')), { style: 'playful' });
+  assert.equal(contextOf(join(home, 'explainers', 'acme-taskflow', 'index.html')).style, 'playful');
+  assert.equal(run('build', data).status, 0);
+  assert.deepEqual(contextOf(join(root, 'taskflow.html')), { style: 'clean' });
+});
+
+test('a bad --style is a usage error naming the value, on every command', () => {
+  const { data, run, home } = setup();
+  [['build', data], ['library', 'add', data], ['library', 'rebuild'], ['library', 'style']].forEach((args) => {
+    const result = run(...args, ...(args[1] === 'style' ? ['neon'] : ['--style', 'neon']));
+    assert.equal(result.status, 1, args.join(' '));
+    assert.match(result.stderr, /unknown style "neon": use clean or playful/);
+  });
+  assert.ok(!existsSync(join(home, 'library.json')));
+});
+
+test('library style sets the default used when no flag is given', () => {
+  const { root, data, run, home } = setup();
+  assert.equal(run('library', 'style').stdout.trim(), 'clean');
+  const set = run('library', 'style', 'playful');
+  assert.equal(set.status, 0, set.stderr);
+  assert.match(set.stderr, /default style: playful/);
+  assert.deepEqual(JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')), { style: 'playful' });
+  assert.equal(run('library', 'style').stdout.trim(), 'playful');
+  run('build', data);
+  assert.deepEqual(contextOf(join(root, 'taskflow.html')), { style: 'playful' });
+  const hub = readFileSync(join(home, 'index.html'), 'utf8').match(/id="explainer-data">([\s\S]*?)<\/script>/)[1];
+  assert.equal(JSON.parse(hub).style, 'playful');
 });

@@ -82,7 +82,7 @@ test('pages built into the library carry the library context', () => {
   writeFileSync(join(templateDir, 'explainer.html'), html);
 
   const { pagePath } = publishExplainer(example, { home, templateDir });
-  assert.deepEqual(embedded(readFileSync(pagePath, 'utf8'), 'explainer-context'), { libraryHref: '../../index.html', slug: 'acme-taskflow' });
+  assert.deepEqual(embedded(readFileSync(pagePath, 'utf8'), 'explainer-context'), { libraryHref: '../../index.html', slug: 'acme-taskflow', style: 'clean' });
 });
 
 test('remove deletes the folder and the entry, and refuses unknown or unsafe slugs', () => {
