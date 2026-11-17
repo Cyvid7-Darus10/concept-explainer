@@ -119,3 +119,39 @@ function chOnWidth(el, fn) {
     fn(width);
   }).observe(el);
 }
+
+/**
+ * One item selected at a time across a list of buttons: marks them (one tab
+ * stop, arrows move), fills the detail panel with describe(index) and a
+ * stepper, and writes the deep link. `order` maps button positions to item
+ * indexes when the buttons are drawn in another order (risks: high first);
+ * links always carry the item index.
+ * @returns {(index: number|null, opts?: { link?: boolean }) => Element|null} select
+ */
+function chSelection({ buttons, detail, chapter, empty, describe, noun, order = null, hash = (i) => `${chapter}/${i}`, axis = 'both' }) {
+  const itemAt = (k) => (order ? order[k] : k);
+  const at = (index) => (order ? order.indexOf(index) : index);
+  let selected = null;
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(buttons, index === null ? null : at(index));
+    if (index === null) fill(detail, empty());
+    else fill(detail, ...describe(index), chStepper(at(index), buttons.length, (k) => { select(itemAt(k)); buttons[k].focus(); }, noun));
+    if (link) setDeepLink(index === null ? chapter : hash(index));
+    return index === null ? null : buttons[at(index)];
+  }
+  buttons.forEach((button, k) => button.addEventListener('click', () => select(selected === itemAt(k) ? null : itemAt(k))));
+  chRoving(buttons, { axis, onMove: (k) => select(itemAt(k)) });
+  select(null, { link: false });
+  return select;
+}
+
+/** The open() of a chapter whose deep link is an index from 0. */
+function chIndexOpener(select, count) {
+  return {
+    open([raw] = []) {
+      const index = chIndexPart(raw, count);
+      return index === null ? null : select(index, { link: false });
+    },
+  };
+}

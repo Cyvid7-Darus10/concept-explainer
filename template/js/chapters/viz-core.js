@@ -100,6 +100,75 @@ function vizFacts(facts) {
     h('dt', null, label), h('dd', null, value instanceof Node || Array.isArray(value) ? value : softBreaks(String(value))))));
 }
 
+/** Selection marks: is-selected, aria-selected and one tab stop (the selected part, else the first). */
+function vizPaintSelection(drawing, svg, selected) {
+  drawing.parts.forEach((part, i) => {
+    const on = i === selected;
+    part.el.classList.toggle('is-selected', on);
+    part.el.setAttribute('aria-selected', String(on));
+    part.el.setAttribute('tabindex', on || (selected === null && i === 0) ? '0' : '-1');
+  });
+  svg.classList.toggle('has-selection', selected !== null);
+  if (drawing.highlight) drawing.highlight(selected);
+}
+
+/** The detail panel's children: a tip, or the selected part with its facts and a stepper. */
+function vizDetailChildren(drawing, selected, go) {
+  if (selected === null || !drawing) {
+    return [chEmptyDetail('Pick any part of the drawing', 'Click a part, or Tab to the drawing and use the arrow keys. Each part shows what it does here.')];
+  }
+  const part = drawing.parts[selected];
+  return [
+    h('p', { class: 'eyebrow quiet' }, part.kicker || `Part ${selected + 1} of ${drawing.parts.length}`),
+    h('h3', null, softBreaks(part.label)),
+    part.detail && h('p', { class: 'viz-detail-text' }, softBreaks(part.detail)),
+    vizFacts(part.facts),
+    drawing.parts.length > 1 && chStepper(selected, drawing.parts.length, go),
+  ];
+}
+
+/** The svg for a drawing; its parts become options with names and clicks. */
+function vizSvg(drawing, { room, id, label, kind, onClick }) {
+  const svg = s('svg', {
+    class: 'viz-svg', width: room, height: Math.ceil(drawing.height), viewBox: `0 0 ${room} ${Math.ceil(drawing.height)}`,
+    role: 'listbox', 'aria-label': text(label, VIZ_KIND_NAMES[kind]), 'aria-orientation': 'vertical',
+  }, vizMarkers(`${id}-m`), drawing.nodes, drawing.parts.map((p) => p.el));
+  drawing.parts.forEach((part, i) => {
+    part.el.setAttribute('role', 'option');
+    part.el.setAttribute('aria-label', part.aria || [part.label, part.detail].filter(Boolean).join('. '));
+    part.el.dataset.part = String(i);
+    part.el.prepend(s('title', null, part.label));
+    part.el.addEventListener('click', () => onClick(i));
+  });
+  return svg;
+}
+
+/** Where a key moves from part `index` of `count`: an index, null to clear, or undefined to ignore. */
+function vizKeyTarget(key, index, count) {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[key];
+  if (step) return (index + step + count) % count;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  if (key === 'Enter' || key === ' ') return index;
+  if (key === 'Escape') return null;
+  return undefined;
+}
+
+/** Arrows, Home, End, Enter and Escape on the drawing's parts. */
+function vizKeys(stage, view) {
+  stage.addEventListener('keydown', (event) => {
+    const host = event.target.closest && event.target.closest('[data-part]');
+    if (!host || !view.count()) return;
+    const next = vizKeyTarget(event.key, Number(host.dataset.part), view.count());
+    if (next === undefined || (next === null && view.selected() === null)) return;
+    event.preventDefault();
+    if (next === null) {
+      view.select(null);
+      host.focus();
+    } else view.select(next, { focus: true });
+  });
+}
+
 /**
  * Draw one visual with its detail panel.
  * @param {object} visual { kind, ...shape } (title and caption are shown by the caller)
@@ -111,60 +180,35 @@ function vizMount(visual, { label = '', onSelect = null, compact = false } = {})
   const stage = h('div', { class: 'viz-stage' });
   const detail = h('div', { class: 'viz-detail', 'aria-live': 'polite' });
   const root = h('div', { class: `viz viz-${drawer ? visual.kind : 'unknown'}${compact ? ' is-compact' : ''}` }, stage, detail);
+  if (!drawer) {
+    fill(stage, h('p', { class: 'empty' }, `This visual kind (${text(visual && visual.kind, 'none')}) is not in the kit.`));
+    return { root, select: () => null, count: () => 0, selected: () => null };
+  }
   const id = vizUid('viz');
   let drawing = null;
   let svg = null;
   let selected = null;
   let drawn = false;
+  const count = () => (drawing ? drawing.parts.length : 0);
 
-  if (!drawer) {
-    fill(stage, h('p', { class: 'empty' }, `This visual kind (${text(visual && visual.kind, 'none')}) is not in the kit.`));
-    return { root, select: () => null, count: () => 0, selected: () => null };
-  }
-
-  function paint() {
-    if (!drawing) return;
-    drawing.parts.forEach((part, i) => {
-      const on = i === selected;
-      part.el.classList.toggle('is-selected', on);
-      part.el.setAttribute('aria-selected', String(on));
-      part.el.setAttribute('tabindex', on || (selected === null && i === 0) ? '0' : '-1');
-    });
-    svg.classList.toggle('has-selection', selected !== null);
-    if (drawing.highlight) drawing.highlight(selected);
-  }
-
-  function renderDetail() {
-    if (selected === null || !drawing) {
-      fill(detail, chEmptyDetail('Pick any part of the drawing', 'Click a part, or Tab to the drawing and use the arrow keys. Each part shows what it does here.'));
-      return;
-    }
-    const part = drawing.parts[selected];
-    fill(detail,
-      h('p', { class: 'eyebrow quiet' }, part.kicker || `Part ${selected + 1} of ${drawing.parts.length}`),
-      h('h3', null, softBreaks(part.label)),
-      part.detail && h('p', { class: 'viz-detail-text' }, softBreaks(part.detail)),
-      vizFacts(part.facts),
-      drawing.parts.length > 1 && chStepper(selected, drawing.parts.length, (i) => select(i, { focus: false })));
+  function select(index, { focus = false, silent = false } = {}) {
+    const next = index === null || index === undefined ? null : Math.min(Math.max(index, 0), count() - 1);
+    selected = count() ? next : null;
+    vizPaintSelection(drawing, svg, selected);
+    fill(detail, ...vizDetailChildren(drawing, selected, (i) => select(i, { focus: false })));
+    const el = selected !== null ? drawing.parts[selected].el : null;
+    if (focus && el) el.focus({ preventScroll: true });
+    if (!silent && onSelect) onSelect(selected);
+    return el;
   }
 
   function draw(width, { measured = true } = {}) {
     const focusedIndex = drawing ? drawing.parts.findIndex((p) => p.el === document.activeElement) : -1;
     const room = Math.max(VIZ_MIN_WIDTH, Math.floor(width));
     drawing = drawer(visual, room, `${id}-m`);
-    svg = s('svg', {
-      class: 'viz-svg', width: room, height: Math.ceil(drawing.height), viewBox: `0 0 ${room} ${Math.ceil(drawing.height)}`,
-      role: 'listbox', 'aria-label': text(label, VIZ_KIND_NAMES[visual.kind]), 'aria-orientation': 'vertical',
-    }, vizMarkers(`${id}-m`), drawing.nodes, drawing.parts.map((p) => p.el));
-    drawing.parts.forEach((part, i) => {
-      part.el.setAttribute('role', 'option');
-      part.el.setAttribute('aria-label', part.aria || [part.label, part.detail].filter(Boolean).join('. '));
-      part.el.dataset.part = String(i);
-      part.el.prepend(s('title', null, part.label));
-      part.el.addEventListener('click', () => select(selected === i ? null : i, { focus: false }));
-    });
+    svg = vizSvg(drawing, { room, id, label, kind: visual.kind, onClick: (i) => select(selected === i ? null : i, { focus: false }) });
     fill(stage, svg, drawing.legend || null);
-    paint();
+    vizPaintSelection(drawing, svg, selected);
     if (focusedIndex >= 0 && drawing.parts[focusedIndex]) drawing.parts[focusedIndex].el.focus({ preventScroll: true });
     // One-shot entrance, the first time the drawing is really on screen.
     if (!drawn && measured && stage.isConnected) {
@@ -173,45 +217,12 @@ function vizMount(visual, { label = '', onSelect = null, compact = false } = {})
     }
   }
 
-  function select(index, { focus = false, silent = false } = {}) {
-    const count = drawing ? drawing.parts.length : 0;
-    const next = index === null || index === undefined ? null : Math.min(Math.max(index, 0), count - 1);
-    selected = count ? next : null;
-    paint();
-    renderDetail();
-    const el = selected !== null && drawing ? drawing.parts[selected].el : null;
-    if (focus && el) el.focus({ preventScroll: true });
-    if (!silent && onSelect) onSelect(selected);
-    return el;
-  }
-
-  stage.addEventListener('keydown', (event) => {
-    const host = event.target.closest && event.target.closest('[data-part]');
-    if (!host || !drawing) return;
-    const index = Number(host.dataset.part);
-    const count = drawing.parts.length;
-    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
-    let next = null;
-    if (step) next = (index + step + count) % count;
-    if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = count - 1;
-    if (event.key === 'Enter' || event.key === ' ') next = index;
-    if (event.key === 'Escape' && selected !== null) {
-      event.preventDefault();
-      select(null);
-      host.focus();
-      return;
-    }
-    if (next === null) return;
-    event.preventDefault();
-    select(next, { focus: true });
-  });
-
+  vizKeys(stage, { count, selected: () => selected, select });
   // Drawn at the width it gets, and again when that width changes.
   draw(640, { measured: false });
-  renderDetail();
+  fill(detail, ...vizDetailChildren(drawing, selected, (i) => select(i, { focus: false })));
   chOnWidth(stage, (width) => { if (width > 0) draw(width); });
-  return { root, select, count: () => (drawing ? drawing.parts.length : 0), selected: () => selected };
+  return { root, select, count, selected: () => selected };
 }
 
 /** A visual with its title and caption (the takeaway) above the drawing. */

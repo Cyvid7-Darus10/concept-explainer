@@ -81,63 +81,56 @@ function vizCycleExit(cx, cy, r, angle, dir, half) {
   return angle + dir * 0.3;
 }
 
-/** cycle: a loop. Wide: nodes on a circle; narrow: a column with a return line. */
+// Wide cycle: boxes on a circle, each arc trimmed to leave its boxes.
+function vizCycleCircle(n, width) {
+  const boxW = Math.min(160, Math.round(width * 0.28));
+  const r = Math.min(width / 2 - boxW / 2 - 8, 60 + n * 22);
+  const cx = width / 2;
+  const cy = r + VIZ_CYCLE.boxH / 2 + VIZ_CYCLE.pad;
+  const angleOf = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const half = { w: boxW / 2, h: VIZ_CYCLE.boxH / 2 };
+  const boxes = [];
+  const links = [];
+  for (let i = 0; i < n; i += 1) {
+    const a1 = vizCycleExit(cx, cy, r, angleOf(i), 1, half);
+    const a2 = vizCycleExit(cx, cy, r, angleOf(i + 1), -1, half);
+    const p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+    const p2 = [cx + r * Math.cos(a2), cy + r * Math.sin(a2)];
+    links.push(`M${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`);
+    boxes.push({ x: cx + r * Math.cos(angleOf(i)) - boxW / 2, y: cy + r * Math.sin(angleOf(i)) - VIZ_CYCLE.boxH / 2, w: boxW, h: VIZ_CYCLE.boxH });
+  }
+  return { boxes, links, height: cy * 2 };
+}
+
+// Narrow cycle: a column of boxes; the loop closes on the right, from the last box back to the first.
+function vizCycleColumn(n, width) {
+  const boxW = width - VIZ_CYCLE.gutter;
+  const boxes = [];
+  const links = [];
+  let y = 1;
+  for (let i = 0; i < n; i += 1) {
+    boxes.push({ x: 0, y, w: boxW, h: VIZ_CYCLE.boxH });
+    y += VIZ_CYCLE.boxH;
+    if (i < n - 1) {
+      links.push(`M${boxW / 2},${y + 2} L${boxW / 2},${y + 15}`);
+      y += 18;
+    }
+  }
+  const first = boxes[0];
+  const last = boxes[boxes.length - 1];
+  const lane = boxW + VIZ_CYCLE.gutter / 2;
+  links.push(`M${boxW + 2},${last.y + last.h / 2} H${lane - 6} Q${lane},${last.y + last.h / 2} ${lane},${last.y + last.h / 2 - 6} V${first.y + first.h / 2 + 6} Q${lane},${first.y + first.h / 2} ${lane - 6},${first.y + first.h / 2} H${boxW + 5}`);
+  return { boxes, links, height: y + 2 };
+}
+
+/** cycle: a loop. Wide: nodes on a circle; narrow: a column with a return line. Link i leaves item i. */
 function vizDrawCycle(visual, width, marker) {
   const items = list(visual.items);
-  const n = Math.max(items.length, 1);
-  const wide = width >= VIZ_CYCLE.wideAt;
-  const nodes = [];
-  const links = [];
-  const boxes = [];
-  let height;
-  if (wide) {
-    const boxW = Math.min(160, Math.round(width * 0.28));
-    const r = Math.min(width / 2 - boxW / 2 - 8, 60 + n * 22);
-    const cx = width / 2;
-    const cy = r + VIZ_CYCLE.boxH / 2 + VIZ_CYCLE.pad;
-    const angleOf = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const half = { w: boxW / 2, h: VIZ_CYCLE.boxH / 2 };
-    items.forEach((_, i) => {
-      const a1 = vizCycleExit(cx, cy, r, angleOf(i), 1, half);
-      const a2 = vizCycleExit(cx, cy, r, angleOf(i + 1), -1, half);
-      const p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-      const p2 = [cx + r * Math.cos(a2), cy + r * Math.sin(a2)];
-      const link = s('path', { class: 'viz-link', d: `M${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker });
-      links.push(link);
-      nodes.push(link);
-      boxes.push({ x: cx + r * Math.cos(angleOf(i)) - boxW / 2, y: cy + r * Math.sin(angleOf(i)) - VIZ_CYCLE.boxH / 2, w: boxW, h: VIZ_CYCLE.boxH });
-    });
-    height = cy * 2;
-  } else {
-    const boxW = width - VIZ_CYCLE.gutter;
-    let y = 1;
-    items.forEach((_, i) => {
-      boxes.push({ x: 0, y, w: boxW, h: VIZ_CYCLE.boxH });
-      y += VIZ_CYCLE.boxH;
-      if (i < items.length - 1) {
-        const link = vizArrow(boxW / 2, y + 2, boxW / 2, y + 15, marker);
-        links.push(link);
-        nodes.push(link);
-        y += 18;
-      }
-    });
-    // The loop closes on the right: from the last box back up to the first.
-    const first = boxes[0];
-    const last = boxes[boxes.length - 1];
-    const lane = boxW + VIZ_CYCLE.gutter / 2;
-    const back = s('path', {
-      class: 'viz-link', 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker,
-      d: `M${boxW + 2},${last.y + last.h / 2} H${lane - 6} Q${lane},${last.y + last.h / 2} ${lane},${last.y + last.h / 2 - 6} V${first.y + first.h / 2 + 6} Q${lane},${first.y + first.h / 2} ${lane - 6},${first.y + first.h / 2} H${boxW + 5}`,
-    });
-    links.push(back);
-    nodes.push(back);
-    height = y + 2;
-  }
+  const layout = width >= VIZ_CYCLE.wideAt ? vizCycleCircle(Math.max(items.length, 1), width) : vizCycleColumn(items.length, width);
+  const links = layout.links.map((d) => s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }));
   const parts = items.map((item, i) => {
-    const box = boxes[i];
+    const box = layout.boxes[i];
     const lines = vizWrap(vizItemLabel(item), vizChars(box.w - 20), 2);
-    const next = items[(i + 1) % items.length];
-    const prev = items[(i - 1 + items.length) % items.length];
     return vizPart([
       vizRoundRect(box.x, box.y, box.w, box.h),
       vizText(lines, { x: box.x + box.w / 2, y: box.y + box.h / 2, anchor: 'middle' }),
@@ -145,11 +138,11 @@ function vizDrawCycle(visual, width, marker) {
       label: vizItemLabel(item),
       detail: vizItemDetail(item),
       kicker: `Step ${i + 1} of ${items.length} in the loop`,
-      facts: [['Comes after', vizItemLabel(prev)], ['Leads to', vizItemLabel(next)]],
+      facts: [['Comes after', vizItemLabel(items[(i - 1 + items.length) % items.length])], ['Leads to', vizItemLabel(items[(i + 1) % items.length])]],
     });
   });
   return {
-    nodes, parts, height,
+    nodes: links, parts, height: layout.height,
     highlight(index) {
       links.forEach((link, i) => vizLinkOn(link, index === i));
       parts.forEach((part, i) => part.el.classList.toggle('is-related', index !== null && i === (index + 1) % parts.length));

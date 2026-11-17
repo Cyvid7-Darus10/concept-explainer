@@ -133,97 +133,91 @@ function vizStateRow(order, transitions, width, top) {
   return { boxes, geo, chars: vizChars(Math.max(slot * 1.4, 80), VIZ_STATE.label), floor: top + VIZ_STATE.boxH + (down ? 26 + down * VIZ_STATE.level : 8) };
 }
 
-/** state: boxes in a row (wide) or a column (narrow); transitions as arcs. */
-function vizDrawState(visual, width, marker) {
-  const states = list(visual.states).filter((st) => st && st.id !== undefined);
-  const transitions = list(visual.transitions).filter((t) => t && states.some((st) => st.id === t.from) && states.some((st) => st.id === t.to));
-  const order = vizStateOrder(states, transitions);
-  const pos = new Map(order.map((id, i) => [id, i]));
-  const row = width / Math.max(order.length, 1) >= VIZ_STATE.rowSlot;
-  const label = (id) => text((states.find((st) => st.id === id) || {}).label, String(id));
+function vizStatePath(d, marker) {
+  return s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker });
+}
+
+// Row: lay out and place labels; lay out again lower when anything would leave the top.
+function vizStateRowDraw(order, transitions, width, marker) {
+  let top = 40;
+  let layout;
+  let placed;
+  for (let pass = 0; pass < 3; pass += 1) {
+    layout = vizStateRow(order, transitions, width, top);
+    placed = vizPlaceLabels(layout.geo.filter((g) => text(g.tr.label)).map((g) => ({ key: g, value: g.tr.label, ...g.anchor, chars: layout.chars })),
+      { paths: layout.geo, boxes: [...layout.boxes.values()], width, size: VIZ_STATE.label });
+    const highest = Math.min(top, ...placed.map((p) => p.rect.y), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1])));
+    if (highest >= 4) break;
+    top += 4 - highest;
+  }
   const links = [];
   const geometry = { paths: [], labels: [] };
-  let boxes;
-  let height;
-  let keyList = null;
+  layout.geo.forEach((g) => {
+    const item = placed.find((p) => p.key === g);
+    links.push({ t: g.tr, path: vizStatePath(g.d, marker), label: item ? vizLabelPill(item) : null });
+    geometry.paths.push({ key: g.tr, points: g.points });
+    if (item) geometry.labels.push({ key: g.tr, rect: item.rect, onLine: false });
+  });
+  const height = Math.max(layout.floor, ...placed.map((p) => p.rect.y + p.rect.h + 4), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1] + 4)));
+  return { links, geometry, boxes: layout.boxes, height, legend: null };
+}
 
-  if (row) {
-    // Lay out and place labels; lay out again lower when anything would leave the top.
-    let top = 40;
-    let layout;
-    let placed;
-    for (let pass = 0; pass < 3; pass += 1) {
-      layout = vizStateRow(order, transitions, width, top);
-      placed = vizPlaceLabels(layout.geo.filter((g) => text(g.tr.label)).map((g) => ({ key: g, value: g.tr.label, ...g.anchor, chars: layout.chars })),
-        { paths: layout.geo, boxes: [...layout.boxes.values()], width, size: VIZ_STATE.label });
-      const highest = Math.min(top, ...placed.map((p) => p.rect.y), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1])));
-      if (highest >= 4) break;
-      top += 4 - highest;
+// Column geometry: self-loops in their own lane on the left; next-door steps
+// down are straight; every other transition bends right on its own level.
+function vizStateColumn(order, transitions, width) {
+  const pos = new Map(order.map((id, i) => [id, i]));
+  const lane = 30;
+  const boxW = Math.min(200, Math.max(120, Math.round(width * 0.42)));
+  const boxes = new Map(order.map((id, i) => [id, { x: lane, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }]));
+  const right = lane + boxW;
+  const straight = (tr) => pos.get(tr.to) - pos.get(tr.from) === 1;
+  const bends = transitions.filter((tr) => tr.from !== tr.to && !straight(tr));
+  const levels = vizArcLevels(bends.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+  const step = Math.min(VIZ_STATE.level, Math.max(18, (width - right - 24) / Math.max(1, ...levels)));
+  const geo = transitions.map((tr) => {
+    const a = boxes.get(tr.from);
+    const b = boxes.get(tr.to);
+    if (tr.from === tr.to) {
+      const p = [[a.x, a.y + 12], [a.x - 26, a.y + 4], [a.x - 26, a.y + a.h - 4], [a.x - 3, a.y + a.h - 12]];
+      return { tr, p, points: vizCubic(...p), badge: [a.x - 19, a.y + a.h / 2] };
     }
-    boxes = layout.boxes;
-    layout.geo.forEach((g) => {
-      const item = placed.find((p) => p.key === g);
-      links.push({ t: g.tr, path: s('path', { class: 'viz-link', d: g.d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: item ? vizLabelPill(item) : null });
-      geometry.paths.push({ key: g.tr, points: g.points });
-      if (item) geometry.labels.push({ key: g.tr, rect: item.rect, onLine: false });
-    });
-    height = Math.max(layout.floor, ...placed.map((p) => p.rect.y + p.rect.h + 4), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1] + 4)));
-  } else {
-    const lane = 30;
-    const boxW = Math.min(200, Math.max(120, Math.round(width * 0.42)));
-    boxes = new Map(order.map((id, i) => [id, { x: lane, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }]));
-    const right = lane + boxW;
-    const span = (tr) => Math.abs(pos.get(tr.to) - pos.get(tr.from));
-    const ahead = (tr) => pos.get(tr.to) > pos.get(tr.from);
-    // Self-loops sit in their own lane on the left; next-door steps down are
-    // straight; every other transition bends out to the right on its own level.
-    const bends = transitions.filter((tr) => tr.from !== tr.to && !(ahead(tr) && span(tr) === 1));
-    const levels = vizArcLevels(bends.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
-    const maxLevel = Math.max(1, ...levels);
-    const step = Math.min(VIZ_STATE.level, Math.max(18, (width - right - 24) / maxLevel));
-    // Labels would cross the arcs here, so each arc gets a numbered badge on
-    // its own line and the key under the drawing spells it out.
-    transitions.forEach((tr, k) => {
-      const a = boxes.get(tr.from);
-      const b = boxes.get(tr.to);
-      let p;
-      let points;
-      let bx;
-      let by;
-      if (tr.from === tr.to) {
-        p = [[a.x, a.y + 12], [a.x - 26, a.y + 4], [a.x - 26, a.y + a.h - 4], [a.x - 3, a.y + a.h - 12]];
-        points = vizCubic(...p);
-        bx = a.x - 19;
-        by = a.y + a.h / 2;
-      } else if (ahead(tr) && span(tr) === 1) {
-        p = [[a.x + a.w / 2, a.y + a.h], [b.x + b.w / 2, b.y - 3]];
-        points = vizSegment(...p);
-        bx = a.x + a.w / 2;
-        by = (a.y + a.h + b.y) / 2;
-      } else {
-        const bulge = right + 8 + levels[bends.indexOf(tr)] * step;
-        const y1 = a.y + a.h / 2 + (ahead(tr) ? 8 : -8);
-        const y2 = b.y + b.h / 2 + (ahead(tr) ? -8 : 8);
-        const reach = right + (bulge - right) * 1.33;
-        p = [[right, y1], [reach, y1], [reach, y2], [right + 3, y2]];
-        points = vizCubic(...p);
-        bx = bulge;
-        by = (y1 + y2) / 2;
-      }
-      const d = p.length === 2 ? `M${p[0]} L${p[1]}` : `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`;
-      const badge = s('g', { class: 'viz-badge' }, s('circle', { cx: bx, cy: by, r: 8 }),
-        s('text', { x: bx, y: by, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, String(k + 1)));
-      links.push({ t: tr, path: s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: badge });
-      geometry.paths.push({ key: tr, points });
-      geometry.labels.push({ key: tr, rect: { x: bx - 8, y: by - 8, w: 16, h: 16 }, onLine: true });
-    });
-    keyList = h('ol', { class: 'viz-key-list', 'aria-label': 'Transitions' }, transitions.map((tr, k) => h('li', null,
-      h('span', { class: 'viz-key-n', 'aria-hidden': 'true' }, String(k + 1)),
-      h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} → ${label(tr.to)}`)))));
-    height = order.length * (VIZ_STATE.boxH + VIZ_STATE.vGap) - VIZ_STATE.vGap + 2;
-  }
+    if (straight(tr)) {
+      const p = [[a.x + a.w / 2, a.y + a.h], [b.x + b.w / 2, b.y - 3]];
+      return { tr, p, points: vizSegment(...p), badge: [a.x + a.w / 2, (a.y + a.h + b.y) / 2] };
+    }
+    const bulge = right + 8 + levels[bends.indexOf(tr)] * step;
+    const forward = pos.get(tr.to) > pos.get(tr.from);
+    const y1 = a.y + a.h / 2 + (forward ? 8 : -8);
+    const y2 = b.y + b.h / 2 + (forward ? -8 : 8);
+    const reach = right + (bulge - right) * 1.33;
+    const p = [[right, y1], [reach, y1], [reach, y2], [right + 3, y2]];
+    return { tr, p, points: vizCubic(...p), badge: [bulge, (y1 + y2) / 2] };
+  });
+  return { boxes, geo, height: order.length * (VIZ_STATE.boxH + VIZ_STATE.vGap) - VIZ_STATE.vGap + 2 };
+}
 
-  const parts = states.map((st, i) => {
+// Column: labels would cross the arcs, so each arc gets a numbered badge on its
+// own line and the key under the drawing spells it out.
+function vizStateColumnDraw(order, transitions, width, marker, label) {
+  const layout = vizStateColumn(order, transitions, width);
+  const links = [];
+  const geometry = { paths: [], labels: [] };
+  layout.geo.forEach(({ tr, p, points, badge: [bx, by] }, k) => {
+    const d = p.length === 2 ? `M${p[0]} L${p[1]}` : `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`;
+    const badge = s('g', { class: 'viz-badge' }, s('circle', { cx: bx, cy: by, r: 8 }),
+      s('text', { x: bx, y: by, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, String(k + 1)));
+    links.push({ t: tr, path: vizStatePath(d, marker), label: badge });
+    geometry.paths.push({ key: tr, points });
+    geometry.labels.push({ key: tr, rect: { x: bx - 8, y: by - 8, w: 16, h: 16 }, onLine: true });
+  });
+  const legend = h('ol', { class: 'viz-key-list', 'aria-label': 'Transitions' }, transitions.map((tr, k) => h('li', null,
+    h('span', { class: 'viz-key-n', 'aria-hidden': 'true' }, String(k + 1)),
+    h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} → ${label(tr.to)}`)))));
+  return { links, geometry, boxes: layout.boxes, height: layout.height, legend };
+}
+
+function vizStateParts(states, transitions, boxes, label) {
+  return states.map((st, i) => {
     const box = boxes.get(st.id);
     const out = transitions.filter((t) => t.from === st.id);
     const into = transitions.filter((t) => t.to === st.id && t.from !== st.id);
@@ -242,129 +236,150 @@ function vizDrawState(visual, width, marker) {
       id: st.id,
     });
   });
+}
+
+// Selecting a state lights its transitions and the states they connect.
+function vizStateHighlight(links, parts) {
+  return (index) => {
+    const id = index === null ? null : parts[index].id;
+    links.forEach((l) => {
+      const on = id !== null && (l.t.from === id || l.t.to === id);
+      vizLinkOn(l.path, on);
+      if (l.label) l.label.classList.toggle('is-on', on);
+    });
+    parts.forEach((part, i) => part.el.classList.toggle('is-related', id !== null && i !== index
+      && links.some((l) => (l.t.from === id && l.t.to === part.id) || (l.t.to === id && l.t.from === part.id))));
+  };
+}
+
+/** state: boxes in a row (wide) or a column (narrow); transitions as arcs. */
+function vizDrawState(visual, width, marker) {
+  const states = list(visual.states).filter((st) => st && st.id !== undefined);
+  const transitions = list(visual.transitions).filter((t) => t && states.some((st) => st.id === t.from) && states.some((st) => st.id === t.to));
+  const order = vizStateOrder(states, transitions);
+  const label = (id) => text((states.find((st) => st.id === id) || {}).label, String(id));
+  const drawn = width / Math.max(order.length, 1) >= VIZ_STATE.rowSlot
+    ? vizStateRowDraw(order, transitions, width, marker)
+    : vizStateColumnDraw(order, transitions, width, marker, label);
+  const parts = vizStateParts(states, transitions, drawn.boxes, label);
   return {
-    nodes: [links.map((l) => l.path), links.map((l) => l.label)],
+    nodes: [drawn.links.map((l) => l.path), drawn.links.map((l) => l.label)],
     parts,
-    height,
-    legend: keyList,
+    height: drawn.height,
+    legend: drawn.legend,
     // For tests: every edge as points, every label as a box, every state box.
-    geometry: { ...geometry, boxes: [...boxes.values()] },
-    highlight(index) {
-      const id = index === null ? null : parts[index].id;
-      links.forEach((l) => {
-        const on = id !== null && (l.t.from === id || l.t.to === id);
-        vizLinkOn(l.path, on);
-        if (l.label) l.label.classList.toggle('is-on', on);
-      });
-      parts.forEach((part, i) => part.el.classList.toggle('is-related', id !== null && i !== index
-        && links.some((l) => (l.t.from === id && l.t.to === part.id) || (l.t.to === id && l.t.from === part.id))));
-    },
+    geometry: { ...drawn.geometry, boxes: [...drawn.boxes.values()] },
+    highlight: vizStateHighlight(drawn.links, parts),
   };
 }
 
 const VIZ_TREE = { boxH: 44, level: 40, slot: 112, row: 40, rowGap: 8, indent: 22 };
 
-/** hierarchy: a top-down tree when its leaves fit, else an indented outline. */
-function vizDrawHierarchy(visual, width, marker) {
+// The tree as data: parents, children, depth-first order from the roots, leaves.
+function vizTreeModel(visual) {
   const nodes = list(visual.nodes).filter((n) => n && n.id !== undefined);
   const ids = new Set(nodes.map((n) => n.id));
   const parentOf = (n) => (n.parent !== undefined && ids.has(n.parent) && n.parent !== n.id ? n.parent : null);
   const children = (id) => nodes.filter((n) => parentOf(n) === id);
   const roots = nodes.filter((n) => parentOf(n) === null);
-  const boxes = new Map();
   const depth = new Map();
-  const seen = new Set();
-  const walk = (n, d, visit) => {
-    if (seen.has(n.id)) return;
-    seen.add(n.id);
+  const walkOrder = [];
+  const walk = (n, d) => {
+    if (depth.has(n.id)) return;
     depth.set(n.id, d);
-    visit(n, d);
-    children(n.id).forEach((c) => walk(c, d + 1, visit));
+    walkOrder.push(n);
+    children(n.id).forEach((c) => walk(c, d + 1));
   };
-  const leaves = [];
-  roots.forEach((r) => walk(r, 0, (n) => { if (!children(n.id).length) leaves.push(n.id); }));
+  roots.forEach((r) => walk(r, 0));
+  const leaves = walkOrder.filter((n) => !children(n.id).length).map((n) => n.id);
+  return { nodes, parentOf, children, roots, depth, walkOrder, leaves };
+}
+
+// Top down: leaves share the width, each parent centred over its children.
+function vizTreeTopDown(model, width) {
+  const { nodes, parentOf, children, roots, depth, leaves } = model;
+  const slot = width / leaves.length;
+  const boxW = Math.min(slot - 10, 180);
+  const centre = new Map();
+  const place = (n) => {
+    const kids = children(n.id).filter((c) => depth.get(c.id) === depth.get(n.id) + 1);
+    if (!kids.length) centre.set(n.id, (leaves.indexOf(n.id) + 0.5) * slot);
+    else {
+      kids.forEach(place);
+      centre.set(n.id, (centre.get(kids[0].id) + centre.get(kids[kids.length - 1].id)) / 2);
+    }
+  };
+  roots.forEach(place);
+  const boxes = new Map(nodes.map((n) => [n.id, { x: (centre.get(n.id) ?? width / 2) - boxW / 2, y: 1 + (depth.get(n.id) ?? 0) * (VIZ_TREE.boxH + VIZ_TREE.level), w: boxW, h: VIZ_TREE.boxH }]));
+  const links = nodes.filter((n) => parentOf(n) !== null).map((n) => {
+    const a = boxes.get(parentOf(n));
+    const b = boxes.get(n.id);
+    const mid = a.y + a.h + VIZ_TREE.level / 2;
+    return { from: parentOf(n), to: n.id, d: `M${a.x + a.w / 2},${a.y + a.h} V${mid} H${b.x + b.w / 2} V${b.y}` };
+  });
   const maxDepth = Math.max(0, ...depth.values());
-  const topDown = width / Math.max(leaves.length, 1) >= VIZ_TREE.slot;
-  const links = [];
-  let height;
+  return { boxes, links, height: (maxDepth + 1) * (VIZ_TREE.boxH + VIZ_TREE.level) - VIZ_TREE.level + 2 };
+}
 
-  if (topDown) {
-    const slot = width / leaves.length;
-    const boxW = Math.min(slot - 10, 180);
-    const centre = new Map();
-    const place = (n) => {
-      const kids = children(n.id).filter((c) => depth.get(c.id) === depth.get(n.id) + 1);
-      if (!kids.length) centre.set(n.id, (leaves.indexOf(n.id) + 0.5) * slot);
-      else {
-        kids.forEach(place);
-        centre.set(n.id, (centre.get(kids[0].id) + centre.get(kids[kids.length - 1].id)) / 2);
-      }
-    };
-    roots.forEach(place);
-    nodes.forEach((n) => {
-      const cx = centre.get(n.id) ?? width / 2;
-      boxes.set(n.id, { x: cx - boxW / 2, y: 1 + depth.get(n.id) * (VIZ_TREE.boxH + VIZ_TREE.level), w: boxW, h: VIZ_TREE.boxH });
-    });
-    nodes.forEach((n) => {
-      const p = parentOf(n);
-      if (p === null) return;
-      const a = boxes.get(p);
-      const b = boxes.get(n.id);
-      const mid = a.y + a.h + VIZ_TREE.level / 2;
-      links.push({ from: p, to: n.id, path: s('path', { class: 'viz-link', d: `M${a.x + a.w / 2},${a.y + a.h} V${mid} H${b.x + b.w / 2} V${b.y}` }) });
-    });
-    height = (maxDepth + 1) * (VIZ_TREE.boxH + VIZ_TREE.level) - VIZ_TREE.level + 2;
-  } else {
-    let y = 1;
-    seen.clear();
-    roots.forEach((r) => walk(r, 0, (n, d) => {
-      const x = 1 + d * VIZ_TREE.indent;
-      boxes.set(n.id, { x, y, w: width - x - 1, h: VIZ_TREE.row });
-      y += VIZ_TREE.row + VIZ_TREE.rowGap;
-    }));
-    nodes.forEach((n) => {
-      const p = parentOf(n);
-      if (p === null || !boxes.has(n.id)) return;
-      const a = boxes.get(p);
-      const b = boxes.get(n.id);
-      links.push({ from: p, to: n.id, path: s('path', { class: 'viz-link', d: `M${a.x + 11},${a.y + a.h} V${b.y + b.h / 2} H${b.x}` }) });
-    });
-    height = y - VIZ_TREE.rowGap + 1;
-  }
+// Outline: one row per node in depth-first order, indented by depth.
+function vizTreeOutline(model, width) {
+  const boxes = new Map();
+  let y = 1;
+  model.walkOrder.forEach((n) => {
+    const x = 1 + model.depth.get(n.id) * VIZ_TREE.indent;
+    boxes.set(n.id, { x, y, w: width - x - 1, h: VIZ_TREE.row });
+    y += VIZ_TREE.row + VIZ_TREE.rowGap;
+  });
+  const links = model.nodes.filter((n) => model.parentOf(n) !== null && boxes.has(n.id)).map((n) => {
+    const a = boxes.get(model.parentOf(n));
+    const b = boxes.get(n.id);
+    return { from: model.parentOf(n), to: n.id, d: `M${a.x + 11},${a.y + a.h} V${b.y + b.h / 2} H${b.x}` };
+  });
+  return { boxes, links, height: y - VIZ_TREE.rowGap + 1 };
+}
 
-  const labelOf = (id) => text((nodes.find((n) => n.id === id) || {}).label, String(id));
-  const parts = nodes.filter((n) => boxes.has(n.id)).map((n) => {
+function vizTreeParts(model, boxes, topDown) {
+  const labelOf = (id) => text((model.nodes.find((n) => n.id === id) || {}).label, String(id));
+  return model.nodes.filter((n) => boxes.has(n.id)).map((n) => {
     const box = boxes.get(n.id);
-    const kids = children(n.id);
-    const p = parentOf(n);
+    const p = model.parentOf(n);
     const lines = vizWrap(text(n.label, String(n.id)), vizChars(box.w - 20), topDown ? 2 : 1);
     return vizPart([
       vizRoundRect(box.x, box.y, box.w, box.h),
       vizText(lines, { x: topDown ? box.x + box.w / 2 : box.x + 12, y: box.y + box.h / 2, anchor: topDown ? 'middle' : 'start' }),
     ], {
       label: text(n.label, String(n.id)),
-      kicker: p === null ? 'The whole' : `Level ${depth.get(n.id) + 1}`,
-      facts: [['Part of', p !== null ? labelOf(p) : null], ['Made of', vizRelationList(kids.map((k) => labelOf(k.id)))]],
+      kicker: p === null ? 'The whole' : `Level ${model.depth.get(n.id) + 1}`,
+      facts: [['Part of', p !== null ? labelOf(p) : null], ['Made of', vizRelationList(model.children(n.id).map((k) => labelOf(k.id)))]],
       id: n.id,
     });
   });
-  return {
-    nodes: links.map((l) => l.path),
-    parts,
-    height,
-    highlight(index) {
-      const id = index === null ? null : parts[index].id;
-      const line = new Set();
-      for (let at = id; at !== null && at !== undefined;) {
-        const node = nodes.find((n) => n.id === at);
-        const up = node ? parentOf(node) : null;
-        if (up === null) break;
-        line.add(`${up}>${at}`);
-        at = up;
-      }
-      links.forEach((l) => l.path.classList.toggle('is-on', line.has(`${l.from}>${l.to}`) || (id !== null && l.from === id)));
-      parts.forEach((part) => part.el.classList.toggle('is-related', id !== null && part.id !== id
-        && (links.some((l) => l.from === id && l.to === part.id) || [...line].some((key) => key.startsWith(`${part.id}>`)))));
-    },
+}
+
+// Selecting a node lights its line up to the root and the links to its children.
+function vizTreeHighlight(model, links, parts) {
+  return (index) => {
+    const id = index === null ? null : parts[index].id;
+    const line = new Set();
+    for (let at = id; at !== null && at !== undefined;) {
+      const node = model.nodes.find((n) => n.id === at);
+      const up = node ? model.parentOf(node) : null;
+      if (up === null) break;
+      line.add(`${up}>${at}`);
+      at = up;
+    }
+    links.forEach((l) => l.path.classList.toggle('is-on', line.has(`${l.from}>${l.to}`) || (id !== null && l.from === id)));
+    parts.forEach((part) => part.el.classList.toggle('is-related', id !== null && part.id !== id
+      && (links.some((l) => l.from === id && l.to === part.id) || [...line].some((key) => key.startsWith(`${part.id}>`)))));
   };
+}
+
+/** hierarchy: a top-down tree when its leaves fit, else an indented outline. */
+function vizDrawHierarchy(visual, width) {
+  const model = vizTreeModel(visual);
+  const topDown = width / Math.max(model.leaves.length, 1) >= VIZ_TREE.slot;
+  const layout = topDown ? vizTreeTopDown(model, width) : vizTreeOutline(model, width);
+  const links = layout.links.map((l) => ({ ...l, path: s('path', { class: 'viz-link', d: l.d }) }));
+  const parts = vizTreeParts(model, layout.boxes, topDown);
+  return { nodes: links.map((l) => l.path), parts, height: layout.height, highlight: vizTreeHighlight(model, links, parts) };
 }

@@ -18,6 +18,39 @@ function chEventMark(kind) {
     entry ? entry.shape() : s('circle', { cx: 7, cy: 7, r: 3 }));
 }
 
+function chEventButton(ev) {
+  return h('button', {
+    class: 'ch-event', type: 'button', 'aria-pressed': 'false',
+    'aria-label': `${text(ev.at)}: ${text(ev.label)}${CH_EVENT_KINDS[ev.kind] ? `, ${CH_EVENT_KINDS[ev.kind].label}` : ''}`,
+  },
+  h('span', { class: 'ch-event-dot' }, chEventMark(ev.kind)),
+  h('span', { class: 'ch-event-text' },
+    h('span', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
+    truncatable(h('span', { class: 'ch-event-label' }, softBreaks(text(ev.label))), text(ev.label))));
+}
+
+function chEventDetail(ev, i, count) {
+  const kind = CH_EVENT_KINDS[ev.kind];
+  return [
+    h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Event ${i + 1} of ${count}`),
+      kind && h('span', { class: 'ch-impact' }, chEventMark(ev.kind), kind.label)),
+    h('p', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
+    h('h3', null, softBreaks(text(ev.label))),
+    text(ev.detail) && h('p', null, softBreaks(ev.detail)),
+  ];
+}
+
+// The legend and the axis; across only when every event gets CH_EVENT_SLOT pixels.
+function chTimelinePanel(events, buttons) {
+  const used = Object.keys(CH_EVENT_KINDS).filter((k) => events.some((ev) => ev.kind === k));
+  const axis = h('ol', { class: 'ch-axis', style: `--events:${events.length}` }, buttons.map((b, i) => h('li', { class: i % 2 ? 'is-low' : 'is-high' }, b)));
+  const panel = h('div', { class: 'panel ch-timeline' },
+    used.length > 0 && h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, used.map((k) => h('span', null, chEventMark(k), CH_EVENT_KINDS[k].label))),
+    axis);
+  chOnWidth(panel, (width) => axis.classList.toggle('is-across', width - 48 >= events.length * CH_EVENT_SLOT));
+  return panel;
+}
+
 /**
  * @param {object} data explainer data (reads data.timeline)
  * @param {HTMLElement} mount the chapter body
@@ -30,56 +63,13 @@ function chRenderTimeline(data, mount) {
     return null;
   }
   const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
-  let selected = null;
-
-  const buttons = events.map((ev, i) => h('button', {
-    class: 'ch-event', type: 'button', 'aria-pressed': 'false',
-    'aria-label': `${text(ev.at)}: ${text(ev.label)}${CH_EVENT_KINDS[ev.kind] ? `, ${CH_EVENT_KINDS[ev.kind].label}` : ''}`,
-    onclick: () => select(selected === i ? null : i),
-  },
-  h('span', { class: 'ch-event-dot' }, chEventMark(ev.kind)),
-  h('span', { class: 'ch-event-text' },
-    h('span', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
-    truncatable(h('span', { class: 'ch-event-label' }, softBreaks(text(ev.label))), text(ev.label)))));
-  const axis = h('ol', { class: 'ch-axis', style: `--events:${events.length}` }, buttons.map((b, i) => h('li', { class: i % 2 ? 'is-low' : 'is-high' }, b)));
-  chRoving(buttons, { onMove: (i) => select(i) });
-
-  function select(index, { link = true } = {}) {
-    selected = index;
-    chMarkCurrent(buttons, index);
-    renderDetail();
-    if (link) setDeepLink(index === null ? 'timeline' : `timeline/${index}`);
-    return index === null ? null : buttons[index];
-  }
-
-  function renderDetail() {
-    if (selected === null) {
-      fill(detail, chEmptyDetail('Pick an event', 'Events run in the order of the record. The marker shape says what kind of moment it was.'));
-      return;
-    }
-    const ev = events[selected];
-    const kind = CH_EVENT_KINDS[ev.kind];
-    fill(detail,
-      h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Event ${selected + 1} of ${events.length}`),
-        kind && h('span', { class: 'ch-impact' }, chEventMark(ev.kind), kind.label)),
-      h('p', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
-      h('h3', null, softBreaks(text(ev.label))),
-      text(ev.detail) && h('p', null, softBreaks(ev.detail)),
-      chStepper(selected, events.length, (i) => { select(i); buttons[i].focus(); }, 'event'));
-  }
-
-  const used = Object.keys(CH_EVENT_KINDS).filter((k) => events.some((ev) => ev.kind === k));
-  const panel = h('div', { class: 'panel ch-timeline' },
-    used.length > 0 && h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, used.map((k) => h('span', null, chEventMark(k), CH_EVENT_KINDS[k].label))),
-    axis);
-  chOnWidth(panel, (width) => axis.classList.toggle('is-across', width - 48 >= events.length * CH_EVENT_SLOT));
-  select(null, { link: false });
-  mount.append(h('div', { class: 'ch-stack' }, panel, detail));
+  const buttons = events.map(chEventButton);
+  const select = chSelection({
+    buttons, detail, chapter: 'timeline', noun: 'event',
+    empty: () => chEmptyDetail('Pick an event', 'Events run in the order of the record. The marker shape says what kind of moment it was.'),
+    describe: (i) => chEventDetail(events[i], i, events.length),
+  });
+  mount.append(h('div', { class: 'ch-stack' }, chTimelinePanel(events, buttons), detail));
   buttons.forEach((b, i) => riseIn(b, Math.min(i, 10) * 30));
-  return {
-    open([raw] = []) {
-      const index = chIndexPart(raw, events.length);
-      return index === null ? null : select(index, { link: false });
-    },
-  };
+  return chIndexOpener(select, events.length);
 }

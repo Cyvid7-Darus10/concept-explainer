@@ -26,6 +26,48 @@ function chDiffBar(lines, max) {
     h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`));
 }
 
+function chDiffRow(entry, max) {
+  const lines = chParseLines(entry.lines);
+  return h('button', {
+    class: `ch-file is-${CH_STATUS_LABELS[entry.status] ? entry.status : 'modified'}`, type: 'button', 'aria-pressed': 'false', 'data-path': entry.path,
+    'aria-label': `${entry.path}, ${CH_STATUS_LABELS[entry.status] || 'Changed'}${lines ? `, ${lines.add} added and ${lines.del} removed lines` : ''}${entry.key ? ', key file' : ''}`,
+    style: `--size:${lines ? (lines.add + lines.del) / max : 0}`,
+  },
+  chStatusMark(entry.status),
+  h('span', { class: 'ch-file-name' }, truncatable(h('span', { class: 'ch-file-path' }), entry.path, { mode: 'middle' }),
+    entry.key && h('span', { class: 'tag tag-key' }, 'Key')),
+  chDiffBar(lines, max));
+}
+
+function chDiffNodeLink(id, nodeIndex) {
+  const node = nodeIndex.get(id);
+  return h('li', null, h('a', { class: 'ch-node-link', href: `#map/${linkPart(id)}` },
+    node && node.status && node.status !== 'unchanged' ? chStatusMark(node.status) : null,
+    softBreaks(text(node && node.label, String(id)))));
+}
+
+function chDiffDetail(entry, nodeIndex) {
+  const lines = chParseLines(entry.lines);
+  return [
+    h('div', { class: 'step-top' }, chStatusTag(entry.status), entry.key && tag('Key file', 'tag-key'), lines && h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`)),
+    h('h3', { class: 'ch-detail-path' }, breakablePath(entry.path)),
+    entry.status === 'renamed' && text(entry.from) && h('p', { class: 'ch-from' }, 'Was ', h('code', null, breakablePath(entry.from))),
+    h('p', null, softBreaks(text(entry.summary, 'No summary yet.'))),
+    list(entry.nodes).length > 0 && [h('div', { class: 'detail-label' }, 'Part of'), h('ul', { class: 'ch-node-links' }, list(entry.nodes).map((id) => chDiffNodeLink(id, nodeIndex)))],
+  ];
+}
+
+// The totals, files per status, and the bar legend.
+function chDiffSummary(entries) {
+  const totals = chDiffTotals(entries);
+  const counts = Object.keys(CH_STATUS_LABELS).filter((key) => key !== 'changed' && key !== 'unchanged')
+    .map((key) => [key, entries.filter((e) => e.status === key).length]).filter(([, n]) => n > 0);
+  return h('div', { class: 'ch-diff-summary' },
+    h('p', { class: 'ch-diff-total' }, h('b', null, chCount(entries.length, 'file')), h('span', { class: 'ch-bar-num' }, `+${totals.add} −${totals.del}`)),
+    h('ul', { class: 'ch-legend', 'aria-label': 'Files by status' }, counts.map(([key, n]) => h('li', null, chStatusMark(key), `${n} ${CH_STATUS_LABELS[key].toLowerCase()}`))),
+    h('p', { class: 'ch-legend ch-legend-bars', 'aria-hidden': 'true' }, h('span', null, h('i', { class: 'ch-swatch is-add' }), 'Added lines'), h('span', null, h('i', { class: 'ch-swatch is-del' }), 'Removed lines')));
+}
+
 /**
  * @param {object} data explainer data (reads data.diff, data.nodes)
  * @param {HTMLElement} mount the chapter body
@@ -38,74 +80,21 @@ function chRenderDiff(data, mount) {
     return null;
   }
   const nodeIndex = byId(data.nodes);
-  const totals = chDiffTotals(entries);
   const max = Math.max(1, ...entries.map((e) => { const l = chParseLines(e.lines); return l ? l.add + l.del : 0; }));
   const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
-  let selected = null;
-
-  const rows = entries.map((entry, i) => {
-    const lines = chParseLines(entry.lines);
-    const share = lines ? (lines.add + lines.del) / max : 0;
-    return h('button', {
-      class: `ch-file is-${CH_STATUS_LABELS[entry.status] ? entry.status : 'modified'}`, type: 'button', 'aria-pressed': 'false', 'data-path': entry.path,
-      'aria-label': `${entry.path}, ${CH_STATUS_LABELS[entry.status] || 'Changed'}${lines ? `, ${lines.add} added and ${lines.del} removed lines` : ''}${entry.key ? ', key file' : ''}`,
-      style: `--size:${share}`, onclick: () => select(selected === i ? null : i),
-    },
-    chStatusMark(entry.status),
-    h('span', { class: 'ch-file-name' }, truncatable(h('span', { class: 'ch-file-path' }), entry.path, { mode: 'middle' }),
-      entry.key && h('span', { class: 'tag tag-key' }, 'Key')),
-    chDiffBar(lines, max));
+  const rows = entries.map((entry) => chDiffRow(entry, max));
+  const select = chSelection({
+    buttons: rows, detail, chapter: 'diff', noun: 'file', axis: 'y', hash: (i) => `diff/${linkPart(entries[i].path)}`,
+    empty: () => chEmptyDetail('Pick a file', 'Each bar is one file, as long as its changed lines. Key files are the ones a reviewer must read.'),
+    describe: (i) => chDiffDetail(entries[i], nodeIndex),
   });
-  chRoving(rows, { axis: 'y', onMove: (i) => select(i) });
-
-  function select(index, { link = true } = {}) {
-    selected = index;
-    chMarkCurrent(rows, index);
-    renderDetail();
-    if (link) setDeepLink(index === null ? 'diff' : `diff/${linkPart(entries[index].path)}`);
-    return index === null ? null : rows[index];
-  }
-
-  function nodeLink(id) {
-    const node = nodeIndex.get(id);
-    return h('li', null, h('a', { class: 'ch-node-link', href: `#map/${linkPart(id)}` },
-      node && node.status && node.status !== 'unchanged' ? chStatusMark(node.status) : null,
-      softBreaks(text(node && node.label, String(id)))));
-  }
-
-  function renderDetail() {
-    if (selected === null) {
-      fill(detail, chEmptyDetail('Pick a file', 'Each bar is one file, as long as its changed lines. Key files are the ones a reviewer must read.'));
-      return;
-    }
-    const entry = entries[selected];
-    const lines = chParseLines(entry.lines);
-    fill(detail,
-      h('div', { class: 'step-top' }, chStatusTag(entry.status), entry.key && tag('Key file', 'tag-key'), lines && h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`)),
-      h('h3', { class: 'ch-detail-path' }, breakablePath(entry.path)),
-      entry.status === 'renamed' && text(entry.from) && h('p', { class: 'ch-from' }, 'Was ', h('code', null, breakablePath(entry.from))),
-      h('p', null, softBreaks(text(entry.summary, 'No summary yet.'))),
-      list(entry.nodes).length > 0 && [h('div', { class: 'detail-label' }, 'Part of'), h('ul', { class: 'ch-node-links' }, list(entry.nodes).map(nodeLink))],
-      chStepper(selected, entries.length, (i) => { select(i); rows[i].focus(); }, 'file'));
-  }
-
-  const counts = Object.keys(CH_STATUS_LABELS).filter((key) => key !== 'changed' && key !== 'unchanged')
-    .map((key) => [key, entries.filter((e) => e.status === key).length]).filter(([, n]) => n > 0);
-  const summary = h('div', { class: 'ch-diff-summary' },
-    h('p', { class: 'ch-diff-total' }, h('b', null, chCount(entries.length, 'file')), h('span', { class: 'ch-bar-num' }, `+${totals.add} −${totals.del}`)),
-    h('ul', { class: 'ch-legend', 'aria-label': 'Files by status' }, counts.map(([key, n]) => h('li', null, chStatusMark(key), `${n} ${CH_STATUS_LABELS[key].toLowerCase()}`))),
-    h('p', { class: 'ch-legend ch-legend-bars', 'aria-hidden': 'true' }, h('span', null, h('i', { class: 'ch-swatch is-add' }), 'Added lines'), h('span', null, h('i', { class: 'ch-swatch is-del' }), 'Removed lines')));
-
-  select(null, { link: false });
   mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-split' },
-    h('div', { class: 'panel ch-diff' }, summary, h('div', { class: 'ch-file-list', role: 'group', 'aria-label': 'Changed files' }, rows)),
+    h('div', { class: 'panel ch-diff' }, chDiffSummary(entries), h('div', { class: 'ch-file-list', role: 'group', 'aria-label': 'Changed files' }, rows)),
     detail)));
   rows.forEach((row, i) => riseIn(row, Math.min(i, 8) * 30));
   return {
     open(parts = []) {
-      if (!parts.length) return null;
-      const want = parts.join('/');
-      const index = entries.findIndex((e) => e.path === want);
+      const index = parts.length ? entries.findIndex((e) => e.path === parts.join('/')) : -1;
       return index >= 0 ? select(index, { link: false }) : null;
     },
   };

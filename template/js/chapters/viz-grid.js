@@ -76,61 +76,68 @@ function vizDrawCompare(visual, width) {
 
 const VIZ_PANEL = { head: 34, item: 40, gap: 6, pad: 10, between: 44, wideAt: 560 };
 
-/** beforeAfter: two panels with what moved; items in one side only get + or −. */
-function vizDrawBeforeAfter(visual, width, marker) {
+// Both panels and every item box: side by side when wide, stacked when narrow.
+// An item whose label is on both sides stays; otherwise it is gone (before) or new (after).
+function vizBeforeAfterLayout(visual, width) {
   const sides = [['before', 'Before'], ['after', 'After']].map(([key, name]) => ({
     key, name, items: list(visual[key] && visual[key].items).filter((item) => vizItemLabel(item)),
   }));
   const wide = width >= VIZ_PANEL.wideAt;
   const panelW = wide ? (width - VIZ_PANEL.between) / 2 : width;
-  const labelsOf = (side) => new Set(side.items.map((item) => vizItemLabel(item).trim().toLowerCase()));
-  const sets = sides.map(labelsOf);
-  const nodes = [];
-  const parts = [];
-  let bottom = 0;
+  const sets = sides.map((side) => new Set(side.items.map((item) => vizItemLabel(item).trim().toLowerCase())));
+  const panels = [];
+  const items = [];
   let nextTop = 1;
-  const panelBottoms = [];
   sides.forEach((side, sideIndex) => {
     const x = wide ? sideIndex * (panelW + VIZ_PANEL.between) : 0;
     const top = wide ? 1 : nextTop;
-    const other = sets[1 - sideIndex];
     let y = top + VIZ_PANEL.head;
     side.items.forEach((item, i) => {
       const label = vizItemLabel(item);
-      const shared = other.has(label.trim().toLowerCase());
-      const glyph = shared ? '' : sideIndex === 0 ? '−' : '+';
       const lines = vizWrap(label, vizChars(panelW - VIZ_PANEL.pad * 2 - 34), 2);
       const itemH = Math.max(VIZ_PANEL.item, lines.length * VIZ_LINE + 14);
-      const boxTop = y;
+      items.push({ item, label, lines, side, sideIndex, i, shared: sets[1 - sideIndex].has(label.trim().toLowerCase()), box: { x: x + VIZ_PANEL.pad, y, w: panelW - VIZ_PANEL.pad * 2, h: itemH } });
       y += itemH + VIZ_PANEL.gap;
-      parts.push(vizPart([
-        vizRoundRect(x + VIZ_PANEL.pad, boxTop, panelW - VIZ_PANEL.pad * 2, itemH),
-        glyph && s('text', { class: 'viz-glyph', x: x + VIZ_PANEL.pad + 14, y: boxTop + itemH / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, glyph),
-        vizText(lines, { x: x + VIZ_PANEL.pad + 28, y: boxTop + itemH / 2 }),
-      ], {
-        label,
-        detail: vizItemDetail(item),
-        kicker: `${side.name}, ${i + 1} of ${side.items.length}`,
-        facts: [['Change', shared ? 'Stays the same' : sideIndex === 0 ? 'Gone after the change' : 'New after the change']],
-      }));
     });
-    const panelBottom = y - VIZ_PANEL.gap + VIZ_PANEL.pad;
-    nodes.push(vizRoundRect(x, top, panelW, panelBottom - top, 'viz-panel'),
-      s('text', { class: 'viz-panel-head', x: x + VIZ_PANEL.pad + 2, y: top + VIZ_PANEL.head / 2 + 2, 'dominant-baseline': 'central' }, side.name.toUpperCase()));
-    bottom = Math.max(bottom, panelBottom);
-    panelBottoms.push(panelBottom);
-    nextTop = panelBottom + VIZ_PANEL.between;
+    const bottom = y - VIZ_PANEL.gap + VIZ_PANEL.pad;
+    panels.push({ name: side.name, x, top, bottom });
+    nextTop = bottom + VIZ_PANEL.between;
   });
+  const lowest = Math.max(0, ...panels.map((p) => p.bottom));
   const arrow = wide
-    ? s('path', { class: 'viz-link is-flow', d: `M${panelW + 10},${Math.min(bottom, 120) / 2 + 10} H${panelW + VIZ_PANEL.between - 10}`, 'marker-end': `url(#${marker}-rest)` })
-    : s('path', { class: 'viz-link is-flow', d: `M${width / 2},${panelBottoms[0] + 8} V${panelBottoms[0] + VIZ_PANEL.between - 10}`, 'marker-end': `url(#${marker}-rest)` });
-  nodes.push(arrow);
+    ? `M${panelW + 10},${Math.min(lowest, 120) / 2 + 10} H${panelW + VIZ_PANEL.between - 10}`
+    : `M${width / 2},${panels[0].bottom + 8} V${panels[0].bottom + VIZ_PANEL.between - 10}`;
+  return { panelW, panels, items, arrow, height: (wide ? lowest : nextTop - VIZ_PANEL.between) + 1 };
+}
+
+function vizBeforeAfterLegend(visual, moved) {
   const notes = list(visual.notes).filter((note) => typeof note === 'string' && note.trim());
-  const glyphs = parts.some((p) => p.facts[0][1] !== 'Stays the same');
-  const legend = (notes.length || glyphs) && h('div', { class: 'viz-notes' },
-    glyphs && h('p', { class: 'viz-legend' }, h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '+'), 'New'), h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '−'), 'Gone')),
+  if (!notes.length && !moved) return false;
+  return h('div', { class: 'viz-notes' },
+    moved && h('p', { class: 'viz-legend' }, h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '+'), 'New'), h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '−'), 'Gone')),
     notes.length > 0 && h('ul', { class: 'viz-note-list', 'aria-label': 'Notes' }, notes.map((note) => h('li', null, softBreaks(note)))));
-  return { nodes, parts, height: (wide ? bottom : nextTop - VIZ_PANEL.between) + 1, legend };
+}
+
+/** beforeAfter: two panels with what moved; items in one side only get + or −. */
+function vizDrawBeforeAfter(visual, width, marker) {
+  const layout = vizBeforeAfterLayout(visual, width);
+  const nodes = layout.panels.flatMap((panel) => [vizRoundRect(panel.x, panel.top, layout.panelW, panel.bottom - panel.top, 'viz-panel'),
+    s('text', { class: 'viz-panel-head', x: panel.x + VIZ_PANEL.pad + 2, y: panel.top + VIZ_PANEL.head / 2 + 2, 'dominant-baseline': 'central' }, panel.name.toUpperCase())]);
+  nodes.push(s('path', { class: 'viz-link is-flow', d: layout.arrow, 'marker-end': `url(#${marker}-rest)` }));
+  const parts = layout.items.map(({ item, label, lines, side, sideIndex, i, shared, box }) => {
+    const glyph = shared ? '' : sideIndex === 0 ? '−' : '+';
+    return vizPart([
+      vizRoundRect(box.x, box.y, box.w, box.h),
+      glyph && s('text', { class: 'viz-glyph', x: box.x + 14, y: box.y + box.h / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, glyph),
+      vizText(lines, { x: box.x + 28, y: box.y + box.h / 2 }),
+    ], {
+      label,
+      detail: vizItemDetail(item),
+      kicker: `${side.name}, ${i + 1} of ${side.items.length}`,
+      facts: [['Change', shared ? 'Stays the same' : sideIndex === 0 ? 'Gone after the change' : 'New after the change']],
+    });
+  });
+  return { nodes, parts, height: layout.height, legend: vizBeforeAfterLegend(visual, layout.items.some((it) => !it.shared)) };
 }
 
 const VIZ_QUAD = { axis: 30, foot: 38, dot: 6, label: 12.5 };
@@ -213,18 +220,10 @@ function vizRegionCentre(layout, inside) {
   return [own[0] + (own[0] - all[0]) * push, own[1] + (own[1] - all[1]) * push];
 }
 
-/** venn: 2 or 3 circles; each item sits in the region of the sets it belongs to. */
-function vizDrawVenn(visual, width) {
-  const sets = list(visual.sets).filter((set) => set && set.id !== undefined).slice(0, 3);
-  const layout = vizVennLayout(sets.length, width);
-  const circles = sets.map((set, i) => s('circle', { class: 'viz-set', cx: layout.centres[i][0], cy: layout.centres[i][1], r: layout.r }));
-  const setLabels = sets.map((set, i) => {
-    const [cx, cy] = layout.centres[i];
-    const below = i === 2;
-    return s('text', { class: 'viz-set-label', x: cx, y: below ? cy + layout.r + 14 : cy - layout.r - 12, 'text-anchor': 'middle', 'dominant-baseline': 'central' },
-      vizWrap(text(set.label, String(set.id)), vizChars(sets.length === 2 ? layout.r * 1.6 : layout.r * 1.3, VIZ_VENN.label), 1)[0]);
-  });
-  const items = list(visual.items).filter((item) => item && typeof item === 'object');
+// Where each item sits: the region of its sets, items of one region stacked
+// around its centre, up to two lines each, kept inside the drawing.
+function vizVennPlace(items, sets, layout, width) {
+  const LINE = 14;
   const regionOf = (item) => sets.map((set, i) => (list(item.in).includes(set.id) ? i : -1)).filter((i) => i >= 0);
   const groups = new Map();
   items.forEach((item, i) => {
@@ -232,35 +231,42 @@ function vizDrawVenn(visual, width) {
     groups.set(key, [...(groups.get(key) || []), i]);
   });
   const roomFor = (inside) => layout.r * (inside.length === 1 ? 0.92 : inside.length === sets.length ? 0.66 : 0.8);
-  // Up to two lines per item; a region's items stack around its centre.
-  const LINE = 14;
   const wrapped = items.map((item) => vizWrap(text(item.label), vizChars(roomFor(regionOf(item)), VIZ_VENN.label), 2));
   const heightOf = (i) => wrapped[i].length * LINE + 4;
-  const parts = items.map((item, i) => {
+  return items.map((item, i) => {
     const inside = regionOf(item);
     const group = groups.get(inside.join(','));
     const total = group.reduce((sum, j) => sum + heightOf(j) + 3, -3);
     const before = group.slice(0, group.indexOf(i)).reduce((sum, j) => sum + heightOf(j) + 3, 0);
     const [cx, ry] = inside.length ? vizRegionCentre(layout, inside) : [width / 2, layout.height - 10];
     const top = ry - total / 2 + before;
-    const lines = wrapped[i];
-    const w = Math.min(width - 2, Math.max(...lines.map((line) => vizTextWidth(line, VIZ_VENN.label))) + 12);
-    // Kept inside the drawing when a region sits near its edge.
-    const rx = Math.min(Math.max(cx, w / 2 + 1), width - w / 2 - 1);
-    const y = top + heightOf(i) / 2;
-    return vizPart([
-      s('rect', { class: 'viz-chip', x: rx - w / 2, y: top, width: w, height: heightOf(i) }),
-      vizText(lines, { x: rx, y, cls: 'viz-item-label', anchor: 'middle', lineHeight: LINE }),
-    ], {
-      label: text(item.label),
-      kicker: inside.length > 1 ? `In ${inside.length} groups` : 'In one group',
-      facts: [
-        ['In', sets.filter((_, j) => inside.includes(j)).map((set) => text(set.label, String(set.id))).join(', ')],
-        ['Not in', sets.filter((_, j) => !inside.includes(j)).map((set) => text(set.label, String(set.id))).join(', ')],
-      ],
-      inside,
-    });
+    const w = Math.min(width - 2, Math.max(...wrapped[i].map((line) => vizTextWidth(line, VIZ_VENN.label))) + 12);
+    const x = Math.min(Math.max(cx, w / 2 + 1), width - w / 2 - 1);
+    return { item, inside, lines: wrapped[i], line: LINE, chip: { x: x - w / 2, y: top, w, h: heightOf(i) }, x, y: top + heightOf(i) / 2 };
   });
+}
+
+/** venn: 2 or 3 circles; each item sits in the region of the sets it belongs to. */
+function vizDrawVenn(visual, width) {
+  const sets = list(visual.sets).filter((set) => set && set.id !== undefined).slice(0, 3);
+  const layout = vizVennLayout(sets.length, width);
+  const circles = sets.map((set, i) => s('circle', { class: 'viz-set', cx: layout.centres[i][0], cy: layout.centres[i][1], r: layout.r }));
+  const setLabels = sets.map((set, i) => {
+    const [cx, cy] = layout.centres[i];
+    return s('text', { class: 'viz-set-label', x: cx, y: i === 2 ? cy + layout.r + 14 : cy - layout.r - 12, 'text-anchor': 'middle', 'dominant-baseline': 'central' },
+      vizWrap(text(set.label, String(set.id)), vizChars(sets.length === 2 ? layout.r * 1.6 : layout.r * 1.3, VIZ_VENN.label), 1)[0]);
+  });
+  const names = (keep) => sets.filter((_, j) => keep(j)).map((set) => text(set.label, String(set.id))).join(', ');
+  const placed = vizVennPlace(list(visual.items).filter((item) => item && typeof item === 'object'), sets, layout, width);
+  const parts = placed.map(({ item, inside, lines, line, chip, x, y }) => vizPart([
+    s('rect', { class: 'viz-chip', x: chip.x, y: chip.y, width: chip.w, height: chip.h }),
+    vizText(lines, { x, y, cls: 'viz-item-label', anchor: 'middle', lineHeight: line }),
+  ], {
+    label: text(item.label),
+    kicker: inside.length > 1 ? `In ${inside.length} groups` : 'In one group',
+    facts: [['In', names((j) => inside.includes(j))], ['Not in', names((j) => !inside.includes(j))]],
+    inside,
+  }));
   return {
     nodes: [circles, setLabels],
     parts,
@@ -268,7 +274,7 @@ function vizDrawVenn(visual, width) {
     highlight(index) {
       const inside = index === null ? [] : parts[index].inside;
       circles.forEach((c, j) => c.classList.toggle('is-on', inside.includes(j)));
-      setLabels.forEach((t, j) => t.classList.toggle('is-on', inside.includes(j)));
+      setLabels.forEach((label, j) => label.classList.toggle('is-on', inside.includes(j)));
     },
   };
 }

@@ -105,3 +105,21 @@ test('chapter modules depend on dom.js only, not on the chapters other modules o
   const own = new Set([...js.matchAll(/(?:const|let|function)\s+([\w$]+)/g), ...js.matchAll(/^\s*([\w$]+)\([^()]*\)\s*\{/gm)].map((m) => m[1]));
   assert.deepEqual(elsewhere.filter((name) => called.has(name) && !own.has(name)), [], 'call only dom.js helpers, so app.js, map.js and the rest can change freely');
 });
+
+test('top-level functions stay under 50 lines (layout apart from drawing and wiring)', () => {
+  const long = Object.entries(sources).flatMap(([file, source]) => {
+    const lines = source.split('\n');
+    const found = [];
+    let open = null;
+    lines.forEach((line, i) => {
+      const start = line.match(/^function ([\w$]+)\(/);
+      if (start) open = { name: start[1], at: i };
+      else if (open && /^}/.test(line)) {
+        if (i - open.at + 1 > 50) found.push(`${file}: ${open.name} (${i - open.at + 1} lines)`);
+        open = null;
+      }
+    });
+    return found;
+  });
+  assert.deepEqual(long, []);
+});
