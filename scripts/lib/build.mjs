@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { shownChapters } from './chapters.mjs';
+import { pageEnums } from './page-enums.mjs';
 
 export const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'template');
 export const FONTS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'fonts');
@@ -138,7 +140,10 @@ export function buildExplainer(data, options = {}) {
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR);
   const title = data && data.meta && data.meta.title ? `${data.meta.title} · Concept Explainer` : 'Concept Explainer';
   const description = data && data.meta && typeof data.meta.summary === 'string' ? data.meta.summary : '';
-  return assemble(parts, title, data, 'boot();', description, options.context || {}, options.fontBase);
+  // The page reads which chapters to show and the settings choices from its
+  // context, so the rule and the lists live in one place (scripts/lib).
+  const context = { ...(options.context || {}), chapters: shownChapters(data), enums: pageEnums() };
+  return assemble(parts, title, data, 'boot();', description, context, options.fontBase);
 }
 
 /**
@@ -162,7 +167,7 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
     manifest,
     index: searchIndex,
   };
-  const context = { style, ...(options.config ? { config: options.config } : {}) };
+  const context = { style, ...(options.config ? { config: options.config } : {}), enums: pageEnums() };
   return assemble(parts, 'Explainer library · Concept Explainer', data, 'bootLibrary();', description, context, options.fontBase);
 }
 
@@ -174,5 +179,5 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
 export function buildGallery(kit, options = {}) {
   const order = SCRIPT_ORDER.filter((f) => f !== 'app.js').concat('gallery.js');
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR, order);
-  return assemble(parts, 'Concept Explainer kit', kit, 'bootGallery();', 'Icons, visuals, components and flow patterns for Concept Explainer.', options.context || {}, options.fontBase);
+  return assemble(parts, 'Concept Explainer kit', kit, 'bootGallery();', 'Icons, visuals, components and flow patterns for Concept Explainer.', { ...(options.context || {}), enums: pageEnums() }, options.fontBase);
 }

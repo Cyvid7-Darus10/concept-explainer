@@ -9,10 +9,9 @@ import { baseSlugFor, entryFor, freeSlug, sameSource, slugify } from './library-
 import { libraryPaths, publishExplainer, readManifest, withLibraryLock, writeHub } from './library.mjs';
 import { validateExplainer } from './validate.mjs';
 
-export const BUNDLE_FORMAT = 'concept-explainer-bundle';
-export const BUNDLE_VERSION = 1;
-export const MAX_BUNDLE_BYTES = 10 * 1024 * 1024;
-export const MAX_BUNDLE_EXPLAINERS = 500;
+import { BUNDLE_FORMAT, BUNDLE_VERSION, MAX_BUNDLE_BYTES, MAX_BUNDLE_EXPLAINERS } from './bundle-format.mjs';
+
+export { BUNDLE_FORMAT, BUNDLE_VERSION, MAX_BUNDLE_BYTES, MAX_BUNDLE_EXPLAINERS };
 export const CONFLICT_MODES = ['rename', 'skip', 'replace'];
 const BANNED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const SAFE_URL = /^https?:\/\//i;

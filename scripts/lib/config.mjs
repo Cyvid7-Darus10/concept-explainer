@@ -6,7 +6,8 @@ import { STYLES } from './style.mjs';
 
 export const MODEL_IDS = ['fable-5.2', 'opus-5.5', 'sonnet-5.5', 'haiku-5.5'];
 export const INSTRUCTIONS_MAX = 2000;
-const LANGUAGE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
+export const LANGUAGE_PATTERN = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
+const LANGUAGE = LANGUAGE_PATTERN;
 // Plain text: tabs and newlines are fine, other control characters are not.
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 
@@ -29,7 +30,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
 
 export const CONFIG_KEYS = Object.keys(CONFIG_DEFAULTS);
 
-const ENUMS = {
+const ENUMS = Object.freeze({
   style: STYLES,
   defaultType: ['auto', ...EXPLAINER_TYPES],
   audience: ['newcomer', 'engineer', 'expert'],
@@ -37,7 +38,9 @@ const ENUMS = {
   model: ['auto', ...MODEL_IDS],
   // auto: when code carries the root of the idea; always: at least one when the type cites code; never.
   codeWalkthrough: ['auto', 'always', 'never'],
-};
+});
+/** The allowed values of each choice setting. */
+export const CONFIG_ENUMS = ENUMS;
 const BOOLEANS = ['quiz', 'analogies', 'confirmBeforeStart'];
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -146,9 +149,18 @@ export function parseConfigValue(key, raw) {
 export function setConfigValue(config, key, raw) {
   const chapter = key.match(/^chapters\.([^.]+)\.([^.]+)$/);
   const next = chapter
-    ? { ...config, chapters: { ...config.chapters, [chapter[1]]: { ...(config.chapters[chapter[1]] || {}), [chapter[2]]: parseConfigValue('quiz', raw) } } }
+    ? { ...config, chapters: { ...config.chapters, [chapter[1]]: { ...(config.chapters[chapter[1]] || {}), [chapter[2]]: chapterFlag(key, raw) } } }
     : { ...config, [key]: parseConfigValue(key, raw) };
   const { errors } = validateConfig(next);
-  if (errors.length) throw new Error(errors.join('; ').replace(/^quiz: use on or off$/, `${key}: use on or off`));
+  if (errors.length) throw new Error(errors.join('; '));
   return next;
+}
+
+// A chapter flag reads like any on/off setting, but its errors name the chapter.
+function chapterFlag(key, raw) {
+  try {
+    return parseConfigValue('quiz', raw);
+  } catch {
+    throw new Error(`${key}: use on or off`);
+  }
 }

@@ -17,8 +17,9 @@ function checkMeta(report, meta) {
   if (!isObject(meta)) return report.error('meta', 'is required');
   requireText(report, 'meta.title', meta.title);
   requireText(report, 'meta.summary', meta.summary);
-  arr(meta.chapters).forEach((key, i) => {
+  arr(meta.chapters).forEach((key, i, all) => {
     if (!CHAPTER_KEYS.includes(key)) report.error(`meta.chapters[${i}]`, `unknown chapter "${key}" (use ${CHAPTER_KEYS.join(', ')})`);
+    else if (all.indexOf(key) !== i) report.error(`meta.chapters[${i}]`, `"${key}" is listed twice (each chapter appears once)`);
   });
   return undefined;
 }

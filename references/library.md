@@ -160,7 +160,7 @@ The hub reads one JSON object from `<script type="application/json" id="explaine
 }
 ```
 
-Its `#explainer-context` tag holds `{ "style", "config" }`. The hub's `manifest.explainers` entries carry no `sourcePath` or `repoPath`; those absolute paths stay in `library.json`.
+Its `#explainer-context` tag holds `{ "style", "config", "enums" }`. The hub's `manifest.explainers` entries carry no `sourcePath` or `repoPath`; those absolute paths stay in `library.json`.
 
 **`config` in a page never includes `instructions`**, which may hold private notes. A page opened through `library serve` reads the full config from `GET /api/config` with the token. From `file://`, Settings shows the embedded values and the `config set` commands to copy.
 
@@ -170,10 +170,15 @@ Its `#explainer-context` tag holds `{ "style", "config" }`. The hub's `manifest.
 
 | Page | Context |
 |---|---|
-| Library explainer page | `{ "libraryHref": "../../index.html", "slug", "style", "config" }` |
-| Library kit page (`kit.html`) | `{ "libraryHref": "index.html", "style", "config" }` |
-| Standalone build | `{ "style", "config" }` |
-| `build --no-library` | `{ "style" }` (no config: the page uses defaults) |
+| Library explainer page | `{ "libraryHref": "../../index.html", "slug", "style", "config", "chapters", "enums" }` |
+| Library kit page (`kit.html`) | `{ "libraryHref": "index.html", "style", "config", "enums" }` |
+| Standalone build | `{ "style", "config", "chapters", "enums" }` |
+| `build --no-library` | `{ "style", "chapters", "enums" }` (no config: the page uses defaults) |
+
+Two fields are filled by the build on every page, so the template never keeps its own copy:
+
+- **`chapters`** (explainer pages): the chapter keys the page shows, in order, from `shownChapters(data)` in `scripts/lib/chapters.mjs`. The search index uses the same rule, so every search link lands in a chapter that exists.
+- **`enums`** (explainer, hub and kit): the choices Settings and import offer, from the constants the validators use: `{ models, visualKinds, types, styles, depth, audience, codeWalkthrough, bundleFormat, bundleMaxBytes, instructionsLimit, languagePattern }`. `models` includes `auto`; `types` is the seven explainer types (`defaultType` also takes `auto`); `languagePattern` is a regular expression source string.
 
 ### Fonts
 

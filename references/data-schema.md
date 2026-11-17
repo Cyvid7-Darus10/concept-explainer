@@ -19,7 +19,7 @@ Every string is rendered as **plain text**: markup is rejected, and newlines onl
 | `source` | object | `{ kind, ref, url? }`. `kind` is `repo`, `pr`, `commit`, `doc`, `issue`, `url` or `notes`. `url` must be http or https. |
 | `status` | string | `draft`, `proposed`, `accepted`, `rejected`, `in-progress`, `merged` or `done`. For pr, proposal and migration. |
 | `tags` | string[] | Up to 8 free text tags. The library filters by them. |
-| `chapters` | string[] | The order of chapters, from `map, flows, changes, tree, data, concepts, quiz, glossary, run, context, diff, options, risks, rollout, timeline, visuals, code`. Chapters with no data are skipped automatically. |
+| `chapters` | string[] | The order of chapters, from `map, flows, changes, tree, data, concepts, quiz, glossary, run, context, diff, options, risks, rollout, timeline, visuals, code`. Chapters with no data are skipped automatically. Each chapter may appear once. |
 | `generatedAt` | ISO date | Shown in the footer. |
 | `commit` | string | The SHA the explainer describes. |
 
