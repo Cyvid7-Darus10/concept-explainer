@@ -18,9 +18,31 @@ import {
 // Explainer pages link back to the hub with this relative path.
 const HUB_FROM_PAGE = '../../index.html';
 
-/** Library home: $REPO_EXPLAINER_HOME, else ~/.repo-explainer. */
+export const HOME_NAME = '.concept-explainer';
+export const LEGACY_HOME_NAME = '.repo-explainer';
+
+/** Library home: $CONCEPT_EXPLAINER_HOME, else the old $REPO_EXPLAINER_HOME, else ~/.concept-explainer. */
 export function resolveHome(env = process.env) {
-  return env.REPO_EXPLAINER_HOME || join(homedir(), '.repo-explainer');
+  return env.CONCEPT_EXPLAINER_HOME || env.REPO_EXPLAINER_HOME || join(homedir(), HOME_NAME);
+}
+
+/**
+ * One-time move of ~/.repo-explainer to ~/.concept-explainer. Runs only when
+ * no home is set by env, the old folder exists and the new one does not. It
+ * renames (never copies, never deletes) and says what it did.
+ * @returns {string|null} a line to print, or null when nothing moved
+ */
+export function migrateLegacyHome({ env = process.env, homeDir = homedir() } = {}) {
+  if (env.CONCEPT_EXPLAINER_HOME || env.REPO_EXPLAINER_HOME) return null;
+  const from = join(homeDir, LEGACY_HOME_NAME);
+  const to = join(homeDir, HOME_NAME);
+  if (!existsSync(from) || existsSync(to)) return null;
+  try {
+    renameSync(from, to);
+  } catch (error) {
+    throw new Error(`move library ${from} to ${to}: ${error.message}. Nothing was deleted; move it yourself or set CONCEPT_EXPLAINER_HOME`);
+  }
+  return `moved your library from ${from} to ${to} (Repo Explainer is now Concept Explainer)`;
 }
 
 export function libraryPaths(home) {

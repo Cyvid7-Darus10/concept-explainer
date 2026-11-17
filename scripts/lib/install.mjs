@@ -1,14 +1,22 @@
-// `repo-explainer install`: link this skill into Claude's skills folder and
+// `concept-explainer install`: link this skill into Claude's skills folder and
 // copy the library rule into its rules folder. Safe to run again: it never
 // replaces a real folder or an edited rule unless `force` is set, and even
-// then it moves the old one aside instead of deleting it.
+// then it moves the old one aside instead of deleting it. It also removes the
+// old repo-explainer link and rule, but only when they are provably ours.
+import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { writeAtomic } from './library.mjs';
 
-export const SKILL_NAME = 'repo-explainer';
-const RULE_SOURCE = join('rules', 'repo-explainer.md');
+export const SKILL_NAME = 'concept-explainer';
+const RULE_NAME = 'concept-explainer.md';
+const RULE_SOURCE = join('rules', RULE_NAME);
+const LEGACY_SKILL_NAME = 'repo-explainer';
+const LEGACY_RULE_NAME = 'repo-explainer.md';
+// sha256 of every rules/repo-explainer.md this project ever shipped. An old
+// rule file with one of these exact contents is ours to remove.
+export const LEGACY_RULE_SHA256 = ['8bf92c4d5419587c9ce92e740bcea531acf0b7a3d6661b14eede62328f3f6767'];
 
 /** Claude config folder: $CLAUDE_CONFIG_DIR, else ~/.claude. */
 export function resolveConfigDir(env = process.env) {
@@ -56,14 +64,43 @@ function planRule(ruleText, target, force) {
   return { kind: stat.isSymbolicLink() ? 'unlink' : 'replace' };
 }
 
+const sha256 = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
+
+// The old link goes only when it points at this skill; the old rule only when
+// it is byte for byte a rule we shipped. Anything else is reported and kept.
+function removeLegacy(source, configDir, ruleHashes) {
+  const actions = [];
+  const link = join(configDir, 'skills', LEGACY_SKILL_NAME);
+  const linkStat = lstatOrNull(link);
+  if (linkStat && linkStat.isSymbolicLink()) {
+    if (realOrNull(link) === realOrNull(source)) {
+      rmSync(link);
+      actions.push(`removed the old link ${link}`);
+    } else {
+      actions.push(`left ${link} alone: it is not ours (it points somewhere else)`);
+    }
+  }
+  const rule = join(configDir, 'rules', LEGACY_RULE_NAME);
+  const ruleStat = lstatOrNull(rule);
+  if (ruleStat && ruleStat.isFile()) {
+    if (ruleHashes.includes(sha256(rule))) {
+      rmSync(rule);
+      actions.push(`removed the old rule ${rule}`);
+    } else {
+      actions.push(`left ${rule} alone: it is not ours (it was edited)`);
+    }
+  }
+  return actions;
+}
+
 /**
- * @param {{ skillDir: string, configDir?: string, force?: boolean }} options
+ * @param {{ skillDir: string, configDir?: string, force?: boolean, legacyRuleHashes?: string[] }} options
  * @returns {string[]} one line per thing done
  */
-export function installSkill({ skillDir, configDir = resolveConfigDir(), force = false }) {
+export function installSkill({ skillDir, configDir = resolveConfigDir(), force = false, legacyRuleHashes = LEGACY_RULE_SHA256 }) {
   const source = resolve(skillDir);
   const skillTarget = join(configDir, 'skills', SKILL_NAME);
-  const ruleTarget = join(configDir, 'rules', 'repo-explainer.md');
+  const ruleTarget = join(configDir, 'rules', RULE_NAME);
   const ruleText = readFileSync(join(source, RULE_SOURCE), 'utf8');
 
   // Plan both first, so a refusal leaves nothing half done.
@@ -97,5 +134,5 @@ export function installSkill({ skillDir, configDir = resolveConfigDir(), force =
     writeAtomic(ruleTarget, ruleText);
     actions.push(`wrote ${ruleTarget}`);
   }
-  return actions;
+  return [...actions, ...removeLegacy(source, configDir, legacyRuleHashes)];
 }

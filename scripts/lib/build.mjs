@@ -72,7 +72,7 @@ function assemble({ html, styles, scripts }, title, data, bootCall = '', descrip
  */
 export function buildExplainer(data, options = {}) {
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR);
-  const title = data && data.meta && data.meta.title ? `${data.meta.title} · Repo Explainer` : 'Repo Explainer';
+  const title = data && data.meta && data.meta.title ? `${data.meta.title} · Concept Explainer` : 'Concept Explainer';
   const description = data && data.meta && typeof data.meta.summary === 'string' ? data.meta.summary : '';
   return assemble(parts, title, data, 'boot();', description, options.context || {});
 }
@@ -99,7 +99,7 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
     index: searchIndex,
   };
   const context = { style, ...(options.config ? { config: options.config } : {}) };
-  return assemble(parts, 'Explainer library · Repo Explainer', data, 'bootLibrary();', description, context);
+  return assemble(parts, 'Explainer library · Concept Explainer', data, 'bootLibrary();', description, context);
 }
 
 /**
@@ -110,5 +110,5 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
 export function buildGallery(kit, options = {}) {
   const order = SCRIPT_ORDER.filter((f) => f !== 'app.js').concat('gallery.js');
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR, order);
-  return assemble(parts, 'Repo Explainer kit', kit, 'bootGallery();', 'Icons, colors, components and flow patterns for Repo Explainer.', options.context || {});
+  return assemble(parts, 'Concept Explainer kit', kit, 'bootGallery();', 'Icons, visuals, components and flow patterns for Concept Explainer.', options.context || {});
 }

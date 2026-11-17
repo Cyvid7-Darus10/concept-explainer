@@ -1,9 +1,10 @@
 {
-  "name": "repo-explainer",
+  "name": "concept-explainer",
   "version": "0.1.0",
-  "description": "An agent skill that turns any codebase into a guided, interactive HTML tour: architecture map, step-through end-to-end flows, and a timeline of what changed and why.",
+  "description": "An agent skill that explains a repo, a PR, a change, a proposal, a migration, an incident or a concept as one interactive page: diagrams first, broken into parts, every claim cited.",
   "type": "module",
   "bin": {
+    "concept-explainer": "bin/concept-explainer.mjs",
     "repo-explainer": "bin/repo-explainer.mjs"
   },
   "files": [
@@ -20,9 +21,9 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "build:example": "node bin/repo-explainer.mjs build examples/taskflow.explainer.json --no-library --style clean",
-    "build:gallery": "node bin/repo-explainer.mjs gallery --out examples/gallery.html",
-    "build:assets": "node bin/repo-explainer.mjs assets --out assets",
+    "build:example": "node bin/concept-explainer.mjs build examples/taskflow.explainer.json --no-library --style clean",
+    "build:gallery": "node bin/concept-explainer.mjs gallery --out examples/gallery.html",
+    "build:assets": "node bin/concept-explainer.mjs assets --out assets",
     "check": "npm test && npm run build:example && npm run build:gallery"
   },
   "engines": {
@@ -31,11 +32,13 @@
   "keywords": [
     "agent-skill",
     "claude-code",
+    "explainer",
     "codebase",
+    "pull-request",
     "architecture",
+    "diagrams",
     "onboarding",
     "documentation",
-    "sequence-diagram",
     "developer-experience"
   ],
   "license": "Apache-2.0",

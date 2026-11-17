@@ -1,0 +1,171 @@
+// Commands that make or inspect one explainer.
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
+import { buildExplainer, buildGallery } from '../build.mjs';
+import { NODE_KINDS, EXPLAINER_TYPES } from '../schema.mjs';
+import { validateExplainer } from '../validate.mjs';
+import { scanRepo } from '../scan.mjs';
+import { collectChanges } from '../changes.mjs';
+import { collectDiff, mergeDiff } from '../diff.mjs';
+import {
+  createStarter, createTypedStarter, listPatterns, listPresets, listTypePresets,
+} from '../init.mjs';
+import { exportIcons, exportLogos } from '../assets.mjs';
+import { PRICING, estimateRun, formatEstimate, sizeOf } from '../estimate.mjs';
+import { measureDiff, measureSource } from '../estimate-input.mjs';
+import { readConfig, resolveHome } from '../library.mjs';
+import { openPath } from '../open.mjs';
+import {
+  BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
+} from './io.mjs';
+import { chosenStyle, publish, validated } from './library-commands.mjs';
+
+// Sized by their source document. A migration is sized by its repo and its doc.
+const DOC_ONLY = ['proposal', 'incident', 'concept'];
+const CODE_SIZED = ['repo', 'migration'];
+const DIFF_SIZED = ['pr', 'change'];
+
+function typeOption(opts) {
+  const type = opts.type || 'repo';
+  if (!EXPLAINER_TYPES.includes(type)) throw new UsageError(`unknown type "${type}" (use ${EXPLAINER_TYPES.join(', ')})`);
+  return type;
+}
+
+// What to size for this type: repo files, a diff, or source words.
+function measureFor(type, input, opts) {
+  const measure = {};
+  const repo = input && !DOC_ONLY.includes(type) ? resolve(input) : null;
+  if (repo && !existsSync(repo)) throw new UsageError(`estimate: ${input} not found`);
+  if (CODE_SIZED.includes(type) && repo) measure.size = asUsage(() => sizeOf(scanRepo(repo)));
+  if (DIFF_SIZED.includes(type) && opts.base) {
+    Object.assign(measure, asUsage(() => measureDiff(repo || resolve('.'), { base: opts.base, head: opts.head })));
+  }
+  const source = opts.source || (DOC_ONLY.includes(type) ? input : null);
+  if ((DOC_ONLY.includes(type) || type === 'migration') && source) measure.words = asUsage(() => measureSource(resolve(source))).words;
+  return measure;
+}
+
+// The config can pin a model and a budget; the skill uses both to decide whether to ask.
+function withConfig(run, config) {
+  const recommended = config.model !== 'auto' && PRICING.models[config.model]
+    ? { model: config.model, reason: 'Set as your model in config (config set model auto to let the estimate pick).' }
+    : run.recommended;
+  const pick = run.rows.find((r) => r.model === recommended.model);
+  const budget = config.budgetUsd === null ? null : { usd: config.budgetUsd, fits: pick.cost.high <= config.budgetUsd };
+  return { ...run, recommended, budget, confirmBeforeStart: config.confirmBeforeStart };
+}
+
+export const EXPLAIN_COMMANDS = {
+  scan(positionals) {
+    printJson(asUsage(() => scanRepo(resolve(requirePositional(positionals, '<repo>')))));
+  },
+
+  estimate(positionals, opts) {
+    const type = typeOption(opts);
+    const run = withConfig(estimateRun({ type, measure: measureFor(type, positionals[0], opts) }), readConfig(resolveHome()));
+    if (opts.json) return printJson(run);
+    process.stdout.write(formatEstimate(run));
+    if (run.recommended.reason.startsWith('Set as your model')) process.stdout.write(`Your config picks ${run.recommended.model}.\n`);
+    if (run.budget) process.stdout.write(`Budget: $${run.budget.usd} (${run.budget.fits ? 'fits' : 'may not fit'} the recommended model's high end).\n`);
+    return undefined;
+  },
+
+  init(positionals, opts) {
+    const type = typeOption(opts);
+    const out = opts.out || 'explainer.json';
+    if (existsSync(out)) throw new UsageError(`${out} already exists. Pass --out to choose another path`);
+    if (type !== 'repo') {
+      writeFile(out, toJson(asUsage(() => createTypedStarter(type, { ref: positionals[0] }))));
+      process.stderr.write(`  type: ${type}\n  next: fill the TODOs, then \`${BIN} build ${out} --strict\`\n`);
+      return;
+    }
+    const repo = resolve(requirePositional(positionals, '<repo>'));
+    const scan = asUsage(() => scanRepo(repo));
+    const preset = opts.preset || scan.suggestedPreset;
+    writeFile(out, toJson(asUsage(() => createStarter(preset, scan))));
+    process.stderr.write(`  preset: ${preset}${opts.preset ? '' : ' (suggested by scan)'}\n  next: fill the TODOs, then \`${BIN} build ${out} --repo ${repo}\`\n`);
+  },
+
+  changes(positionals, opts) {
+    const repo = resolve(requirePositional(positionals, '<repo>'));
+    const data = opts.data ? readJson(opts.data) : null;
+    const drafted = collectChanges(repo, {
+      since: opts.since, limit: opts.limit ? Number(opts.limit) : undefined, mergesOnly: opts.merges,
+      nodes: data ? data.nodes : [], remoteUrl: opts.remote,
+    });
+    if (!opts.write) return printJson(drafted);
+    if (!data) throw new UsageError('--write needs --data <explainer.json>');
+    const known = new Set((data.changes || []).map((c) => c.id));
+    const merged = { ...data, changes: [...(data.changes || []), ...drafted.filter((c) => !known.has(c.id))] };
+    writeFile(opts.data, toJson(merged));
+    process.stderr.write(`  added ${merged.changes.length - (data.changes || []).length} change(s); fill each "why"\n`);
+    return undefined;
+  },
+
+  diff(positionals, opts) {
+    const repo = resolve(requirePositional(positionals, '<repo>'));
+    const data = opts.data ? readJson(opts.data) : null;
+    const drafted = asUsage(() => collectDiff(repo, { base: opts.base, head: opts.head, nodes: data && Array.isArray(data.nodes) ? data.nodes : [] }));
+    if (!opts.write) return printJson(drafted);
+    if (!data) throw new UsageError('--write needs --data <explainer.json>');
+    writeFile(opts.data, toJson(mergeDiff(data, drafted)));
+    const todo = drafted.diff.filter((d) => /TODO/.test(d.summary)).length;
+    process.stderr.write(`  ${drafted.diff.length} file(s) in diff; write each TODO summary from the code and the PR (${todo} drafted)\n`);
+    return undefined;
+  },
+
+  validate(positionals, opts) {
+    const file = requirePositional(positionals, '<file>');
+    const ok = report(validateExplainer(readJson(file), { repoRoot: opts.repo && resolve(opts.repo) }), opts.strict);
+    if (!ok) process.exitCode = 1;
+  },
+
+  build(positionals, opts) {
+    const file = requirePositional(positionals, '<file>');
+    const style = chosenStyle(opts);
+    const data = validated(file, opts);
+    if (!data) return;
+    const out = opts.out || join(dirname(file), `${basename(file).replace(/(\.explainer)?\.json$/, '')}.html`);
+    // A throwaway build stays independent of the library, config included.
+    const context = opts['no-library'] ? { style } : { style, config: readConfig(resolveHome()) };
+    writeFile(out, buildExplainer(data, { context }));
+    if (!opts['no-library']) {
+      try {
+        publish(data, file, opts, style);
+      } catch (error) {
+        throw new Error(`built ${out}, but publishing to the library failed: ${error.message}`);
+      }
+    }
+    if (opts.open) openPath(out);
+  },
+
+  presets() {
+    process.stdout.write('Types (concept-explainer init --type <type>)\n');
+    process.stdout.write(`${'repo'.padEnd(16)} A whole codebase. Pick a stack preset below.\n`);
+    listTypePresets().forEach((p) => process.stdout.write(`${p.type.padEnd(16)} ${p.whenToUse}\n`));
+    process.stdout.write('\nRepo stack presets (concept-explainer init <repo> --preset <id>)\n');
+    listPresets().forEach((p) => process.stdout.write(`${p.id.padEnd(16)} ${p.name}\n${' '.repeat(17)}${p.whenToUse}\n`));
+  },
+
+  patterns(positionals) {
+    const all = listPatterns();
+    if (!positionals[0]) {
+      all.forEach((p) => process.stdout.write(`${p.id.padEnd(18)} ${p.use}\n`));
+      return;
+    }
+    const pattern = all.find((p) => p.id === positionals[0]);
+    if (!pattern) throw new UsageError(`unknown pattern "${positionals[0]}"`);
+    printJson(pattern);
+  },
+
+  gallery(_positionals, opts) {
+    const pkg = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8'));
+    writeFile(opts.out || 'gallery.html', buildGallery({ kinds: NODE_KINDS, patterns: listPatterns(), version: pkg.version }));
+  },
+
+  assets(_positionals, opts) {
+    const out = opts.out || 'concept-explainer-assets';
+    exportIcons().forEach(({ name, svg }) => writeFile(join(out, 'icons', `${name}.svg`), svg));
+    exportLogos().forEach(({ name, svg }) => writeFile(join(out, 'logo', `${name}.svg`), svg));
+  },
+};
