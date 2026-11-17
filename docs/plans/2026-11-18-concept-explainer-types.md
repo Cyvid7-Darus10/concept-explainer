@@ -93,6 +93,22 @@ type Y), asking the user only when it is genuinely ambiguous. Then the type pick
 chapters and the truth rules (PR: cite diff lines; proposal: never present proposed parts as built,
 status must be honest; incident: times from the record only; concept: cite sources by url).
 
+### Estimate before starting (owner request)
+
+Right after identifying the type, the skill must run `concept-explainer estimate <input> --type <type>`
+and show the user **how long it will take and what it will cost** before any investigation starts, then
+wait for a go-ahead (one short question; skip the wait only if the user already said "just do it" or
+gave a budget the estimate fits).
+- Input size per type: `repo` = files/lines read (existing estimate logic), `pr`/`change` = diff size
+  (`--base/--head` or a SHA range) plus touched files, `proposal`/`incident`/`concept` = source doc
+  length (`--source <file|dir>`, words), `migration` = both.
+- Output: a small table per model (current Claude models, prices kept in `scripts/lib/estimate.mjs`
+  with a "prices as of" date) with tokens in/out, cost range (low to high), and wall-clock time range
+  (agent minutes, from a tokens-per-minute assumption documented next to the prices), plus the
+  recommended model. Ranges, never false precision; state the assumptions in one line.
+- `--json` for agents. Tests cover every type.
+- After the build, the hand-off reports the estimate next to what actually happened if known.
+
 ## 4. Rename
 
 - Product name **Concept Explainer** everywhere in UI, docs, credits, titles (`<title>: X · Concept Explainer`).
