@@ -24,14 +24,19 @@ before(async () => {
 
 after(() => served.close());
 
+// The server may answer and close before an oversized upload finishes, so a
+// write error after the response arrived still resolves with that response.
 function send({ method = 'GET', path = '/', headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
+    let answered = null;
     const req = request({ host: '127.0.0.1', port: served.port, method, path, headers: { host: `127.0.0.1:${served.port}`, ...headers } }, (res) => {
       let data = '';
+      answered = { status: res.statusCode, headers: res.headers, body: '' };
       res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: data }));
+      res.on('end', () => resolve({ ...answered, body: data }));
+      res.on('error', () => resolve(answered));
     });
-    req.on('error', reject);
+    req.on('error', (error) => (answered ? resolve(answered) : reject(error)));
     if (body !== undefined) req.write(body);
     req.end();
   });
@@ -207,6 +212,24 @@ test('POST /api/import plans with ?dryRun=1, applies without it, and checks toke
   const rejected = JSON.parse((await upload(hostile, '?dryRun=1')).body).summary;
   assert.equal(rejected.rejected.length, 1);
   assert.equal(({}).polluted, undefined);
+});
+
+test('an upload over the cap is refused early and the connection closed; aborted uploads do no harm', async () => {
+  const big = await send({
+    method: 'POST', path: '/api/config', body: 'x'.repeat(200 * 1024),
+    headers: { origin: origin(), 'content-type': 'application/json', [TOKEN_HEADER]: served.token },
+  });
+  assert.equal(big.status, 413);
+  assert.equal(big.headers.connection, 'close');
+  await new Promise((done) => {
+    const req = request({ host: '127.0.0.1', port: served.port, method: 'POST', path: '/api/config',
+      headers: { host: `127.0.0.1:${served.port}`, origin: origin(), 'content-type': 'application/json', [TOKEN_HEADER]: served.token, 'content-length': '1000' } });
+    req.on('error', () => done());
+    req.write('{"audience":');
+    setTimeout(() => { req.destroy(); done(); }, 50);
+  });
+  assert.equal((await send({ path: '/index.html' })).status, 200, 'the server still answers');
+  assert.equal(readConfig(home).audience === 'kids', false);
 });
 
 test('only GET, HEAD and the API methods are allowed', async () => {
