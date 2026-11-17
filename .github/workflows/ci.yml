@@ -34,7 +34,14 @@ jobs:
       - name: The old repo-explainer alias still runs
         run: node bin/repo-explainer.mjs presets
       - name: Built files are up to date
-        run: git diff --exit-code -- examples/
+        # All four example pages and the gallery are committed; a rebuild must
+        # change none of them and add no file.
+        run: |
+          for page in taskflow pr-cursor-paging proposal-live-updates concept-idempotency-keys gallery; do
+            test -f "examples/$page.html" || { echo "examples/$page.html is missing"; exit 1; }
+          done
+          git status --porcelain -- examples/
+          test -z "$(git status --porcelain -- examples/)"
 
   # The unit tests on Windows: paths, junction links, explorer.exe opening and
   # the library lock behave differently there.
