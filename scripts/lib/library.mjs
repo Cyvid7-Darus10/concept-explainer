@@ -5,7 +5,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, s
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { buildExplainer, buildLibrary } from './build.mjs';
+import { buildExplainer, buildGallery, buildLibrary } from './build.mjs';
+import { listPatterns } from './init.mjs';
+import { NODE_KINDS } from './schema.mjs';
 import { buildSearchIndex } from './search-index.mjs';
 import { DEFAULT_STYLE, parseStyle } from './style.mjs';
 import {
@@ -27,6 +29,7 @@ export function libraryPaths(home) {
     hub: join(home, 'index.html'),
     manifest: join(home, 'library.json'),
     config: join(home, 'config.json'),
+    kit: join(home, 'kit.html'),
     explainers,
     dirFor: (slug) => join(explainers, slug),
   };
@@ -117,11 +120,24 @@ export function readManifest(home) {
   return { manifest, recovered: true, backupPath };
 }
 
-/** Rewrite the hub page from the manifest and each stored explainer. */
+const KIT_HREF = 'kit.html';
+
+function packageVersion() {
+  try {
+    return JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
+  } catch {
+    return '';
+  }
+}
+
+/** Rewrite the hub page and the kit page beside it. */
 export function writeHub(home, manifest, options = {}) {
   const paths = libraryPaths(home);
+  const { style } = readConfig(home);
   const index = manifest.explainers.flatMap((entry) => buildSearchIndex(entry.slug, readStoredData(paths, entry.slug) || { meta: entry }));
-  writeAtomic(paths.hub, buildLibrary(manifest, index, { templateDir: options.templateDir, style: readConfig(home).style }));
+  writeAtomic(paths.hub, buildLibrary(manifest, index, { templateDir: options.templateDir, style, kitHref: KIT_HREF }));
+  const kit = { kinds: NODE_KINDS, patterns: listPatterns(), version: packageVersion() };
+  writeAtomic(paths.kit, buildGallery(kit, { templateDir: options.templateDir, context: { libraryHref: 'index.html', style } }));
   return paths.hub;
 }
 

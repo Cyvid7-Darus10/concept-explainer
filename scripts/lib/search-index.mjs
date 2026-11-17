@@ -3,7 +3,10 @@
 // (docs/plans/2026-11-18-dashboard-and-library.md, section 2).
 // Documented for humans in references/library.md: keep them in sync.
 
-export const SEARCH_TYPES = ['explainer', 'node', 'flow', 'step', 'change', 'entity', 'concept', 'glossary', 'file', 'run'];
+export const SEARCH_TYPES = [
+  'explainer', 'node', 'flow', 'step', 'change', 'entity', 'concept', 'glossary', 'file', 'run',
+  'diff', 'option', 'risk', 'rollout', 'event', 'visual',
+];
 
 // Keeps the embedded hub small. Titles are short already, so only text is clipped.
 export const TEXT_LIMIT = 240;
@@ -54,6 +57,20 @@ function entityText(model) {
   return join(model.summary, list(model.fields).map((field) => str(field.name)).filter(Boolean).join(', '));
 }
 
+// Schema v2 chapters. Numbered routes use the item's position in its list.
+function v2Entries(slug, d) {
+  return [
+    ...withKey(d.diff, 'path').map((item) => entry(slug, 'diff', item.path, join(item.summary, item.status), route('diff', item.path))),
+    ...indexed(d.options).map(([item, i]) => entry(slug, 'option', item.title, join(item.summary, item.why), route('options', i))),
+    ...indexed(d.risks).map(([item, i]) => entry(slug, 'risk', item.risk, join(item.mitigation, item.impact && `Impact: ${item.impact}.`), route('risks', i))),
+    ...indexed(d.rollout).map(([item, i]) => entry(slug, 'rollout', item.label, join(item.detail, item.command), route('rollout', i))),
+    ...indexed(d.timeline).map(([item, i]) => entry(slug, 'event', item.label, join(item.at, item.detail), route('timeline', i))),
+    ...withKey(d.diagrams, 'id').map((item) => entry(slug, 'visual', item.title || item.id, item.caption, route('visuals', item.id))),
+  ];
+}
+
+const withKey = (items, key) => list(items).filter((item) => str(item[key]));
+
 function dedupe(entries) {
   const seen = new Set();
   return entries.filter((item) => {
@@ -75,7 +92,7 @@ export function buildSearchIndex(slug, data) {
   const meta = isObject(d.meta) ? d.meta : {};
   const withId = (items, key) => list(items).filter((item) => str(item[key]));
   return dedupe([
-    entry(slug, 'explainer', meta.title || slug, join(meta.summary, ...(Array.isArray(meta.stack) ? meta.stack : [])), ''),
+    entry(slug, 'explainer', meta.title || slug, join(meta.summary, isObject(d.context) ? d.context.problem : '', ...(Array.isArray(meta.stack) ? meta.stack : [])), ''),
     ...withId(d.nodes, 'id').map((node) => entry(slug, 'node', node.label || node.id, join(node.summary, node.tech), route('map', node.id))),
     ...flowEntries(slug, d.flows),
     ...withId(d.changes, 'id').map((change) => changeEntry(slug, change)),
@@ -84,5 +101,6 @@ export function buildSearchIndex(slug, data) {
     ...withId(d.glossary, 'term').map((item) => entry(slug, 'glossary', item.term, item.definition, route('glossary', item.term))),
     ...withId(d.tree, 'path').map((item) => entry(slug, 'file', item.path, item.note, route('tree', item.path))),
     ...list(d.runbook).map((item) => entry(slug, 'run', item.label || item.command, join(item.command, item.note), 'run')),
+    ...v2Entries(slug, d),
   ]);
 }

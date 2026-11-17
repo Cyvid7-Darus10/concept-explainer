@@ -76,7 +76,8 @@ export function buildExplainer(data, options = {}) {
  * The page reads `{ style, manifest, index }` from its explainer-data tag.
  * @param {object} manifest library.json contents
  * @param {object[]} searchIndex entries from search-index.mjs
- * @param {{ templateDir?: string, style?: string }} [options] `style` is the hub skin, 'clean' by default
+ * @param {{ templateDir?: string, style?: string, kitHref?: string }} [options] `style` is the hub skin, 'clean' by default;
+ *   `kitHref` links the hub to the kit page
  * @returns {string}
  */
 export function buildLibrary(manifest, searchIndex, options = {}) {
@@ -84,7 +85,8 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
   const count = manifest && Array.isArray(manifest.explainers) ? manifest.explainers.length : 0;
   const description = `${count} explainer${count === 1 ? '' : 's'}: search, browse and open them in one place.`;
   const style = options.style || 'clean';
-  return assemble(parts, 'Explainer library · Repo Explainer', { style, manifest, index: searchIndex }, 'bootLibrary();', description, { style });
+  const data = { style, ...(options.kitHref ? { kitHref: options.kitHref } : {}), manifest, index: searchIndex };
+  return assemble(parts, 'Explainer library · Repo Explainer', data, 'bootLibrary();', description, { style });
 }
 
 /**
@@ -95,5 +97,5 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
 export function buildGallery(kit, options = {}) {
   const order = SCRIPT_ORDER.filter((f) => f !== 'app.js').concat('gallery.js');
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR, order);
-  return assemble(parts, 'Repo Explainer kit', kit, 'bootGallery();', 'Icons, colors, components and flow patterns for Repo Explainer.');
+  return assemble(parts, 'Repo Explainer kit', kit, 'bootGallery();', 'Icons, colors, components and flow patterns for Repo Explainer.', options.context || {});
 }

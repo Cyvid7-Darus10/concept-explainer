@@ -2,6 +2,7 @@
 // No fs here; scripts/lib/library.mjs does the reading and writing.
 // Documented for humans in references/library.md: keep them in sync.
 import { basename, dirname } from 'node:path';
+import { DEFAULT_TYPE, EXPLAINER_TYPES } from './schema.mjs';
 
 export const MANIFEST_VERSION = 1;
 export const SLUG_MAX = 64;
@@ -79,6 +80,7 @@ export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
   const meta = isObject(d.meta) ? d.meta : {};
   return {
     slug,
+    type: EXPLAINER_TYPES.includes(meta.type) ? meta.type : DEFAULT_TYPE,
     title: str(meta.title) || slug,
     summary: str(meta.summary) || '',
     repo: str(meta.repo),
@@ -86,6 +88,11 @@ export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
     repoPath: str(repoPath),
     stack: Array.isArray(meta.stack) ? meta.stack.filter((s) => typeof s === 'string') : [],
     preset: str(meta.preset),
+    status: str(meta.status),
+    tags: Array.isArray(meta.tags) ? meta.tags.filter((t) => typeof t === 'string').slice(0, 8) : [],
+    source: isObject(meta.source) && str(meta.source.ref)
+      ? { kind: str(meta.source.kind), ref: str(meta.source.ref), ...(str(meta.source.url) && /^https?:\/\//i.test(meta.source.url) ? { url: str(meta.source.url) } : {}) }
+      : null,
     commit: str(meta.commit),
     generatedAt: str(meta.generatedAt),
     publishedAt,
@@ -97,6 +104,12 @@ export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
       concepts: count(d.concepts),
       files: count(d.tree),
       quiz: count(d.quiz),
+      diff: count(d.diff),
+      options: count(d.options),
+      risks: count(d.risks),
+      rollout: count(d.rollout),
+      timeline: count(d.timeline),
+      diagrams: count(d.diagrams),
     },
     layers: (Array.isArray(d.layers) ? d.layers : []).filter(isObject).map((layer) => ({ label: str(layer.label) || '', color: str(layer.color) || '' })),
   };
