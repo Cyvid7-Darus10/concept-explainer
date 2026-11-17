@@ -6,7 +6,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { buildSearchIndex } from './search-index.mjs';
 import { baseSlugFor, entryFor, freeSlug, sameSource, slugify } from './library-model.mjs';
-import { libraryPaths, publishExplainer, readManifest, writeHub } from './library.mjs';
+import { libraryPaths, publishExplainer, readManifest, withLibraryLock, writeHub } from './library.mjs';
 import { validateExplainer } from './validate.mjs';
 
 export const BUNDLE_FORMAT = 'concept-explainer-bundle';
@@ -176,6 +176,10 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
 
 /** Write a planned import, then refresh the hub once. Returns the summary. */
 export function applyImport(home, plan) {
+  return withLibraryLock(home, () => applyUnlocked(home, plan));
+}
+
+function applyUnlocked(home, plan) {
   plan.writes.forEach(({ slug, data, replace }) => publishExplainer(data, {
     home, slug, skipHub: true, origin: 'import', backupExisting: Boolean(replace),
   }));

@@ -1,9 +1,9 @@
 // The explainer library: one folder that holds every published explainer and
 // a hub page to search them. Pure rules live in library-model.mjs; this file
 // does the fs work. Layout and contract: references/library.md.
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { buildExplainer, buildGallery, buildLibrary } from './build.mjs';
 import { listPatterns } from './init.mjs';
@@ -60,10 +60,11 @@ export function libraryPaths(home) {
 
 /** Write via a temp file in the same folder, then rename, so readers never see half a file. */
 export function writeAtomic(path, content) {
-  mkdirSync(dirname(path), { recursive: true });
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const temp = `${path}.tmp-${process.pid}-${randomBytes(4).toString('hex')}`;
   try {
-    writeFileSync(temp, content);
+    // Private, and 'wx' so a file already at the temp name is never followed or reused.
+    writeFileSync(temp, content, { flag: 'wx', mode: 0o600 });
     renameSync(temp, path);
   } catch (error) {
     rmSync(temp, { force: true });
@@ -73,6 +74,92 @@ export function writeAtomic(path, content) {
 
 const now = () => new Date().toISOString();
 const toJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
+
+/** Create the library home if needed, private to this user (0700). */
+export function ensureHome(home) {
+  mkdirSync(home, { recursive: true, mode: 0o700 });
+  chmodSync(home, 0o700);
+}
+
+// One writer at a time: the CLI, library serve and other agents may all
+// update the manifest. A lock folder holds the owner's pid; a lock whose
+// process is gone is cleared. Reentrant within a process.
+const HELD = new Map();
+const NAP = new Int32Array(new SharedArrayBuffer(4));
+export const LOCK_TIMEOUT_MS = 30000;
+
+function processAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+}
+
+function lockIsStale(dir) {
+  let pid = 0;
+  try {
+    pid = Number(readFileSync(join(dir, 'pid'), 'utf8'));
+  } catch {
+    pid = 0;
+  }
+  if (pid) return { stale: !processAlive(pid), pid };
+  let age = 0;
+  try {
+    age = Date.now() - statSync(dir).mtimeMs;
+  } catch {
+    return { stale: true, pid };
+  }
+  return { stale: age > 10000, pid };
+}
+
+/**
+ * Run `fn` while holding <home>/.lock. Waits up to `timeoutMs` for another writer.
+ * @template T
+ * @param {string} home
+ * @param {() => T} fn
+ * @returns {T}
+ */
+export function withLibraryLock(home, fn, timeoutMs = LOCK_TIMEOUT_MS) {
+  const key = resolve(home);
+  if (HELD.has(key)) {
+    HELD.set(key, HELD.get(key) + 1);
+    try {
+      return fn();
+    } finally {
+      HELD.set(key, HELD.get(key) - 1);
+    }
+  }
+  ensureHome(home);
+  const dir = join(home, '.lock');
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      mkdirSync(dir, { mode: 0o700 });
+      writeFileSync(join(dir, 'pid'), String(process.pid), { mode: 0o600 });
+      break;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw new Error(`lock library ${dir}: ${error.message}`);
+    }
+    const { stale, pid } = lockIsStale(dir);
+    if (stale) {
+      rmSync(dir, { recursive: true, force: true });
+      continue;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`library is busy: ${dir} held by pid ${pid || 'unknown'}. Try again, or remove that folder if no concept-explainer is running`);
+    }
+    Atomics.wait(NAP, 0, 0, 50);
+  }
+  HELD.set(key, 1);
+  try {
+    return fn();
+  } finally {
+    HELD.delete(key);
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 /** Explainer defaults from <home>/config.json. Missing or broken values mean the defaults. */
 export function readConfig(home) {
@@ -87,7 +174,11 @@ export function readConfig(home) {
  * Merge `changes` into the saved config. Throws, naming the key, on anything invalid.
  * @returns {object} the full saved config
  */
-export function writeConfig(home, changes) {
+export function writeConfig(home, changes, options = {}) {
+  return withLibraryLock(home, () => writeConfigUnlocked(home, changes), options.lockTimeoutMs);
+}
+
+function writeConfigUnlocked(home, changes) {
   if (changes && changes.style !== undefined) parseStyle(changes.style);
   const { errors } = validateConfig(changes);
   if (errors.length) throw new Error(`save config: ${errors.join('; ')}`);
@@ -188,6 +279,11 @@ function writePage(paths, slug, data, options, style) {
  * @returns {{ slug: string, updated: boolean, pagePath: string, hubPath: string, recovered: boolean }}
  */
 export function publishExplainer(data, options = {}) {
+  const home = options.home || resolveHome();
+  return withLibraryLock(home, () => publishUnlocked(data, { ...options, home }), options.lockTimeoutMs);
+}
+
+function publishUnlocked(data, options) {
   if (!data || typeof data !== 'object' || !data.meta || typeof data.meta !== 'object') {
     throw new Error('publish explainer: data has no meta object');
   }
@@ -231,6 +327,10 @@ function checkedSlug(slug) {
 
 /** Delete one explainer from the library and refresh the hub. */
 export function removeExplainer(slug, options = {}) {
+  return withLibraryLock(options.home || resolveHome(), () => removeUnlocked(slug, options), options.lockTimeoutMs);
+}
+
+function removeUnlocked(slug, options) {
   if (typeof slug !== 'string' || !SLUG_PATTERN.test(slug)) throw new Error(`remove explainer: invalid slug "${slug}"`);
   const home = options.home || resolveHome();
   const paths = libraryPaths(home);
@@ -250,6 +350,10 @@ export function removeExplainer(slug, options = {}) {
  * @returns {{ rebuilt: string[], skipped: string[], hubPath: string }}
  */
 export function rebuildLibrary(options = {}) {
+  return withLibraryLock(options.home || resolveHome(), () => rebuildUnlocked(options), options.lockTimeoutMs);
+}
+
+function rebuildUnlocked(options) {
   const home = options.home || resolveHome();
   const paths = libraryPaths(home);
   const style = styleFor(home, options.style);
@@ -280,6 +384,10 @@ export function listExplainers(options = {}) {
 /** Make sure the hub page exists (an empty library still gets one). */
 export function ensureHub(options = {}) {
   const home = options.home || resolveHome();
+  return withLibraryLock(home, () => ensureHubUnlocked(home, options), options.lockTimeoutMs);
+}
+
+function ensureHubUnlocked(home, options) {
   const paths = libraryPaths(home);
   if (existsSync(paths.hub)) return paths.hub;
   return writeHub(home, readManifest(home).manifest, options);
