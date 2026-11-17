@@ -5,7 +5,7 @@
 
 export const SEARCH_TYPES = [
   'explainer', 'node', 'flow', 'step', 'change', 'entity', 'concept', 'glossary', 'file', 'run',
-  'diff', 'option', 'risk', 'rollout', 'event', 'visual',
+  'diff', 'option', 'risk', 'rollout', 'event', 'visual', 'question',
 ];
 
 // Keeps the embedded hub small. Titles are short already, so only text is clipped.
@@ -66,6 +66,8 @@ function v2Entries(slug, d) {
     ...indexed(d.rollout).map(([item, i]) => entry(slug, 'rollout', item.label, join(item.detail, item.command), route('rollout', i))),
     ...indexed(d.timeline).map(([item, i]) => entry(slug, 'event', item.label, join(item.at, item.detail), route('timeline', i))),
     ...withKey(d.diagrams, 'id').map((item) => entry(slug, 'visual', item.title || item.id, item.caption, route('visuals', item.id))),
+    // One question per view: #quiz/<n>, counted from 1.
+    ...indexed(d.quiz).map(([item, i]) => entry(slug, 'question', item.question, item.explain, route('quiz', i + 1))),
   ];
 }
 
