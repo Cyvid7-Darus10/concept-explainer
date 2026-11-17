@@ -5,6 +5,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { LOCK_TIMEOUT_MS, holdsLock, withLock } from './lock.mjs';
 import { FONTS_DIR, buildExplainer, buildGallery, buildLibrary } from './build.mjs';
 import { listPatterns } from './init.mjs';
 import { NODE_KINDS } from './schema.mjs';
@@ -82,83 +83,20 @@ export function ensureHome(home) {
 }
 
 // One writer at a time: the CLI, library serve and other agents may all
-// update the manifest. A lock folder holds the owner's pid; a lock whose
-// process is gone is cleared. Reentrant within a process.
-const HELD = new Map();
-const NAP = new Int32Array(new SharedArrayBuffer(4));
-export const LOCK_TIMEOUT_MS = 30000;
-
-function processAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code === 'EPERM';
-  }
-}
-
-function lockIsStale(dir) {
-  let pid = 0;
-  try {
-    pid = Number(readFileSync(join(dir, 'pid'), 'utf8'));
-  } catch {
-    pid = 0;
-  }
-  if (pid) return { stale: !processAlive(pid), pid };
-  let age = 0;
-  try {
-    age = Date.now() - statSync(dir).mtimeMs;
-  } catch {
-    return { stale: true, pid };
-  }
-  return { stale: age > 10000, pid };
-}
+// update the manifest. The lock itself lives in lock.mjs.
+export { LOCK_TIMEOUT_MS, holdsLock } from './lock.mjs';
 
 /**
- * Run `fn` while holding <home>/.lock. Waits up to `timeoutMs` for another writer.
+ * Run `fn` while holding <home>/.lock. Waits up to `timeoutMs` for another
+ * writer (0 means do not wait), then throws an error with code LIBRARY_BUSY.
  * @template T
  * @param {string} home
  * @param {() => T} fn
  * @returns {T}
  */
 export function withLibraryLock(home, fn, timeoutMs = LOCK_TIMEOUT_MS) {
-  const key = resolve(home);
-  if (HELD.has(key)) {
-    HELD.set(key, HELD.get(key) + 1);
-    try {
-      return fn();
-    } finally {
-      HELD.set(key, HELD.get(key) - 1);
-    }
-  }
-  ensureHome(home);
-  const dir = join(home, '.lock');
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      mkdirSync(dir, { mode: 0o700 });
-      writeFileSync(join(dir, 'pid'), String(process.pid), { mode: 0o600 });
-      break;
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw new Error(`lock library ${dir}: ${error.message}`);
-    }
-    const { stale, pid } = lockIsStale(dir);
-    if (stale) {
-      rmSync(dir, { recursive: true, force: true });
-      continue;
-    }
-    if (Date.now() > deadline) {
-      throw new Error(`library is busy: ${dir} held by pid ${pid || 'unknown'}. Try again, or remove that folder if no concept-explainer is running`);
-    }
-    Atomics.wait(NAP, 0, 0, 50);
-  }
-  HELD.set(key, 1);
-  try {
-    return fn();
-  } finally {
-    HELD.delete(key);
-    rmSync(dir, { recursive: true, force: true });
-  }
+  if (!holdsLock(home)) ensureHome(home);
+  return withLock(home, fn, timeoutMs);
 }
 
 /** Explainer defaults from <home>/config.json. Missing or broken values mean the defaults. */
