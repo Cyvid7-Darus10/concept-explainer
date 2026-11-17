@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFil
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import {
-  resolveHome, migrateLegacyHome, libraryPaths, readManifest, publishExplainer, removeExplainer, rebuildLibrary, listExplainers, ensureHub,
+  resolveHome, migrateLegacyHome, libraryPaths, readManifest, publishExplainer, removeExplainer, rebuildLibrary, listExplainers, ensureHub, withLibraryLock,
 } from '../scripts/lib/library.mjs';
 
 const example = JSON.parse(readFileSync(new URL('../examples/taskflow.explainer.json', import.meta.url), 'utf8'));
@@ -143,13 +143,31 @@ test('a corrupt manifest is backed up and rebuilt from the stored data', () => {
   const home = tempHome();
   publishExplainer(example, { home, sourcePath: '/src.json' });
   writeFileSync(libraryPaths(home).manifest, '{ broken');
-  const { manifest, recovered, backupPath } = readManifest(home);
+  const { manifest, recovered, backupPath } = withLibraryLock(home, () => readManifest(home));
   assert.equal(recovered, true);
   assert.equal(readFileSync(backupPath, 'utf8'), '{ broken');
   assert.deepEqual(manifest.explainers.map((e) => e.slug), ['acme-taskflow']);
   assert.equal(manifest.explainers[0].title, example.meta.title);
   // A later publish works on top of the recovered manifest.
   publishExplainer({ meta: { title: 'Next', summary: 's', repo: 'o/next' } }, { home });
+  assert.equal(listExplainers({ home }).length, 2);
+});
+
+test('without the lock, a corrupt manifest is recovered in memory only and nothing is written', () => {
+  const home = tempHome();
+  publishExplainer(example, { home });
+  writeFileSync(libraryPaths(home).manifest, '{ broken');
+  const before = readdirSync(home).sort();
+  const { manifest, recovered, backupPath } = readManifest(home);
+  assert.equal(recovered, true);
+  assert.equal(backupPath, null);
+  assert.deepEqual(manifest.explainers.map((e) => e.slug), ['acme-taskflow']);
+  assert.deepEqual(listExplainers({ home }).map((e) => e.slug), ['acme-taskflow']);
+  assert.equal(readFileSync(libraryPaths(home).manifest, 'utf8'), '{ broken', 'the file is left for a writer to recover');
+  assert.deepEqual(readdirSync(home).sort(), before, 'no backup or temp file appears');
+  // The next writer, under the lock, does the recovery.
+  publishExplainer({ meta: { title: 'Next', summary: 's', repo: 'o/next' } }, { home });
+  assert.ok(readdirSync(home).some((f) => f.startsWith('library.json.corrupt-')));
   assert.equal(listExplainers({ home }).length, 2);
 });
 

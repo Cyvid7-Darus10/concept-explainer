@@ -166,7 +166,10 @@ function recoverManifest(paths) {
 
 /**
  * Read library.json. A missing file is an empty library. A corrupt one is
- * moved aside to library.json.corrupt-<time> and rebuilt from the stored data.
+ * rebuilt from the stored data. Only a caller holding the library lock writes
+ * that recovery (the old file moved to library.json.corrupt-<time>); anyone
+ * else gets the recovered manifest read-only and the file is left for the
+ * next writer, so two readers never race to move it.
  * @returns {{ manifest: object, recovered: boolean, backupPath: string|null }}
  */
 export function readManifest(home) {
@@ -179,6 +182,7 @@ export function readManifest(home) {
     parsed = null;
   }
   if (isManifest(parsed)) return { manifest: parsed, recovered: false, backupPath: null };
+  if (!holdsLock(home)) return { manifest: recoverManifest(paths), recovered: true, backupPath: null };
   const backupPath = `${paths.manifest}.corrupt-${now().replace(/[:.]/g, '-')}`;
   renameSync(paths.manifest, backupPath);
   const manifest = recoverManifest(paths);
