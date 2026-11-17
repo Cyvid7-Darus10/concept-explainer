@@ -128,3 +128,12 @@ test('v2 chapters get their own entry types and deep links', () => {
   ['diff', 'option', 'risk', 'rollout', 'event', 'visual'].forEach((t) => assert.ok(SEARCH_TYPES.includes(t)));
   assert.match(entries.find((e) => e.type === 'explainer').text, /Lists were slow/);
 });
+
+test('each quiz question gets an entry that opens it, counted from 1', () => {
+  const entries = buildSearchIndex('acme-taskflow', example).filter((e) => e.type === 'question');
+  assert.equal(entries.length, example.quiz.length);
+  assert.equal(entries[0].href, `${PAGE}#quiz/1`);
+  assert.equal(entries.at(-1).href, `${PAGE}#quiz/${example.quiz.length}`);
+  assert.equal(entries[0].title, example.quiz[0].question);
+  assert.ok(SEARCH_TYPES.includes('question'));
+});
