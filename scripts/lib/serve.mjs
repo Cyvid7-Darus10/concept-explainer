@@ -122,15 +122,34 @@ function serveFile(root, url, req, res) {
   return res.end(req.method === 'HEAD' ? undefined : body);
 }
 
+const TOO_LARGE = Symbol('too large');
+const ABORTED = Symbol('aborted');
+
+// Reads a request body up to `max` bytes. Stops reading the moment the cap is
+// passed, and settles on errors, aborts and early closes, so nothing hangs.
 function readBody(req, max) {
   return new Promise((done) => {
     let size = 0;
+    let settled = false;
     const chunks = [];
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      done(value);
+    };
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size <= max) chunks.push(chunk);
+      if (size > max) {
+        req.pause();
+        finish(TOO_LARGE);
+      } else {
+        chunks.push(chunk);
+      }
     });
-    req.on('end', () => done(size > max ? null : Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => finish(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', () => finish(ABORTED));
+    req.on('aborted', () => finish(ABORTED));
+    req.on('close', () => finish(req.complete ? Buffer.concat(chunks).toString('utf8') : ABORTED));
   });
 }
 
@@ -147,7 +166,17 @@ async function writeBody(state, req, res, max) {
   if (!hasToken(state, req)) return refuse(403, 'wrong or missing token');
   if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) return refuse(415, 'send application/json');
   const raw = await readBody(req, max);
-  return raw === null ? refuse(413, `body over ${max} bytes`) : raw;
+  if (raw === ABORTED) {
+    req.destroy();
+    return null;
+  }
+  if (raw === TOO_LARGE) {
+    // Answer, then drop the connection instead of reading the rest.
+    res.writeHead(413, { ...SAFE_HEADERS, connection: 'close', 'content-type': TYPES['.json'] });
+    res.end(JSON.stringify({ error: `body over ${max} bytes` }), () => req.destroy());
+    return null;
+  }
+  return raw;
 }
 
 function exportBundle(state, url, res) {
