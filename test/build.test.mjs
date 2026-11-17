@@ -28,7 +28,8 @@ test('build produces one self-contained page with every placeholder filled', () 
 test('repo content cannot break out of the data script tag', () => {
   const hostile = { meta: { title: '</script><script>alert(1)</script>', summary: '<!-- & \u2028 \u2029' } };
   const html = buildExplainer(hostile);
-  assert.equal((html.match(/<\/script>/g) || []).length, 2, 'only the two real closing tags');
+  const templateTags = (readFileSync(join(TEMPLATE_DIR, 'explainer.html'), 'utf8').match(/<\/script>/g) || []).length;
+  assert.equal((html.match(/<\/script>/g) || []).length, templateTags, 'only the template\'s own closing tags');
   assert.deepEqual(embeddedJson(html), hostile);
   assert.match(html, /<title>&lt;\/script&gt;/);
   assert.match(html, /<meta property="og:title" content="&lt;\/script&gt;/);
