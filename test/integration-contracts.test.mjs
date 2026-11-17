@@ -86,14 +86,27 @@ test('every Settings field is a config key, and every option it offers is a vali
   assert.ok(checked >= 20, `only ${checked} option values were checked`);
 });
 
-test('the export filters the hub shows are flags the CLI and the server take', () => {
-  const params = [...LIBRARY_JS.matchAll(/\['(\w+)', state\.\w+\]|\['(search)', input/g)].map((m) => m[1] || m[2]);
-  assert.deepEqual(params.sort(), ['search', 'stack', 'tag', 'type']);
-  params.forEach((p) => {
-    assert.match(MAIN, new RegExp(`\\b${p}: \\{ type: 'string'`), `CLI option --${p}`);
-    assert.match(SERVE, new RegExp(`one\\('${p}'\\)`), `/api/export reads ${p}`);
+test('the hub exports exactly what it shows: only slugs, the shown set, or nothing for the whole library', () => {
+  // library.js: the picked cards, else the explainers on screen, else none (the whole library).
+  assert.match(LIBRARY_JS, /const shownSlugs = \(\) =>/, 'library.js derives the on-screen slugs');
+  assert.match(LIBRARY_JS, /const getSelection = \(\) =>/);
+  assert.match(LIBRARY_JS, /selected\.size \? \[\.\.\.selected\] : filtered \? shownSlugs\(\) : \[\]/, 'picks, else the shown set, else nothing');
+  assert.match(LIBRARY_JS, /none: \(selected\.size > 0 \|\| filtered\) && !slugs\.length/, 'a filter showing nothing exports nothing');
+  // settings.js: the request carries only slugs=, and no query at all for the whole library.
+  assert.match(SETTINGS, /const query = slugs\.length \? `\?slugs=\$\{slugs\.map\(encodeURIComponent\)\.join\(','\)\}` : '';/);
+  assert.match(SETTINGS, /if \(none\)[\s\S]{0,120}nothing to export/, 'an empty filtered set stops before any request');
+  for (const filter of ['type', 'tag', 'stack', 'search']) {
+    assert.doesNotMatch(`${SETTINGS}\n${LIBRARY_JS}`, new RegExp(`[?&]${filter}=|\\['${filter}', state\\.|\\['${filter}', input`), `the hub never sends ${filter}`);
+  }
+  // file:// gets the CLI command with the same slugs as positionals.
+  assert.match(SETTINGS, /`\$\{CLI_NAME\} export \$\{args\}`\.trim\(\)/, 'concept-explainer export <slug> <slug>...');
+  assert.match(LIBRARY_JS, /args: slugs\.map\(shellQuote\)\.join\(' '\)/);
+  // The server reads slugs; the CLI and server keep the filters for direct use.
+  assert.match(SERVE, /slugs: list\('slugs'\)/, '/api/export reads slugs');
+  ['type', 'tag', 'stack', 'search'].forEach((p) => {
+    assert.match(MAIN, new RegExp(`\\b${p}: \\{ type: 'string'`), `CLI option --${p} stays`);
+    assert.match(SERVE, new RegExp(`one\\('${p}'\\)`), `/api/export still reads ${p}`);
   });
-  assert.match(SERVE, /list\('slugs'\)/, '/api/export reads slugs, which the hub sends for picked explainers');
 });
 
 test('every command a page shows is a command the CLI has, with flags it accepts', () => {
