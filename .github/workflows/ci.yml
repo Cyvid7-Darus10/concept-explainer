@@ -35,3 +35,23 @@ jobs:
         run: node bin/repo-explainer.mjs presets
       - name: Built files are up to date
         run: git diff --exit-code -- examples/
+
+  # The unit tests on Windows: paths, junction links, explorer.exe opening and
+  # the library lock behave differently there.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - run: git config --global user.email ci@example.com && git config --global user.name CI
+      - name: Keep the runner's real home untouched by any command
+        shell: bash
+        run: echo "CONCEPT_EXPLAINER_HOME=$RUNNER_TEMP/concept-explainer-home" >> "$GITHUB_ENV"
+      - name: Unit tests
+        shell: bash
+        run: node --test test/*.test.mjs

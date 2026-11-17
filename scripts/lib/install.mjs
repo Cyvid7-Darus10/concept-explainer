@@ -4,7 +4,8 @@
 // then it moves the old one aside instead of deleting it. It also removes the
 // old repo-explainer link and rule, but only when they are provably ours.
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync } from 'node:fs';
+import { linkDir } from './link.mjs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { writeAtomic } from './library.mjs';
@@ -120,13 +121,13 @@ export function installSkill({ skillDir, configDir = resolveConfigDir(), force =
     actions.push(`skill already linked: ${skillTarget}`);
   } else {
     mkdirSync(join(configDir, 'skills'), { recursive: true });
-    if (skill.kind === 'relink') rmSync(skillTarget);
     if (skill.kind === 'replace') {
       const backup = backupPath(configDir, 'skill', SKILL_NAME);
       renameSync(skillTarget, backup);
       actions.push(`moved the old skill folder to ${backup}`);
     }
-    symlinkSync(source, skillTarget, 'dir');
+    // A relink renames the new link over the old one; it never removes it first.
+    linkDir(source, skillTarget);
     actions.push(`${skill.kind === 'relink' ? 'relinked' : 'linked'} ${skillTarget} -> ${source}`);
   }
 

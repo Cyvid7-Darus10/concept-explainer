@@ -9,8 +9,10 @@ import { publishExplainer, rebuildLibrary, writeConfig, withLibraryLock, library
 const example = JSON.parse(readFileSync(new URL('../examples/taskflow.explainer.json', import.meta.url), 'utf8'));
 const mode = (path) => statSync(path).mode & 0o777;
 const freshHome = () => join(mkdtempSync(join(tmpdir(), 'rx-safe-')), 'home');
+// Windows has no POSIX permission bits; its user profile folder keeps files private.
+const posixModes = { skip: process.platform === 'win32' && 'no POSIX file modes on Windows' };
 
-test('the library is private: folders 0700, files 0600', () => {
+test('the library is private: folders 0700, files 0600', posixModes, () => {
   const home = freshHome();
   const { pagePath } = publishExplainer(example, { home });
   writeConfig(home, { audience: 'expert' });
@@ -20,7 +22,7 @@ test('the library is private: folders 0700, files 0600', () => {
     .forEach((file) => assert.equal(mode(file), 0o600, file));
 });
 
-test('an existing home made with looser permissions is tightened on write', () => {
+test('an existing home made with looser permissions is tightened on write', posixModes, () => {
   const home = freshHome();
   mkdirSync(home, { mode: 0o755 });
   publishExplainer(example, { home });
