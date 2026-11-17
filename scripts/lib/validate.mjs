@@ -40,7 +40,7 @@ function checkGraph(report, data, type) {
     requireText(report, `nodes[${i}].label`, node.label);
     if (!layerIds.has(node.layer)) report.error(`nodes[${i}].layer`, `"${node.layer}" is not a layer id`);
     checkEnum(report, `nodes[${i}].kind`, node.kind, NODE_KINDS);
-    if (!arr(node.files).length && node.kind !== 'user') report.warn(`nodes[${i}].files`, `"${node.id}" cites no files, so readers cannot find it in the code`);
+    if (TYPE_RULES[type].citesCode && !arr(node.files).length && node.kind !== 'user') report.warn(`nodes[${i}].files`, `"${node.id}" cites no files, so readers cannot find it in the code`);
   });
   layers.forEach((layer, i) => {
     if (!nodes.some((node) => node.layer === layer.id)) report.warn(`layers[${i}]`, `layer "${layer.id}" has no nodes`);
@@ -66,7 +66,7 @@ function checkFlows(report, flows, nodeIds, type) {
       if (!nodeIds.has(step.from)) report.error(`${path}.from`, `"${step.from}" is not a node id`);
       if (!nodeIds.has(step.to)) report.error(`${path}.to`, `"${step.to}" is not a node id`);
       checkEnum(report, `${path}.kind`, step.kind, STEP_KINDS);
-      if (!isText(step.file)) report.warn(`${path}.file`, 'no file cited for this step');
+      if (TYPE_RULES[type].citesCode && !isText(step.file)) report.warn(`${path}.file`, 'no file cited for this step');
     });
   });
 }

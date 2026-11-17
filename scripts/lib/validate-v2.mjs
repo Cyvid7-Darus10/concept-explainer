@@ -6,7 +6,7 @@ import {
 } from './schema.mjs';
 import { checkDiagrams, checkVisual } from './validate-visuals.mjs';
 import {
-  arr, checkCount, checkOneOf, isObject, isText, listAt, optionalText, requireText,
+  arr, checkCount, checkOneOf, isObject, isText, listAt, optionalText, requireText, sentences, words,
 } from './validate-util.mjs';
 
 const LINES = /^\+\d+ -\d+$/;
@@ -202,7 +202,30 @@ function checkUrls(report, data) {
   walk(data, '', '');
 }
 
+// Cheap checks from references/explaining.md. Only for v2 files, so v1
+// explainers keep the rules they were written against.
+function checkExplaining(report, data) {
+  const isV2 = Number(data.schemaVersion) >= 2 || (isObject(data.meta) && data.meta.type !== undefined);
+  if (!isV2) return;
+  arr(data.concepts).forEach((concept, i) => {
+    if (isObject(concept) && isText(concept.analogy) && sentences(concept.analogy) < 2) {
+      report.warn(`concepts[${i}].analogy`, 'say where it breaks, in a second sentence ("Unlike a ticket, a token can be copied.")');
+    }
+  });
+  arr(data.diagrams).forEach((diagram, i) => {
+    if (isObject(diagram) && isText(diagram.caption) && (words(diagram.caption) < 5 || sentences(diagram.caption) < 1)) {
+      report.warn(`diagrams[${i}].caption`, 'reads like a label. Write the takeaway as a sentence ("Each refresh issues a new token.")');
+    }
+  });
+  arr(data.quiz).forEach((q, i) => {
+    if (isObject(q) && isText(q.explain) && sentences(q.explain) < 2) {
+      report.warn(`quiz[${i}].explain`, 'also say why the most tempting wrong option is wrong, in a second sentence');
+    }
+  });
+}
+
 export function checkV2(report, data, nodeIds) {
+  checkExplaining(report, data);
   checkMetaV2(report, data);
   checkTypeRequirements(report, data);
   checkContext(report, data.context);
