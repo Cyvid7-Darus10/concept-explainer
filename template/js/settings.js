@@ -53,6 +53,8 @@ const CONFIG_FIELDS = {
       opt('id', 'id', 'Indonesian'), opt('vi', 'vi', 'Vietnamese'), opt('fil', 'fil', 'Filipino'), opt('ar', 'ar', 'Arabic'), opt('he', 'he', 'Hebrew'),
     ] },
   visuals: { label: 'Preferred visuals', kind: 'multi', options: ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn'], help: 'Picked first when a chapter can use a picture.' },
+  codeWalkthrough: { label: 'Code walkthrough', kind: 'cards', help: 'A line-by-line tour of the few lines that carry the idea.',
+    options: [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')] },
   quiz: { label: 'Quiz', kind: 'onoff', help: 'End explainers with a few questions.' },
   analogies: { label: 'Analogies', kind: 'onoff', help: 'Add a "think of it like" line to key ideas.' },
   model: { label: 'Model for estimates', kind: 'list', help: 'Used to price a run before it starts.',
@@ -63,7 +65,7 @@ const CONFIG_FIELDS = {
 };
 const optionValues = (field) => field.options.map((o) => (typeof o === 'string' ? o : o.value));
 const CONFIG_FIELD_DEFAULTS = {
-  style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {},
+  style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {}, codeWalkthrough: 'auto',
   quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
 };
 const INSTRUCTIONS_LIMIT = 2000;
@@ -557,7 +559,7 @@ function hubShareGroup(context, getSelection) {
         : Object.entries(params || {}).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
       serveFetch(context, `${serveApi(context, 'export')}${query ? `?${query}` : ''}`)
         .then(({ body }) => {
-          const many = `concept-explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
+          const many = `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
           downloadBlob(slugs.length === 1 ? `${slugs[0]}.explainers.json` : many, body);
           status.textContent = `Downloaded ${label}.`;
         })

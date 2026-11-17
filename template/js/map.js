@@ -146,7 +146,8 @@ function renderMap(data, mount) {
     open([id] = []) {
       if (id === undefined) return null;
       setSelected(nodeIndex.has(id) ? id : null);
-      return null;
+      // A deep link to a part: the router scrolls to it and focuses it.
+      return nodeIndex.has(id) ? grid.querySelector(`[data-node="${CSS.escape(id)}"]`) : null;
     },
   };
 }

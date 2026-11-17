@@ -129,8 +129,9 @@ function renderModels(data, mount) {
   if (document.fonts) document.fonts.ready.then(redraw);
   return {
     open([name] = []) {
-      if (name !== undefined && modelNames.has(name)) select(name);
-      return null;
+      if (name === undefined || !modelNames.has(name)) return null;
+      select(name);
+      return grid.querySelector(`[data-entity="${CSS.escape(name)}"]`);
     },
   };
 }

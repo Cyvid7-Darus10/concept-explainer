@@ -24,3 +24,13 @@ test('each order equals the type preset and the schema rule', () => {
   });
   Object.entries(TYPE_RULES).forEach(([type, rule]) => assert.deepEqual(TYPE_CHAPTERS[type], rule.chapters, `TYPE_RULES.${type}`));
 });
+
+test('optional chapters are ones the page places itself (the code walkthrough)', () => {
+  // chooseChapters puts `code` right after the flows when walkthroughs exist;
+  // any other optional chapter would need the same handling there.
+  readdirSync(presetsDir).filter((f) => f.endsWith('.json')).forEach((file) => {
+    const preset = JSON.parse(readFileSync(new URL(file, presetsDir), 'utf8'));
+    (preset.optionalChapters || []).forEach((key) => assert.equal(key, 'code', `presets/types/${file} optional chapter ${key}`));
+  });
+  assert.match(source, /'code', \.\.\.typeOrder\.slice\(flowsAt \+ 1\)/);
+});

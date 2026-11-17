@@ -11,6 +11,7 @@ const CHAPTERS = [
   { key: 'visuals', nav: 'Diagrams', title: 'The idea, drawn', lead: 'Each diagram answers one question. Pick a part to see what it does.', count: (d) => list(d.diagrams).length, unit: 'diagrams', has: (d) => list(d.diagrams).length > 0, render: chRenderVisuals },
   { key: 'map', nav: 'Architecture', title: 'The big picture', lead: 'Every box is one part of the system. Pick one to see what it does and who it talks to.', count: (d) => list(d.nodes).length, unit: 'parts', has: (d) => list(d.nodes).length > 0, render: renderMap },
   { key: 'flows', nav: 'Flows', title: 'Follow it end to end', lead: 'Pick a flow and press Continue. Each step is one hop, with the exact file that does the work.', count: (d) => list(d.flows).length, unit: 'flows', has: (d) => list(d.flows).length > 0, render: renderFlows },
+  { key: 'code', nav: 'Code walkthrough', title: 'The code, line by line', lead: 'The few lines that carry the idea, one step at a time. Each step says what the lines do and why.', count: (d) => list(d.walkthroughs).length, unit: 'walkthroughs', has: (d) => list(d.walkthroughs).length > 0, render: chRenderCode },
   { key: 'changes', nav: 'Changes', title: 'What changed, and why', lead: 'Recent merges from people and agents, each with its reason. Show them on the map to see which parts moved.', count: (d) => list(d.changes).length, unit: 'changes', has: (d) => list(d.changes).length > 0, render: renderChanges },
   { key: 'tree', nav: 'Where things live', title: 'Where things live', lead: 'The folders worth knowing. Key ones are where most changes happen.', count: (d) => list(d.tree).length, unit: 'paths', has: (d) => list(d.tree).length > 0, render: renderTree },
   { key: 'data', nav: 'Data model', title: 'The data', lead: 'What the system stores and how the pieces relate.', count: (d) => list(d.dataModel).length, unit: 'entities', has: (d) => list(d.dataModel).length > 0, render: renderModels },
@@ -37,7 +38,13 @@ const TYPE_CHAPTERS = {
 function chooseChapters(data) {
   const requested = list(data.meta && data.meta.chapters);
   const typeOrder = TYPE_CHAPTERS[data.meta && data.meta.type] || TYPE_CHAPTERS.repo;
-  const order = requested.length ? requested : [...typeOrder, ...CHAPTERS.map((c) => c.key).filter((key) => !typeOrder.includes(key))];
+  // The code walkthrough is optional in every type: when there is one, it
+  // follows the flows.
+  const flowsAt = typeOrder.indexOf('flows');
+  const withCode = list(data.walkthroughs).length && !typeOrder.includes('code')
+    ? [...typeOrder.slice(0, flowsAt + 1), 'code', ...typeOrder.slice(flowsAt + 1)]
+    : typeOrder;
+  const order = requested.length ? requested : [...withCode, ...CHAPTERS.map((c) => c.key).filter((key) => !withCode.includes(key))];
   return order
     .map((key) => CHAPTERS.find((c) => c.key === key))
     .filter((chapter) => chapter && chapter.has(data))
@@ -223,9 +230,16 @@ function createRouter(views, shell, chapters, viewed, meta) {
     }
     if (initial && !window.location.hash) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    // A deep link to an item scrolls to it and focuses it (a reader action,
+    // never an observer); otherwise focus goes to the view's heading.
+    if (target && target.scrollIntoView) {
+      if (!target.matches('a, button, input, select, textarea, [tabindex]')) target.setAttribute('tabindex', '-1');
+      target.scrollIntoView({ block: 'center', behavior: 'instant' });
+      target.focus({ preventScroll: true });
+      return;
+    }
     const heading = view.section.querySelector('h1');
     if (heading) heading.focus({ preventScroll: true });
-    if (target && target.scrollIntoView) target.scrollIntoView({ block: 'center', behavior: 'instant' });
   }
 
   window.addEventListener('hashchange', () => route());

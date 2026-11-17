@@ -7,9 +7,9 @@ const STACK_FACETS = 10;
 const TYPE_LABELS = {
   explainer: 'Explainer', node: 'Part', flow: 'Flow', step: 'Step', change: 'Change', entity: 'Data', concept: 'Idea',
   glossary: 'Term', file: 'File', run: 'Command', diff: 'Diff', option: 'Option', risk: 'Risk', rollout: 'Rollout',
-  event: 'Event', visual: 'Visual', question: 'Question',
+  event: 'Event', visual: 'Visual', question: 'Question', code: 'Code',
 };
-const TYPE_ORDER = ['explainer', 'node', 'flow', 'step', 'option', 'diff', 'risk', 'rollout', 'event', 'entity', 'change', 'concept', 'visual', 'question', 'glossary', 'file', 'run'];
+const TYPE_ORDER = ['explainer', 'node', 'flow', 'step', 'code', 'option', 'diff', 'risk', 'rollout', 'event', 'entity', 'change', 'concept', 'visual', 'question', 'glossary', 'file', 'run'];
 // What each explainer is about (manifest `type`), in words people use.
 const KIND_LABELS = {
   repo: 'Repo', pr: 'Pull request', change: 'Change', proposal: 'Proposal', migration: 'Migration', incident: 'Incident', concept: 'Concept',

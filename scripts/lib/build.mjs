@@ -7,7 +7,7 @@ export const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 
 export const FONTS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'fonts');
 
 // Order matters only for readability; all modules share one function scope.
-const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'changes.js', 'lessons.js', 'chapters/kit.js', 'chapters/viz-core.js', 'chapters/viz-linear.js', 'chapters/viz-graph.js', 'chapters/viz-grid.js', 'chapters/visuals.js', 'chapters/context.js', 'chapters/diff.js', 'chapters/options.js', 'chapters/risks.js', 'chapters/rollout.js', 'chapters/timeline.js', 'chapters/hooks.js', 'picker.js', 'settings.js', 'sections.js', 'app.js'];
+const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'changes.js', 'lessons.js', 'chapters/kit.js', 'chapters/viz-core.js', 'chapters/viz-linear.js', 'chapters/viz-graph.js', 'chapters/viz-grid.js', 'chapters/visuals.js', 'chapters/context.js', 'chapters/diff.js', 'chapters/options.js', 'chapters/risks.js', 'chapters/rollout.js', 'chapters/timeline.js', 'chapters/code.js', 'chapters/hooks.js', 'picker.js', 'settings.js', 'sections.js', 'app.js'];
 const LIBRARY_SCRIPT_ORDER = ['dom.js', 'icons.js', 'picker.js', 'settings.js', 'library.js'];
 // Stylesheets in template/styles/, joined in cascade order. A template folder
 // without styles/ (older custom templates) falls back to one styles.css.

@@ -106,7 +106,7 @@ function renderFlows(data, mount) {
       step.detail && h('p', null, softBreaks(step.detail)),
       step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
       (step.file || step.code) && h('div', { class: 'step-code' },
-        step.file && h('div', { class: 'code-head' }, fileChip(step.file)),
+        step.file && h('div', { class: 'code-head' }, fileChip(step.file), chWalkthroughLink(data, step.file)),
         step.code && codeBlock(step.code, step.lang))),
       h('div', { class: 'step-controls' },
         stepDots(steps.length, state.stepIndex, go),
@@ -148,7 +148,7 @@ function renderFlows(data, mount) {
       const stepIndex = Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0;
       state = { flowIndex: index, stepIndex, finished: false, direction: 1 };
       render();
-      return null;
+      return panel;
     },
   };
 }

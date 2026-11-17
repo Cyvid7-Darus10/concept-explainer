@@ -23,7 +23,7 @@ function renderConcepts(data, mount) {
       h('p', { class: 'concept-body' }, softBreaks(concept.body)),
       concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, softBreaks(concept.analogy))),
       chConceptExtras(concept),
-      concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
+      concept.file && h('div', { class: 'code-head' }, fileChip(concept.file), chWalkthroughLink(data, concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),
       controls,
     );
@@ -39,8 +39,9 @@ function renderConcepts(data, mount) {
   return {
     open([raw] = []) {
       const wanted = Number.parseInt(raw, 10);
-      if (Number.isInteger(wanted) && wanted >= 0 && wanted < concepts.length) show(wanted, { animate: false, link: false });
-      return null;
+      if (!(Number.isInteger(wanted) && wanted >= 0 && wanted < concepts.length)) return null;
+      show(wanted, { animate: false, link: false });
+      return card;
     },
   };
 }
@@ -272,10 +273,11 @@ function renderQuiz(data, mount) {
   render();
   return {
     open([n] = []) {
-      if (n === 'done') { go(questions.length, { focus: false, link: false }); return null; }
+      if (n === 'done') { go(questions.length, { focus: false, link: false }); return card; }
       const wanted = Number.parseInt(n, 10);
-      if (Number.isInteger(wanted) && wanted >= 1 && wanted <= questions.length) go(wanted - 1, { focus: false, link: false });
-      return null;
+      if (!(Number.isInteger(wanted) && wanted >= 1 && wanted <= questions.length)) return null;
+      go(wanted - 1, { focus: false, link: false });
+      return card;
     },
   };
 }
