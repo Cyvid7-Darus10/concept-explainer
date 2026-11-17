@@ -10,7 +10,7 @@ const AGENT_TRAILERS = /^(Co-Authored-By|Generated-By|Assisted-By):.*\b(claude|c
 const CONVENTIONAL = /^(feat|fix|refactor|perf|docs|test|chore|ci|security|build|style)(\(.+?\))?!?:\s*/i;
 const PR_REF = /(?:#|!)(\d+)/;
 
-function git(repo, args) {
+export function git(repo, args) {
   try {
     return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {

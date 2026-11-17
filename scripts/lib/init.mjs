@@ -1,11 +1,12 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SCHEMA_VERSION } from './schema.mjs';
+import { SCHEMA_VERSION, TYPE_RULES } from './schema.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const PRESETS_DIR = join(ROOT, 'presets');
 export const PATTERNS_DIR = join(ROOT, 'patterns');
+export const TYPE_PRESETS_DIR = join(PRESETS_DIR, 'types');
 
 function readJsonDir(dir) {
   return readdirSync(dir).filter((f) => f.endsWith('.json')).sort()
@@ -14,6 +15,17 @@ function readJsonDir(dir) {
 
 export function listPresets() {
   return readJsonDir(PRESETS_DIR);
+}
+
+/** One preset per non-repo type (pr, change, proposal, migration, incident, concept). */
+export function listTypePresets() {
+  return readJsonDir(TYPE_PRESETS_DIR);
+}
+
+export function loadTypePreset(type) {
+  const preset = listTypePresets().find((p) => p.type === type);
+  if (!preset) throw new Error(`unknown type "${type}" (available: repo, ${listTypePresets().map((p) => p.type).join(', ')})`);
+  return preset;
 }
 
 export function listPatterns() {
@@ -61,5 +73,38 @@ export function createStarter(presetId, scan = {}) {
     glossary: [],
     runbook: (scan.scripts || []).filter((sc) => /^(dev|start|test|build)$/.test(sc.name)).slice(0, 4)
       .map((sc) => ({ label: sc.name, command: `npm run ${sc.name}`, note: sc.command })),
+  };
+}
+
+const URL_REF = /^https?:\/\//i;
+
+function sourceFor(preset, ref) {
+  if (!ref) return { kind: preset.sourceKind, ref: 'TODO: where this comes from' };
+  if (!URL_REF.test(ref)) return { kind: preset.sourceKind, ref };
+  const kind = ['doc', 'notes'].includes(preset.sourceKind) ? 'url' : preset.sourceKind;
+  return { kind, ref, url: ref };
+}
+
+/**
+ * A starter for a non-repo type, from presets/types/<type>.json.
+ * Every TODO is intentional: validate warns until the agent replaces them.
+ * @param {string} type one of pr, change, proposal, migration, incident, concept
+ * @param {{ ref?: string }} [input] what is being explained: a PR url, a SHA range, a doc path
+ */
+export function createTypedStarter(type, input = {}) {
+  const preset = loadTypePreset(type);
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    meta: {
+      type,
+      title: 'TODO: what this is, explained',
+      summary: 'TODO: two plain sentences. What it is, and why it matters.',
+      source: sourceFor(preset, input.ref),
+      ...(preset.status ? { status: preset.status } : {}),
+      tags: [],
+      generatedAt: new Date().toISOString().slice(0, 10),
+      chapters: TYPE_RULES[type].chapters,
+    },
+    ...structuredClone(preset.starter),
   };
 }
