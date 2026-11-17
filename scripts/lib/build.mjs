@@ -11,7 +11,7 @@ const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'c
 const LIBRARY_SCRIPT_ORDER = ['dom.js', 'icons.js', 'picker.js', 'settings.js', 'library.js'];
 // Stylesheets in template/styles/, joined in cascade order. A template folder
 // without styles/ (older custom templates) falls back to one styles.css.
-export const STYLE_ORDER = ['base.css', 'shell.css', 'views.css', 'diagrams.css', 'lessons.css', 'hub.css', 'kit.css', 'playful.css'];
+export const STYLE_ORDER = ['base.css', 'shell.css', 'views.css', 'diagrams.css', 'lessons.css', 'chapters.css', 'visuals.css', 'hub.css', 'kit.css', 'playful.css'];
 
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 

@@ -387,6 +387,20 @@ function countLabel(n, one, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+// Explainer defaults always show: the built-in defaults merged with what the
+// page carries (never the free-text instructions). Under `library serve` the
+// real config, instructions included, comes from GET /api/config.
+function defaultsSlot(context, config) {
+  const slot = h('div', { class: 'settings-slot' }, defaultsGroup(context, config || {}));
+  const serve = context && context.serve && typeof context.serve.token === 'string' ? context.serve : null;
+  if (serve) {
+    serveFetch(context, serveApi(context, 'config'))
+      .then(({ json }) => { if (json && json.config) fill(slot, defaultsGroup(context, json.config)); })
+      .catch(() => { /* keep the embedded values; Save reports any server problem */ });
+  }
+  return slot;
+}
+
 /**
  * The Settings view. `config` holds the current explainer defaults, when the
  * page has them (context.config on explainer pages, data.config on the hub).
@@ -400,7 +414,7 @@ function settingsView(registry, { context = {}, config = null, extra = [] } = {}
       h('p', { class: 'view-lead' }, 'Reading choices stay in this browser. Explainer defaults shape the next explainer you build.')),
     h('div', { class: 'settings-body' },
       readingGroup(registry),
-      config !== null && defaultsGroup(context, config),
+      defaultsSlot(context, config),
       extra));
   return { key: 'settings', title: 'Settings', nav: 'Settings', section, controller: null };
 }

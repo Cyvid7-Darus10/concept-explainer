@@ -68,8 +68,14 @@ function on(name, handler) {
 }
 
 // Only http(s) links render; anything else (javascript:, data:) becomes text.
+// Control characters and spaces can hide a scheme ("java\tscript:"), so any
+// link holding one is refused outright.
+const UNSAFE_URL_CHARS = /[\u0000-\u0020\u007f]/;
+
 function safeUrl(value) {
-  return typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return /^https?:\/\//i.test(trimmed) && !UNSAFE_URL_CHARS.test(trimmed) ? trimmed : null;
 }
 
 // A path with soft break points after each "/", so it wraps at folder
@@ -338,11 +344,21 @@ function readContext() {
 }
 
 // A relative link (../../index.html) or an http(s) one. No other schemes.
+// A link from the build (library, kit): resolved against this page, and
+// kept only when it lands on http(s), or on a file next to this file page.
 function safeHref(value) {
-  if (typeof value !== 'string' || !value.trim()) return null;
+  if (typeof value !== 'string') return null;
   const trimmed = value.trim();
-  if (safeUrl(trimmed)) return safeUrl(trimmed);
-  return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(trimmed) ? null : trimmed;
+  if (!trimmed || UNSAFE_URL_CHARS.test(trimmed) || trimmed.startsWith('//') || trimmed.startsWith('\\')) return null;
+  let url;
+  try {
+    url = new URL(trimmed, window.location.href);
+  } catch (error) {
+    return null;
+  }
+  if (url.protocol === 'http:' || url.protocol === 'https:') return trimmed;
+  if (url.protocol === 'file:' && window.location.protocol === 'file:' && url.host === window.location.host) return trimmed;
+  return null;
 }
 
 // The skip link moves focus only; a "#main" hash would read as a view name.
@@ -404,9 +420,11 @@ function shortenToken(token) {
 // The shortened token: visible short form (not read, not copied), the full
 // token for screen readers and copy, and the hint.
 function shortToken(token) {
+  // The hidden full token goes first: as an out-of-flow box it can mark a
+  // line break, and at the front that break never shows.
   return h('span', { class: 'token-short' },
-    h('span', { class: 'token-visible', 'aria-hidden': 'true' }, shortenToken(token).split('…').flatMap((part, i) => (i ? [h('wbr'), '…', ...breakToken(part)] : breakToken(part)))),
     h('span', { class: 'sr-only token-full' }, token),
+    h('span', { class: 'token-visible', 'aria-hidden': 'true' }, shortenToken(token).split('…').flatMap((part, i) => (i ? [h('wbr'), '…', ...breakToken(part)] : breakToken(part)))),
     tokenHint(token));
 }
 

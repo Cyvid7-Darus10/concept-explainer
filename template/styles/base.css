@@ -15,7 +15,7 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
   /* Skin tokens: the Playful style redefines these (end of file). */
   --heading: var(--ink); --display: var(--ink); --link: var(--ink); --select: var(--accent);
-  --select-wash: var(--surface); --nav-current-bg: var(--canvas); --nav-current-ring: var(--ring);
+  --select-wash: var(--surface); --nav-current-bg: var(--canvas); --nav-current-ring: inset 0 0 0 1px var(--line);
   --primary-ring: 0 0 0 0 transparent; --good-wash: var(--surface); --bad-wash: var(--surface); --hair: 1px;
   --radius-sm: 4px; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
   --code-ring: inset 0 0 0 var(--hair) var(--line); --code-ink: var(--body); --code-kw: var(--ink);
@@ -195,3 +195,15 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 }
 .token-short .trunc-hint::before { inset: -4px 0; }
 .truncatable.is-truncated > .token-short .trunc-hint { display: none; }
+/* Single-line holders keep a shortened token on one line; their own ellipsis does the rest. */
+:is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) .token-short,
+:is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) .token-visible { white-space: nowrap; }
+/* There the hint sits in space reserved at the end of the token, so it can never wrap to its own line. */
+:is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) .token-short { position: relative; padding-inline-end: calc(min(16px, 1.1em) + 0.3em); }
+:is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) .token-short .trunc-hint {
+  position: absolute; inset-inline-end: 0; inset-block-start: 50%; margin: 0; translate: 0 -50%;
+}
+/* Chrome still breaks at <wbr> under nowrap; single-line holders drop the break points. */
+:is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) wbr { display: none; }
+/* Narrow boxes hyphenate a long word instead of breaking off its last letter. */
+.node-label, .entity-name, .flow-pick-title, .card-title, .next-title { hyphens: auto; -webkit-hyphens: auto; }

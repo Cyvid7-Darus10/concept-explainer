@@ -5,10 +5,16 @@ const LIBRARY_HREF = /^explainers\/[a-z0-9]+(?:-[a-z0-9]+)*\/index\.html(?:#[^\s
 const RESULT_LIMIT = 60;
 const STACK_FACETS = 10;
 const TYPE_LABELS = {
-  explainer: 'Explainer', node: 'Part', flow: 'Flow', step: 'Step', change: 'Change',
-  entity: 'Data', concept: 'Idea', glossary: 'Term', file: 'File', run: 'Command',
+  explainer: 'Explainer', node: 'Part', flow: 'Flow', step: 'Step', change: 'Change', entity: 'Data', concept: 'Idea',
+  glossary: 'Term', file: 'File', run: 'Command', diff: 'Diff', option: 'Option', risk: 'Risk', rollout: 'Rollout',
+  event: 'Event', visual: 'Visual', question: 'Question',
 };
-const TYPE_ORDER = ['explainer', 'node', 'flow', 'step', 'entity', 'change', 'concept', 'glossary', 'file', 'run'];
+const TYPE_ORDER = ['explainer', 'node', 'flow', 'step', 'option', 'diff', 'risk', 'rollout', 'event', 'entity', 'change', 'concept', 'visual', 'question', 'glossary', 'file', 'run'];
+// What each explainer is about (manifest `type`), in words people use.
+const KIND_LABELS = {
+  repo: 'Repo', pr: 'Pull request', change: 'Change', proposal: 'Proposal', migration: 'Migration', incident: 'Incident', concept: 'Concept',
+};
+const TAG_FACETS = 10;
 const HUB_AUTHORS = [{ id: 'all', label: 'Everyone' }, { id: 'agent', label: 'Agents' }, { id: 'human', label: 'Humans' }];
 
 function libraryHref(value) {
@@ -67,18 +73,27 @@ function stackFacets(explainers) {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, STACK_FACETS).map(([name]) => name);
 }
 
+function typeFacets(explainers) {
+  return [...new Set(explainers.map((e) => e.type || 'repo'))].sort();
+}
+
+function tagFacets(explainers) {
+  const counts = explainers.flatMap((e) => list(e.tags).map(String)).reduce((map, item) => map.set(item, (map.get(item) || 0) + 1), new Map());
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, TAG_FACETS).map(([name]) => name);
+}
+
 function presetFacets(explainers) {
   return [...new Set(explainers.map((e) => e.preset).filter((p) => typeof p === 'string' && p))].sort();
 }
 
-function facetGroup(label, options, current, onPick) {
+function facetGroup(label, options, current, onPick, labelOf = (v) => v) {
   if (!options.length) return null;
   const chip = (value, name) => h('button', {
     class: 'facet', type: 'button', 'aria-pressed': String(current === value), onclick: () => onPick(value),
   }, truncatable(h('span', { class: 'facet-text' }, softBreaks(name)), name));
   return h('div', { class: 'facet-group', role: 'group', 'aria-label': label },
     h('span', { class: 'eyebrow quiet' }, label),
-    h('span', { class: 'facet-chips' }, chip(null, 'Any'), options.map((option) => chip(option, option))));
+    h('span', { class: 'facet-chips' }, chip(null, 'Any'), options.map((option) => chip(option, labelOf(option)))));
 }
 
 // ---------- Pieces ----------
@@ -87,6 +102,39 @@ function layerMarkers(layers) {
   if (!items.length) return null;
   return h('span', { class: 'lib-layers', 'aria-label': `Layers: ${items.map((l) => l.label).join(', ')}` },
     items.slice(0, 8).map((l) => h('span', { class: 'layer-dot', title: l.label, style: layerStyle(l.color) })));
+}
+
+// A small picture of the explainer: its map (layers as columns, parts as
+// boxes, calls as lines) when the manifest carries one.
+const THUMB = { w: 240, h: 64, pad: 6 };
+
+function mapThumb(thumb) {
+  const layers = list(thumb.layers);
+  const nodes = list(thumb.nodes);
+  if (!layers.length || !nodes.length) return null;
+  const colW = (THUMB.w - THUMB.pad * 2) / layers.length;
+  const perCol = layers.map((l) => nodes.filter((n) => n.layer === l.id));
+  const rows = Math.max(...perCol.map((c) => c.length), 1);
+  const boxH = Math.min(12, (THUMB.h - THUMB.pad * 2 - (rows - 1) * 4) / rows);
+  const at = new Map();
+  perCol.forEach((col, i) => col.forEach((n, j) => at.set(n.id, {
+    x: THUMB.pad + i * colW + 6, y: THUMB.pad + j * (boxH + 4), w: colW - 12, h: boxH,
+  })));
+  const lines = list(thumb.edges).map((e) => [at.get(e.from), at.get(e.to)]).filter(([a, b]) => a && b)
+    .map(([a, b]) => s('line', { class: 'thumb-edge', x1: a.x + a.w, y1: a.y + a.h / 2, x2: b.x, y2: b.y + b.h / 2 }));
+  const boxes = perCol.flatMap((col, i) => col.map((n) => {
+    const b = at.get(n.id);
+    return s('g', { class: 'thumb-layer', style: layerStyle(layers[i].color) },
+      s('rect', { class: 'thumb-box', x: b.x, y: b.y, width: b.w, height: b.h, rx: 2 }),
+      s('rect', { class: 'thumb-bar', x: b.x, y: b.y, width: 2, height: b.h }));
+  }));
+  return s('svg', { class: 'lib-thumb', viewBox: `0 0 ${THUMB.w} ${THUMB.h}`, 'aria-hidden': 'true', focusable: 'false' }, lines, boxes);
+}
+
+function cardThumb(thumb) {
+  if (!thumb || typeof thumb !== 'object') return null;
+  if (thumb.kind === 'map') return mapThumb(thumb);
+  return h('span', { class: 'lib-thumb is-visual', 'aria-hidden': 'true' }, h('span', { class: 'eyebrow quiet' }, text(thumb.kind, 'visual')));
 }
 
 function stackTags(stack, max = 4) {
@@ -108,10 +156,14 @@ function explainerCard(explainer) {
   const href = explainerHref(explainer.slug);
   const dated = hubDate(explainer.generatedAt) || hubDate(explainer.publishedAt);
   const parts = [
-    h('span', { class: 'top-row' }, h('span', null, dated || 'Undated'), explainer.commit && h('span', null, String(explainer.commit).slice(0, 7))),
+    h('span', { class: 'top-row' }, h('span', null, KIND_LABELS[explainer.type] || 'Repo', explainer.origin === 'import' && h('span', { class: 'tag tag-imported' }, 'Imported')),
+      h('span', null, dated || 'Undated')),
+    cardThumb(explainer.thumb),
     h('span', { class: `card-title ${fitClass(explainer.title)}` }, softBreaks(text(explainer.title, explainer.slug))),
     explainer.repo && truncatable(h('span', { class: 'lib-repo' }), explainer.repo, { mode: 'middle' }),
     text(explainer.summary) && truncatable(h('span', { class: 'line lib-summary' }, softBreaks(explainer.summary)), explainer.summary),
+    (explainer.status || list(explainer.tags).length > 0) && h('span', { class: 'lib-stack' },
+      explainer.status && tag(explainer.status, 'tag-status'), list(explainer.tags).slice(0, 3).map((t) => tag(`#${t}`))),
     stackTags(explainer.stack),
     layerMarkers(explainer.layers),
     h('span', { class: 'card-foot' }, h('span', { class: 'lib-counts' }, countsLine(explainer.counts)), h('span', { class: 'card-open' }, 'Open')),
@@ -189,14 +241,15 @@ function changeRow(entry, titles) {
 }
 
 // ---------- Shell ----------
-function hubNav(views, explainers, links) {
+function hubNav(views, explainers, links, kitHref) {
   const item = (key, label, count) => {
     const a = h('a', { href: `#${key}`, 'data-nav': key }, h('span', { class: 'nav-label' }, label), h('span', { class: 'nav-count' }, String(count)));
     links.push(a);
     return h('li', null, a);
   };
   return h('nav', { class: 'links', 'aria-label': 'Library' },
-    h('ul', null, views.map((v) => item(v.key, v.nav, v.count))),
+    h('ul', null, views.map((v) => item(v.key, v.nav, v.count)),
+      kitHref && h('li', null, h('a', { href: kitHref, class: 'nav-external' }, h('span', { class: 'nav-label' }, 'Design kit')))),
     explainers.length > 0 && [h('p', { class: 'side-label' }, 'Explainers'),
       h('ul', { class: 'hub-repos' }, explainers.map((e) => {
         const href = explainerHref(e.slug);
@@ -205,25 +258,25 @@ function hubNav(views, explainers, links) {
       }))]);
 }
 
-function hubShell(views, explainers, updatedAt, registry) {
+function hubShell(views, explainers, updatedAt, registry, kitHref) {
   const links = [];
   const foot = () => {
     const gear = settingsLink('#settings');
     links.push(gear.querySelector('a'));
     return [
-      footMeta([plural(explainers.length, 'explainer'), updatedAt && `updated ${updatedAt}`]),
+      footMeta([plural(explainers.length, 'explainer'), updatedAt]),
       h('div', { class: 'foot-row' }, gear, themeSwitch(registry)),
     ];
   };
   const side = h('aside', { class: 'side', 'aria-label': 'Sidebar' },
     h('a', { class: 'brand', href: '#all' }, brandMark(), h('span', { class: 'name' }, 'Concept Explainer')),
     h('div', { class: 'side-repo' }, h('b', null, 'Explainer library'), h('span', { class: 'mono' }, plural(explainers.length, 'explainer'))),
-    hubNav(views, explainers, links),
+    hubNav(views, explainers, links, kitHref),
     h('div', { class: 'side-foot' }, foot()));
   const closeButton = h('button', { class: 'btn sheet-close', type: 'button' }, h('span', { class: 'close-icon', 'aria-hidden': 'true' }), 'Close');
   const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Menu' },
     h('div', { class: 'sheet-head' }, h('span', { class: 'name' }, 'Explainer library'), closeButton),
-    hubNav(views, explainers, links),
+    hubNav(views, explainers, links, kitHref),
     h('div', { class: 'sheet-foot' }, foot()));
   closeButton.addEventListener('click', () => sheet.close());
   sheet.addEventListener('click', (event) => {
@@ -286,24 +339,34 @@ function bootLibrary() {
   const changes = index.filter((e) => e.type === 'change').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   const stacks = stackFacets(explainers);
   const presets = presetFacets(explainers);
+  const kinds = typeFacets(explainers);
+  const tags = tagFacets(explainers);
   const views = [
     { key: 'all', nav: 'All explainers', count: explainers.length },
     { key: 'changes', nav: 'Recent changes', count: changes.length },
   ];
   const registry = themeRegistry();
-  const shell = hubShell(views, explainers, hubDate(manifest.updatedAt), registry);
+  const shortDate = manifest.updatedAt && !Number.isNaN(new Date(manifest.updatedAt).getTime())
+    ? new Date(manifest.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }) : '';
+  const shell = hubShell(views, explainers, shortDate, registry, safeHref(data && data.kitHref));
   const selected = new Set();
   const getSelection = () => {
     const shown = explainers.filter((e) => allowedSlugs().has(e.slug)).map((e) => e.slug);
-    const filtered = Boolean(state.stack || state.preset || input.value.trim());
+    const filtered = Boolean(state.stack || state.preset || state.type || state.tag || input.value.trim());
     if (selected.size) return { slugs: [...selected], args: [...selected].map(shellQuote).join(' '), label: plural(selected.size, 'picked explainer') };
     if (!filtered) return { slugs: [], params: {}, args: '', label: 'the whole library' };
+    // The CLI can select by type, tag, stack and search; a preset filter falls back to the shown slugs.
+    if (!state.preset) {
+      const params = Object.fromEntries([['type', state.type], ['tag', state.tag], ['stack', state.stack], ['search', input.value.trim()]].filter(([, v]) => v));
+      const args = Object.entries(params).map(([k, v]) => `--${k} ${shellQuote(v)}`).join(' ');
+      return { slugs: [], params, args, label: plural(shown.length, 'explainer') };
+    }
     return { slugs: shown, args: shown.map(shellQuote).join(' '), label: plural(shown.length, 'explainer') };
   };
   const settings = settingsView(registry, {
     context, config: context.config || (data && data.config) || null, extra: [hubShareGroup(context, getSelection)],
   });
-  let state = { stack: null, preset: null, author: 'all' };
+  let state = { stack: null, preset: null, type: null, tag: null, author: 'all' };
   let focusSearchNext = false;
 
   const input = h('input', {
@@ -340,7 +403,8 @@ function bootLibrary() {
 
   function allowedSlugs() {
     return new Set(explainers
-      .filter((e) => (!state.stack || list(e.stack).map(String).includes(state.stack)) && (!state.preset || e.preset === state.preset))
+      .filter((e) => (!state.stack || list(e.stack).map(String).includes(state.stack)) && (!state.preset || e.preset === state.preset)
+        && (!state.type || (e.type || 'repo') === state.type) && (!state.tag || list(e.tags).map(String).includes(state.tag)))
       .map((e) => e.slug));
   }
 
@@ -348,6 +412,8 @@ function bootLibrary() {
     const allowed = allowedSlugs();
     const query = input.value.trim();
     fill(filters,
+      kinds.length > 1 && facetGroup('Type', kinds, state.type, (value) => { state = { ...state, type: value }; renderAll(); }, (v) => KIND_LABELS[v] || v),
+      facetGroup('Tag', tags, state.tag, (value) => { state = { ...state, tag: value }; renderAll(); }, (v) => `#${v}`),
       facetGroup('Stack', stacks, state.stack, (value) => { state = { ...state, stack: value }; renderAll(); }),
       facetGroup('Preset', presets, state.preset, (value) => { state = { ...state, preset: value }; renderAll(); }));
     const shown = explainers.filter((e) => allowed.has(e.slug));

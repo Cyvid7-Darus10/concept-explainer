@@ -169,7 +169,12 @@ test('Clean uses Geist; Nunito and JetBrains Mono appear only for Playful', () =
   assert.doesNotMatch(cssCode.slice(0, PLAYFUL_START), /Nunito|JetBrains/i);
   assert.match(cssCode.slice(PLAYFUL_START), /--sans: "Nunito"/);
   assert.doesNotMatch(js, /Nunito|JetBrains/i);
-  [html, hubHtml].forEach((page) => assert.match(page, /family=Geist:[^"]*family=Geist\+Mono[^"]*family=Nunito[^"]*family=JetBrains\+Mono/));
+  // Fonts are self-hosted by the library build; templates load nothing remote,
+  // and every stack ends in system fonts for standalone pages.
+  [html, hubHtml].forEach((page) => assert.doesNotMatch(page, /fonts\.googleapis|fonts\.gstatic/));
+  [...cssCode.matchAll(/--(sans|mono): ([^;]+);/g)].forEach(([, kind, stack]) => {
+    assert.match(stack, kind === 'sans' ? /system-ui[^;]*sans-serif$/ : /ui-monospace[^;]*monospace$/, `${kind} stack ends in system fonts: ${stack}`);
+  });
 });
 
 test('links from data go through the http(s) allowlist', () => {
