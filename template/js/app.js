@@ -1,6 +1,5 @@
 // Boot: read the embedded data and library context, build the dashboard
 // shell (sidebar, phone bar, menu sheet) and show one view per hash.
-const DESIGN_CREDIT = 'Lesson pacing inspired by Brilliant. Type and greys from Geist by Vercel. Not affiliated with either.';
 const CHAPTERS = [
   { key: 'context', nav: 'Context', title: 'Why this exists', lead: 'The problem first, then what this aims for and what it leaves out.', count: (d) => list(d.context && d.context.goals).length, unit: 'goals', has: (d) => Boolean(d.context && d.context.problem), render: chRenderContext },
   { key: 'diff', nav: 'Files changed', title: 'What the change touches', lead: 'Each bar is one file, as long as its changed lines. Pick one to read what changed and which part it belongs to.', count: (d) => list(d.diff).length, unit: 'files', has: (d) => list(d.diff).length > 0, render: chRenderDiff },
@@ -208,10 +207,7 @@ function createRouter(views, shell, chapters, viewed, meta) {
 
   function show(view) {
     views.forEach((v) => { v.section.hidden = v !== view; });
-    shell.links.forEach((a) => {
-      if (a.dataset.nav === view.key) a.setAttribute('aria-current', 'page');
-      else a.removeAttribute('aria-current');
-    });
+    setNavCurrent(shell.links, view.key);
     shell.barView.textContent = view.nav;
     document.title = view.key === 'overview' ? `${meta.title} · Concept Explainer` : `${view.title} · ${meta.title}`;
     if (view.key !== 'overview') viewed.add(view.key);
@@ -281,11 +277,12 @@ function boot() {
     h('div', { class: 'wrap' }, views.map((v) => v.section),
       h('footer', { class: 'site-footer' },
         h('p', null, `${stamp ? `${stamp} ` : ''}with concept-explainer.`),
-        h('p', null, DESIGN_CREDIT))));
+        designCredit())));
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
   registry.paint();
   installThemeShortcut(registry);
+  watchNavMore(shell.side.querySelector(':scope > .links'));
   wireSkipLink(main);
   createRouter(views, shell, chapters, viewed, data.meta).route({ initial: true });
 }

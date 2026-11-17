@@ -93,7 +93,9 @@ function glancePanel(data) {
     ['Flows', list(data.flows).length],
     ['Changes', list(data.changes).length],
     ['Files', citedFiles(data)],
-  ];
+  ].filter(([, value]) => value > 0);
+  // A PR or a concept has no changes log or layers: show what it has.
+  if (!stats.length) return null;
   return h('section', { class: 'panel glance', 'aria-label': 'At a glance' },
     h('p', { class: 'panel-bar' }, h('span', null, 'At a glance'), h('span', null, `${tourMinutes(data)} min tour`)),
     h('dl', { class: 'glance-grid' }, stats.map(([label, value]) => h('div', null,

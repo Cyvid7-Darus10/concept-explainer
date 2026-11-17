@@ -17,7 +17,7 @@
   --heading: var(--ink); --display: var(--ink); --link: var(--ink); --select: var(--accent);
   --select-wash: var(--surface); --nav-current-bg: var(--canvas); --nav-current-ring: inset 0 0 0 1px var(--line);
   --primary-ring: 0 0 0 0 transparent; --good-wash: var(--surface); --bad-wash: var(--surface); --hair: 1px;
-  --radius-sm: 4px; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
+  --radius-sm: 4px; --page-zoom: 1; --body-weight: 400; --body-tracking: 0; --heading-weight: 450; --code-bg: var(--canvas);
   --code-ring: inset 0 0 0 var(--hair) var(--line); --code-ink: var(--body); --code-kw: var(--ink);
   --code-cm: var(--quiet); --code-st: var(--accent-text); --mark-bg: rgb(252 94 50 / 0.16); --hint-bg: var(--surface); --hint-ring: var(--line); --hint-ink: var(--muted);
 }
@@ -52,6 +52,8 @@ body {
   font-family: var(--sans);
   font-size: 16px;
   font-weight: var(--body-weight);
+  /* Text size Large scales the whole page; fixed-height panels divide by it. */
+  zoom: var(--page-zoom, 1);
   letter-spacing: var(--body-tracking);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -205,3 +207,6 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 }
 /* Chrome still breaks at <wbr> under nowrap; single-line holders drop the break points. */
 :is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) wbr { display: none; }
+.credit-playful { display: none; }
+:root[data-style="playful"] .credit-clean { display: none; }
+:root[data-style="playful"] .credit-playful { display: inline; }

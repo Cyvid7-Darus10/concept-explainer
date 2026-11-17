@@ -62,7 +62,7 @@
 :root[data-style="playful"] .links a { font-weight: 700; }
 :root[data-style="playful"] .link, :root[data-style="playful"] .panel-bar a { font-weight: 800; text-decoration: none; }
 :root[data-style="playful"] .tag { padding: 0 8px; }
-:root[data-style="playful"] .brand .name { font-family: var(--sans); font-weight: 900; font-size: 17px; letter-spacing: -0.01em; color: var(--accent-edge); }
+:root[data-style="playful"] .brand .name { font-family: var(--sans); font-weight: 900; font-size: 17px; letter-spacing: -0.01em; color: var(--accent-text); }
 
 /* Buttons: uppercase, heavy, pressable. The 4px bottom collapses on press. */
 :root[data-style="playful"] .btn { min-height: 46px; padding-inline: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px; }
@@ -91,3 +91,6 @@
 /* Map boxes are narrow: Nunito at 800 needs a touch more room for long names. */
 :root[data-style="playful"] .node-label { font-size: 13px; font-weight: 700; letter-spacing: 0; }
 :root[data-style="playful"] .node .node-icon { width: 28px; height: 28px; }
+@media (pointer: coarse) {
+  :root[data-style="playful"] .btn.small { min-height: 44px; }
+}

@@ -45,8 +45,7 @@
 .hub-change { grid-template-columns: 7.5em minmax(0, 1fr) auto; }
 .hub-change-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 @media (max-width: 559px) { .hub-change { grid-template-columns: minmax(0, 1fr) auto; } .hub-change .result-text { grid-column: 1 / -1; grid-row: 2; } }
-.hub-repos a { min-height: 36px; font-size: 14px; }
-.hub-repos .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-repos .nav-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-block: 8px; }
 .view[data-view="changes"] .seg { justify-self: start; }
 .hub-view { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap); align-content: start; }
 .hub-view > .view-head { margin-block-end: 8px; }

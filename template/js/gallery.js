@@ -34,14 +34,31 @@ function swatch([name, value, note]) {
     h('b', null, name), h('code', null, value), note && h('p', null, note));
 }
 
-function kitSidebar(registry, version) {
+function kitSidebar(registry, version, context, links) {
+  const library = safeHref(context && context.libraryHref);
   return h('aside', { class: 'side', 'aria-label': 'Sidebar' },
     h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Concept Explainer')),
     h('div', { class: 'side-repo' }, h('b', null, 'Design kit'), h('span', { class: 'mono' }, `v${version}`)),
     h('nav', { class: 'links', 'aria-label': 'Kit' }, h('ul', null, KIT_SECTIONS.map((sec) => h('li', null,
-      h('a', { href: `#${sec.id}` }, h('span', { class: 'nav-label' }, sec.nav)))))),
+      (() => { const a = h('a', { href: `#${sec.id}`, 'data-nav': sec.id }, h('span', { class: 'nav-label' }, sec.nav)); links.push(a); return a; })())))),
     h('div', { class: 'side-foot' },
+      library && h('div', { class: 'side-util' }, h('a', { class: 'util', href: library }, h('span', { class: 'util-ic' }, icon('library_shelf')), 'Library')),
       h('div', { class: 'foot-row' }, settingsLink('#kit-settings'), themeSwitch(registry))));
+}
+
+// The section in view is the current one in the kit's nav. The observer only
+// marks it; it never scrolls anything.
+function trackKitSections(links) {
+  if (!('IntersectionObserver' in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!seen) return;
+    links.forEach((a) => {
+      if (a.dataset.nav === seen.target.id) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  KIT_SECTIONS.forEach((sec) => { const el = document.getElementById(sec.id); if (el) observer.observe(el); });
 }
 
 function kitComponents() {
@@ -83,7 +100,8 @@ function kitSettings(registry) {
 }
 
 function bootGallery() {
-  applyLook(readContext());
+  const context = readContext();
+  applyLook(context);
   applyReading();
   const data = JSON.parse(document.getElementById('explainer-data').textContent);
   const kinds = list(data.kinds);
@@ -100,7 +118,7 @@ function bootGallery() {
         h('p', { class: 'eyebrow quiet' }, `Design kit · v${version}`),
         h('h1', null, 'Concept Explainer kit'),
         h('p', { class: 'view-lead' }, 'Everything an explainer is made of. Reuse these by name in your data file. Never redraw, recolour or restyle them.'),
-        h('p', { class: 'kit-credit' }, `Design credit: ${DESIGN_CREDIT_KIT}`)),
+        h('div', { class: 'kit-credit' }, designCredit())),
       h('div', { class: 'panel kit-logo' }, brandMark()),
 
       kitSection('kit-icons', 'Icons', 'Set a node "kind" to one of these names. Unknown kinds fall back to "service". One hairline weight, drawn in the text colour.',
@@ -123,11 +141,13 @@ function bootGallery() {
           h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
           h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
       kitSettings(registry),
-      h('footer', { class: 'site-footer' }, h('p', null, DESIGN_CREDIT_KIT)))));
-  fill(app, h('div', { class: 'app' }, kitSidebar(registry, version), main));
+      h('footer', { class: 'site-footer' }, designCredit()))));
+  const kitLinks = [];
+  fill(app, h('div', { class: 'app' }, kitSidebar(registry, version, context, kitLinks), main));
   app.removeAttribute('aria-busy');
   registry.paint();
   installThemeShortcut(registry);
+  trackKitSections(kitLinks);
+  watchNavMore(document.querySelector('.side > .links'));
 }
 
-const DESIGN_CREDIT_KIT = 'The one-idea-per-step lesson flow is inspired by Brilliant. Type (Geist, Geist Mono) and the grey scale come from Geist, the Vercel design system. Concept Explainer is not affiliated with or endorsed by Brilliant or Vercel.';

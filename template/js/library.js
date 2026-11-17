@@ -161,7 +161,7 @@ function explainerCard(explainer) {
     cardThumb(explainer.thumb),
     h('span', { class: `card-title ${fitClass(explainer.title)}` }, softBreaks(text(explainer.title, explainer.slug))),
     explainer.repo && truncatable(h('span', { class: 'lib-repo' }), explainer.repo, { mode: 'middle' }),
-    text(explainer.summary) && truncatable(h('span', { class: 'line lib-summary' }, softBreaks(explainer.summary)), explainer.summary),
+    text(explainer.summary) && h('span', { class: 'line lib-summary' }, wordBreaks(explainer.summary)),
     (explainer.status || list(explainer.tags).length > 0) && h('span', { class: 'lib-stack' },
       explainer.status && tag(explainer.status, 'tag-status'), list(explainer.tags).slice(0, 3).map((t) => tag(`#${t}`))),
     stackTags(explainer.stack),
@@ -253,7 +253,7 @@ function hubNav(views, explainers, links, kitHref) {
     explainers.length > 0 && [h('p', { class: 'side-label' }, 'Explainers'),
       h('ul', { class: 'hub-repos' }, explainers.map((e) => {
         const href = explainerHref(e.slug);
-        const label = truncatable(h('span', { class: 'nav-label' }, softBreaks(text(e.title, e.slug))), text(e.title, e.slug));
+        const label = h('span', { class: 'nav-label' }, wordBreaks(text(e.title, e.slug)));
         return h('li', null, href ? h('a', { href }, label) : label);
       }))]);
 }
@@ -465,10 +465,7 @@ function bootLibrary() {
     allView.hidden = view !== 'all';
     changesView.hidden = view !== 'changes';
     settings.section.hidden = view !== 'settings';
-    shell.links.forEach((a) => {
-      if (a.dataset.nav === view) a.setAttribute('aria-current', 'page');
-      else a.removeAttribute('aria-current');
-    });
+    setNavCurrent(shell.links, view);
     const viewName = { changes: 'Recent changes', settings: 'Settings' }[view] || 'All explainers';
     shell.barView.textContent = viewName;
     document.title = `${view === 'all' ? 'Explainer library' : viewName} · Concept Explainer`;
@@ -530,6 +527,7 @@ function bootLibrary() {
   app.removeAttribute('aria-busy');
   registry.paint();
   installThemeShortcut(registry);
+  watchNavMore(shell.side.querySelector(':scope > .links'));
   wireSkipLink(main);
   window.addEventListener('hashchange', () => route());
   route({ initial: true });

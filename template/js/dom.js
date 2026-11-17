@@ -639,3 +639,44 @@ function recheckTruncation() {
     else checkTruncation(el);
   });
 }
+
+// The credit follows the style on screen: Clean owes its type and greys to
+// Geist, Playful its palette and rounded type to Duolingo's design language.
+const CREDIT_CLEAN = 'Lesson pacing inspired by Brilliant. Type and greys from Geist by Vercel. Not affiliated with either.';
+const CREDIT_PLAYFUL = 'Lesson pacing inspired by Brilliant. Palette and rounded type (Nunito) inspired by Duolingo\'s design language. Not affiliated with either.';
+
+function designCredit() {
+  return h('p', { class: 'credit' }, h('span', { class: 'credit-clean' }, CREDIT_CLEAN), h('span', { class: 'credit-playful' }, CREDIT_PLAYFUL));
+}
+
+// Break points only (no shortening), for text that wraps or is clamped.
+function wordBreaks(value) {
+  return String(value ?? '').split(/(\s+)/).flatMap((token) => (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token) ? [token] : breakToken(token)));
+}
+
+// ---------- Navigation state, shared by the explainer, the hub and the kit ----------
+// Mark the current item in every nav copy; in a visible sidebar, bring it
+// into view inside the nav (a reader action, never on scroll).
+function setNavCurrent(links, key) {
+  links.forEach((a) => {
+    if (a.dataset.nav === key) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  const current = links.find((a) => a.dataset.nav === key && a.closest('.side') && a.getClientRects().length);
+  if (!current) return;
+  current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // Web fonts can change row heights after the first paint: check again then.
+  if (document.fonts) document.fonts.ready.then(() => { if (current.getAttribute('aria-current') === 'page') current.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+}
+
+// data-more="below" while the nav has rows under its bottom edge.
+function watchNavMore(nav) {
+  if (!nav) return;
+  const paint = () => {
+    const more = nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2;
+    if (more) nav.dataset.more = 'below'; else delete nav.dataset.more;
+  };
+  nav.addEventListener('scroll', paint, { passive: true });
+  if ('ResizeObserver' in window) new ResizeObserver(paint).observe(nav);
+  paint();
+}

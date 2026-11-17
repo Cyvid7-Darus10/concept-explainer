@@ -126,7 +126,10 @@ test('both skins exist, each with light and dark tokens', () => {
   assert.match(js, /function applyStyle\(/);
   assert.match(js, /'concept-explainer:style'/);
   assert.doesNotMatch(js.replace(/LEGACY_PREFIX = 'repo-explainer:'/, ''), /'repo-explainer:/, 'storage keys use concept-explainer:*');
-  assert.doesNotMatch(js, /Duolingo/, 'the UI says Clean and Playful, never the brand');
+  // The Playful footer credit is the one place that names its inspiration.
+  const withoutCredit = js.replace(/const CREDIT_PLAYFUL = '[^\n]*';/, '');
+  assert.match(js, /const CREDIT_PLAYFUL = '[^\n]*Duolingo[^\n]*';/);
+  assert.doesNotMatch(withoutCredit, /Duolingo/, 'controls say Clean and Playful, never the brand');
 });
 
 // WCAG 2 contrast between two hex colours.
@@ -205,7 +208,7 @@ test('Clean uses Geist; Nunito and JetBrains Mono appear only for Playful', () =
   assert.match(cssCode.slice(0, PLAYFUL_START), /--mono: "Geist Mono"/);
   assert.doesNotMatch(cssCode.slice(0, PLAYFUL_START), /Nunito|JetBrains/i);
   assert.match(cssCode.slice(PLAYFUL_START), /--sans: "Nunito"/);
-  assert.doesNotMatch(js, /Nunito|JetBrains/i);
+  assert.doesNotMatch(js.replace(/const CREDIT_PLAYFUL = '[^\n]*';/, ''), /Nunito|JetBrains/i);
   // Fonts are self-hosted by the library build; templates load nothing remote,
   // and every stack ends in system fonts for standalone pages.
   [html, hubHtml].forEach((page) => assert.doesNotMatch(page, /fonts\.googleapis|fonts\.gstatic/));
