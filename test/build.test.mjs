@@ -86,10 +86,16 @@ function contextJson(html) {
 
 test('standalone builds get an empty context, library builds get theirs', () => {
   const templateDir = templateWithContextTag();
-  assert.deepEqual(contextJson(buildExplainer(example, { templateDir })), {});
+  // The build always adds the shown chapters and the settings enums (see build-context.test.mjs).
+  const own = (html) => {
+    const { chapters, enums, ...rest } = contextJson(html);
+    assert.ok(Array.isArray(chapters) && enums && typeof enums === 'object');
+    return rest;
+  };
+  assert.deepEqual(own(buildExplainer(example, { templateDir })), {});
   const context = { libraryHref: '../../index.html', slug: 'acme-taskflow' };
   const html = buildExplainer(example, { templateDir, context });
-  assert.deepEqual(contextJson(html), context);
+  assert.deepEqual(own(html), context);
   assert.doesNotMatch(html, /id="explainer-context">__CONTEXT__</, 'the tag itself is filled');
 });
 
@@ -119,7 +125,11 @@ test('buildLibrary embeds the manifest and index and boots the hub', () => {
   assert.doesNotMatch(html, /<title>__TITLE__|>__EXPLAINER_DATA__<|>__CONTEXT__<|^\/\*__STYLES__\*\/$|^\/\*__SCRIPTS__\*\/$/m);
   assert.deepEqual(embeddedJson(html), { style: 'clean', manifest, index });
   const context = html.match(/id="explainer-context">([\s\S]*?)<\/script>/);
-  if (context) assert.deepEqual(JSON.parse(context[1]), { style: 'clean' });
+  if (context) {
+    const { enums, ...rest } = JSON.parse(context[1]);
+    assert.deepEqual(rest, { style: 'clean' });
+    assert.ok(enums && Array.isArray(enums.styles));
+  }
   assert.equal(embeddedJson(buildLibrary(manifest, index, { style: 'playful' })).style, 'playful');
   const templateTags = (readFileSync(join(TEMPLATE_DIR, 'library.html'), 'utf8').match(/<\/script>/g) || []).length;
   assert.equal((html.match(/<\/script>/g) || []).length, templateTags, 'only the template\'s own closing tags');
