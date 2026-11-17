@@ -3,6 +3,7 @@
 // Documented for humans in references/library.md: keep them in sync.
 import { basename, dirname } from 'node:path';
 import { DEFAULT_TYPE, EXPLAINER_TYPES } from './schema.mjs';
+import { thumbFor } from './thumb.mjs';
 
 export const MANIFEST_VERSION = 1;
 export const SLUG_MAX = 64;
@@ -150,6 +151,7 @@ export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
       diagrams: count(d.diagrams),
     },
     layers: (Array.isArray(d.layers) ? d.layers : []).filter(isObject).map((layer) => ({ label: str(layer.label) || '', color: str(layer.color) || '' })),
+    thumb: thumbFor(d),
   };
 }
 
