@@ -12,7 +12,7 @@
     "stack": ["Next.js 15", "TypeScript", "Postgres", "Prisma"],
     "generatedAt": "2026-11-18",
     "commit": "4be19c07d2",
-    "chapters": ["context", "diff", "map", "flows", "risks", "rollout", "quiz"]
+    "chapters": ["context", "diff", "map", "flows", "code", "risks", "rollout", "quiz"]
   },
   "context": {
     "problem": "Page numbers shift when rows are added. A teammate creating a task while you scroll makes the next page repeat one task, and deleting one makes you skip a task.",
@@ -115,5 +115,111 @@
     { "term": "Cursor", "definition": "An opaque string that marks where the last page ended." },
     { "term": "Offset paging", "definition": "Asking for rows by number: skip 40, take 20." },
     { "term": "Keyset query", "definition": "A query that starts after a known row, using an index, instead of counting rows." }
+  ],
+  "walkthroughs": [
+    {
+      "id": "cursor-codec",
+      "title": "The cursor codec",
+      "file": "packages/core/src/tasks/cursor.ts:9-25",
+      "lang": "ts",
+      "why": "Every page after the first trusts this decoder, so it decides what a client may ask for.",
+      "code": "export function encodeCursor(task: { createdAt: Date; id: string }): string {\n  const body = `${task.createdAt.toISOString()}|${task.id}`\n  const mac = sign(body)\n  return Buffer.from(`${body}|${mac}`).toString('base64url')\n}\n\nexport function decodeCursor(cursor: string): Position {\n  const raw = Buffer.from(cursor, 'base64url').toString('utf8')\n  const [createdAt, id, mac] = raw.split('|')\n  if (!createdAt || !id || !mac) throw new BadCursor('malformed')\n  if (!safeEqual(mac, sign(`${createdAt}|${id}`))) {\n    throw new BadCursor('not issued by this server')\n  }\n  const at = new Date(createdAt)\n  if (Number.isNaN(at.getTime())) throw new BadCursor('bad time')\n  return { createdAt: at, id }\n}",
+      "steps": [
+        {
+          "lines": "10",
+          "note": "A position is the last task's created time plus its id.",
+          "why": "Two tasks can share a created time; the id breaks the tie, so no task is skipped at a page edge.",
+          "kind": "what",
+          "refs": {
+            "glossary": "Cursor"
+          }
+        },
+        {
+          "lines": "11-12",
+          "note": "Signs the position and packs it into one URL safe string.",
+          "why": "Clients treat it as an opaque token, so the format can change later without breaking them.",
+          "kind": "output",
+          "refs": {
+            "node": "cursor"
+          }
+        },
+        {
+          "lines": "16-18",
+          "note": "Unpacks a cursor the client sent back and checks it has all three parts.",
+          "kind": "input",
+          "refs": {
+            "flow": "next-page-after",
+            "step": 2
+          }
+        },
+        {
+          "lines": "19-21",
+          "note": "Refuses any cursor whose signature this server did not make.",
+          "why": "A hand made cursor could otherwise point anywhere; the team filter in the service is the second guard.",
+          "kind": "gotcha"
+        },
+        {
+          "lines": "22-24",
+          "note": "Returns the position as a real date and id for the query.",
+          "kind": "output"
+        }
+      ],
+      "takeaway": "A cursor is a signed bookmark: the server only accepts bookmarks it wrote itself."
+    },
+    {
+      "id": "keyset-query",
+      "title": "The keyset query",
+      "file": "packages/core/src/tasks/service.ts:50-68",
+      "lang": "ts",
+      "why": "This query is why pages no longer repeat or skip tasks, and why page 50 is as fast as page 1.",
+      "code": "export async function listTasks(teamId: string, opts: { after?: Position; limit: number }) {\n  const { after, limit } = opts\n  const rows = await db.task.findMany({\n    where: {\n      teamId,\n      ...(after && {\n        OR: [\n          { createdAt: { lt: after.createdAt } },\n          { createdAt: after.createdAt, id: { lt: after.id } },\n        ],\n      }),\n    },\n    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],\n    take: limit + 1,\n  })\n  const page = rows.slice(0, limit)\n  const next = rows.length > limit ? encodeCursor(page[page.length - 1]) : null\n  return { tasks: page, nextCursor: next }\n}",
+      "steps": [
+        {
+          "lines": "54",
+          "note": "Every query is limited to the caller's team.",
+          "why": "Even a valid cursor from another team can never widen what this returns.",
+          "kind": "gotcha",
+          "refs": {
+            "flow": "next-page-after",
+            "step": 3
+          }
+        },
+        {
+          "lines": "55-60",
+          "note": "Asks only for tasks strictly after the bookmark: older, or the same time with a smaller id.",
+          "why": "Rows added above the bookmark cannot shift what comes after it, unlike an offset.",
+          "kind": "what",
+          "refs": {
+            "glossary": "Keyset query",
+            "flow": "next-page-after",
+            "step": 4
+          }
+        },
+        {
+          "lines": "62",
+          "note": "Sorts by created time, then id, the same order as the new index.",
+          "why": "Postgres walks the index in order and stops after the page, instead of counting past earlier rows.",
+          "kind": "why",
+          "refs": {
+            "node": "db"
+          }
+        },
+        {
+          "lines": "63",
+          "note": "Takes one row more than the page.",
+          "why": "The extra row says whether a next page exists without a separate count.",
+          "kind": "gotcha"
+        },
+        {
+          "lines": "65-67",
+          "note": "Returns the page and a cursor for its last task, or none at the end.",
+          "kind": "output",
+          "refs": {
+            "node": "cursor"
+          }
+        }
+      ],
+      "takeaway": "Paging by position, not by count, is what makes the list stable while it changes."
+    }
   ]
 }

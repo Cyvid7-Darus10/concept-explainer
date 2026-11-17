@@ -8,7 +8,7 @@
     "source": { "kind": "url", "ref": "IETF draft: The Idempotency-Key HTTP Header Field", "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/" },
     "tags": ["http", "payments", "reliability"],
     "generatedAt": "2026-11-18",
-    "chapters": ["concepts", "visuals", "map", "flows", "glossary", "quiz"]
+    "chapters": ["concepts", "visuals", "map", "flows", "code", "glossary", "quiz"]
   },
   "concepts": [
     {
@@ -157,6 +157,77 @@
       "options": ["Two retries arriving together can both charge", "Nothing, as long as it stores the response", "Keys expire sooner"],
       "answer": 0,
       "explain": "Without a claim before the work, two copies in flight both see the key as unseen. Storing the response still matters, but it only protects retries that arrive after the first one finished."
+    }
+  ],
+  "walkthroughs": [
+    {
+      "id": "middleware",
+      "title": "An idempotency check, in 14 lines",
+      "illustrative": true,
+      "lang": "javascript",
+      "why": "The whole idea fits in one wrapper around a handler, so you can see each rule in the order it runs.",
+      "code": "function withIdempotency(handler) {\n  return async (req) => {\n    const key = req.headers['idempotency-key']\n    if (!key) return handler(req)\n    const seen = await store.get(key)\n    if (seen && seen.bodyHash !== hash(req.body)) return status(422)\n    if (seen && seen.state === 'running') return status(409)\n    if (seen) return seen.response\n    await store.claim(key, hash(req.body))\n    const response = await handler(req)\n    await store.save(key, response)\n    return response\n  }\n}",
+      "steps": [
+        {
+          "lines": "3-4",
+          "note": "Reads the key the client sent; without one, the request runs as usual.",
+          "kind": "input",
+          "refs": {
+            "glossary": "Idempotency key"
+          }
+        },
+        {
+          "lines": "5",
+          "note": "Looks the key up before doing any work.",
+          "kind": "what"
+        },
+        {
+          "lines": "6",
+          "note": "Refuses a known key that arrives with a different body.",
+          "why": "Same key, different body means the client reused a key for a new intent, which is a bug to surface, not to hide.",
+          "kind": "gotcha",
+          "refs": {
+            "concept": 1,
+            "glossary": "Intent"
+          }
+        },
+        {
+          "lines": "7",
+          "note": "Answers 409 while the first request is still running.",
+          "kind": "gotcha"
+        },
+        {
+          "lines": "8",
+          "note": "Replays the stored answer for a finished key.",
+          "kind": "output",
+          "refs": {
+            "glossary": "Replay",
+            "flow": "retry-after-timeout",
+            "step": 6
+          }
+        },
+        {
+          "lines": "9",
+          "note": "Claims the key as in progress before the real work starts.",
+          "why": "The claim must be atomic, such as an insert that fails if the key exists. Otherwise two retries that arrive together both do the work.",
+          "kind": "why",
+          "refs": {
+            "flow": "retry-after-timeout",
+            "step": 2,
+            "concept": 2
+          }
+        },
+        {
+          "lines": "10-12",
+          "note": "Does the work once, stores the answer against the key, and returns it.",
+          "kind": "what",
+          "refs": {
+            "flow": "retry-after-timeout",
+            "step": 4
+          }
+        }
+      ],
+      "takeaway": "For one key, the work runs at most once and every retry gets the same answer."
     }
   ]
 }

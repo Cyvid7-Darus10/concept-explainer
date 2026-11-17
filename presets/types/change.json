@@ -10,6 +10,10 @@
     "risks",
     "quiz"
   ],
+  "optionalChapters": [
+    "code"
+  ],
+  "codeWalkthrough": "Optional. Add when 5 to 40 lines carry the root mechanism; extract with concept-explainer snippet.",
   "sourceKind": "commit",
   "mustCover": [
     "Why this change was made, from the commit message",

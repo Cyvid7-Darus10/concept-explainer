@@ -149,6 +149,7 @@ export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
       rollout: count(d.rollout),
       timeline: count(d.timeline),
       diagrams: count(d.diagrams),
+      walkthroughs: count(d.walkthroughs),
     },
     layers: (Array.isArray(d.layers) ? d.layers : []).filter(isObject).map((layer) => ({ label: str(layer.label) || '', color: str(layer.color) || '' })),
     thumb: thumbFor(d),

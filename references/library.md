@@ -80,6 +80,7 @@ Two styles: `clean` (the default) and `playful`. The template draws both; the da
 | `visuals` | list of visual kinds | `[]` | kinds the skill reaches for first |
 | `chapters` | `{ <type>: { <chapter>: true\|false } }` | `{}` | chapters turned off per type (missing means on) |
 | `quiz`, `analogies` | `true`, `false` | `true` | whether to write them |
+| `codeWalkthrough` | `auto`, `always`, `never` | `auto` | when the skill adds a code walkthrough (`references/code-walkthrough.md`) |
 | `model` | `auto` or a model id (`fable-5.2`, `opus-5.5`, `sonnet-5.5`, `haiku-5.5`) | `auto` | the model `estimate` recommends |
 | `budgetUsd` | a number of 0 or more, or `null` | `null` | skip the go-ahead wait when the estimate fits |
 | `confirmBeforeStart` | `true`, `false` | `true` | the estimate step |
@@ -130,7 +131,7 @@ A slug names an explainer's folder and appears in every link.
 ```
 
 - Entries are sorted newest `publishedAt` first.
-- `type` is always set (`repo` for files without `meta.type`). `repo`, `sourcePath`, `repoPath`, `preset`, `status`, `source`, `commit` and `generatedAt` are `null` when unknown. `stack`, `tags` and `layers` are always arrays; `counts` always has all thirteen keys.
+- `type` is always set (`repo` for files without `meta.type`). `repo`, `sourcePath`, `repoPath`, `preset`, `status`, `source`, `commit` and `generatedAt` are `null` when unknown. `stack`, `tags` and `layers` are always arrays; `counts` always has all fourteen keys (`walkthroughs` included).
 - `counts.files` is the number of `tree` entries; `counts.diff` the number of diff files.
 - `source.url` is present only when it is http or https.
 - `origin: "import"` and `importedAt` mark entries that came from an import (kept through `library rebuild`); local builds have no `origin`. The hub can badge them.
@@ -218,6 +219,7 @@ A flat array. One entry per searchable thing:
 | `event` | timeline event | `label` | `at`, `detail` | `#timeline/<index>`, from 0 |
 | `visual` | diagram | `title` | `caption` | `#visuals/<diagramId>` |
 | `question` | quiz question | `question` | `explain` | `#quiz/<n>`, n from 1 |
+| `code` | code walkthrough, and each of its steps | `title`; step: `<title>: lines <N-M>` | `why`, `takeaway`, `file`; step: `note`, `why` | `#code/<id>`, `#code/<id>/<n>`, n from 1 |
 
 - `change` entries also carry `date`, `kind` and `authorType` when the data has them, so the hub can merge every explainer's changes into one timeline, newest first.
 - `href` is relative to the hub. Each id after the chapter key is **one segment, encoded with `encodeURIComponent`**: `src/a b/x.js` becomes `#tree/src%2Fa%20b%2Fx.js`. A router splits the hash on `/` and decodes each segment.

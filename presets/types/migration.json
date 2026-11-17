@@ -12,6 +12,10 @@
     "risks",
     "quiz"
   ],
+  "optionalChapters": [
+    "code"
+  ],
+  "codeWalkthrough": "Optional. Add when 5 to 40 lines carry the root mechanism; extract with concept-explainer snippet.",
   "sourceKind": "doc",
   "status": "proposed",
   "mustCover": [

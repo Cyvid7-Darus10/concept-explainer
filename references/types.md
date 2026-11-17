@@ -14,7 +14,7 @@ The rules live in `scripts/lib/schema.mjs` (`TYPE_RULES`) and the starters in `p
 | `incident` | A post-mortem | `ce init <notes> --type incident` | context, timeline, flows, risks, rollout, quiz | `context`, `timeline` | no |
 | `concept` | An idea not tied to one repo | `ce init <url> --type concept` | concepts, map, flows, glossary, quiz | `concepts` | no |
 
-Add `visuals` to `meta.chapters` when you use `diagrams[]`. "Cites code" decides whether `--repo` checks files and whether nodes and steps are asked for file citations.
+Every type may add the optional `code` chapter (`walkthroughs[]`, `references/code-walkthrough.md`): never required, added only when a few lines of code carry the root of the idea, as `optionalChapters` in each preset says. Add `visuals` to `meta.chapters` when you use `diagrams[]`, and `code` when you use `walkthroughs[]`. "Cites code" decides whether `--repo` checks files and whether nodes and steps are asked for file citations.
 
 ## repo
 

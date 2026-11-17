@@ -27,6 +27,7 @@ const OPTIONS = {
   tag: { type: 'string' },
   stack: { type: 'string' },
   search: { type: 'string' },
+  lang: { type: 'string' },
   'on-conflict': { type: 'string' },
   'dry-run': { type: 'boolean' },
   merges: { type: 'boolean' },

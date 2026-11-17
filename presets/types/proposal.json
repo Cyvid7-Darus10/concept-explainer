@@ -12,6 +12,10 @@
     "rollout",
     "quiz"
   ],
+  "optionalChapters": [
+    "code"
+  ],
+  "codeWalkthrough": "Optional. Only when existing code carries the root of the problem; cite it with concept-explainer snippet.",
   "sourceKind": "doc",
   "status": "draft",
   "mustCover": [

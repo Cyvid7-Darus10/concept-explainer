@@ -5,7 +5,7 @@
 
 export const SEARCH_TYPES = [
   'explainer', 'node', 'flow', 'step', 'change', 'entity', 'concept', 'glossary', 'file', 'run',
-  'diff', 'option', 'risk', 'rollout', 'event', 'visual', 'question',
+  'diff', 'option', 'risk', 'rollout', 'event', 'visual', 'question', 'code',
 ];
 
 // Keeps the embedded hub small. Titles are short already, so only text is clipped.
@@ -66,6 +66,11 @@ function v2Entries(slug, d) {
     ...indexed(d.rollout).map(([item, i]) => entry(slug, 'rollout', item.label, join(item.detail, item.command), route('rollout', i))),
     ...indexed(d.timeline).map(([item, i]) => entry(slug, 'event', item.label, join(item.at, item.detail), route('timeline', i))),
     ...withKey(d.diagrams, 'id').map((item) => entry(slug, 'visual', item.title || item.id, item.caption, route('visuals', item.id))),
+    // Code walkthroughs: the walkthrough, then each step (#code/<id>/<n>, counted from 1).
+    ...withKey(d.walkthroughs, 'id').flatMap((walk) => [
+      entry(slug, 'code', walk.title || walk.id, join(walk.why, walk.takeaway, walk.file), route('code', walk.id)),
+      ...indexed(walk.steps).map(([step, i]) => entry(slug, 'code', `${str(walk.title) || walk.id}: lines ${str(step.lines)}`, join(step.note, step.why), route('code', walk.id, i + 1))),
+    ]),
     // One question per view: #quiz/<n>, counted from 1.
     ...indexed(d.quiz).map(([item, i]) => entry(slug, 'question', item.question, item.explain, route('quiz', i + 1))),
   ];

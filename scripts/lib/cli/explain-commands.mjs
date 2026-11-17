@@ -16,6 +16,7 @@ import { measureDiff, measureSource } from '../estimate-input.mjs';
 import { readConfig, resolveHome } from '../library.mjs';
 import { publicConfig } from '../config.mjs';
 import { openPath } from '../open.mjs';
+import { readSnippet } from '../snippet.mjs';
 import {
   out, err, BIN, UsageError, asUsage, printJson, readJson, report, requirePositional, toJson, writeFile,
 } from './io.mjs';
@@ -101,6 +102,13 @@ export const EXPLAIN_COMMANDS = {
     writeFile(opts.data, toJson(merged));
     err(`  added ${merged.changes.length - (data.changes || []).length} change(s); fill each "why"\n`);
     return undefined;
+  },
+
+  // Exact lines for a code walkthrough, as JSON to paste: never retyped from memory.
+  snippet(positionals, opts) {
+    const repo = resolve(requirePositional(positionals, '<repo>'));
+    if (!positionals[1]) throw new UsageError(`missing <path:start-end>. Usage: ${BIN} snippet <repo> <path:start-end> [--lang x]`);
+    printJson(asUsage(() => readSnippet(repo, positionals[1], { lang: opts.lang })));
   },
 
   diff(positionals, opts) {

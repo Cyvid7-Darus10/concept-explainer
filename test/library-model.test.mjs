@@ -93,14 +93,14 @@ test('entries carry the type, status, tags, source and the v2 counts', () => {
   const data = {
     schemaVersion: 2,
     meta: { type: 'proposal', title: 'Queues', summary: 'S.', status: 'accepted', tags: ['infra', 'email'], source: { kind: 'doc', ref: 'rfc-12.md' } },
-    options: [{}, {}], risks: [{}], rollout: [{}, {}, {}], timeline: [], diff: [{}], diagrams: [{}, {}],
+    options: [{}, {}], risks: [{}], rollout: [{}, {}, {}], timeline: [], diff: [{}], diagrams: [{}, {}], walkthroughs: [{}],
   };
   const entry = entryFor(data, { slug: 'queues', publishedAt: 't' });
   assert.equal(entry.type, 'proposal');
   assert.equal(entry.status, 'accepted');
   assert.deepEqual(entry.tags, ['infra', 'email']);
   assert.deepEqual(entry.source, { kind: 'doc', ref: 'rfc-12.md' });
-  assert.deepEqual(entry.counts, { layers: 0, nodes: 0, flows: 0, changes: 0, concepts: 0, files: 0, quiz: 0, diff: 1, options: 2, risks: 1, rollout: 3, timeline: 0, diagrams: 2 });
+  assert.deepEqual(entry.counts, { layers: 0, nodes: 0, flows: 0, changes: 0, concepts: 0, files: 0, quiz: 0, diff: 1, options: 2, risks: 1, rollout: 3, timeline: 0, diagrams: 2, walkthroughs: 1 });
   const v1 = entryFor(example, { slug: 'a', publishedAt: 't' });
   assert.equal(v1.type, 'repo');
   assert.equal(v1.status, null);

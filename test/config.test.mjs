@@ -12,7 +12,7 @@ test('defaults cover every documented key', () => {
   assert.deepEqual(Object.keys(CONFIG_DEFAULTS).sort(), [...CONFIG_KEYS].sort());
   assert.deepEqual(CONFIG_DEFAULTS, {
     style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [],
-    chapters: {}, quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
+    chapters: {}, quiz: true, analogies: true, codeWalkthrough: 'auto', model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
   });
 });
 
@@ -93,4 +93,11 @@ test('pages and the hub carry the current config', () => {
   const kit = readFileSync(libraryPaths(home).kit, 'utf8');
   assert.equal(tag(kit, 'explainer-context').config.audience, 'expert');
   assert.doesNotMatch(kit + readFileSync(pagePath, 'utf8'), /Short words/);
+});
+
+test('codeWalkthrough is auto, always or never, and code is a valid optional chapter per type', () => {
+  assert.equal(CONFIG_DEFAULTS.codeWalkthrough, 'auto');
+  assert.deepEqual(validateConfig({ ...CONFIG_DEFAULTS, codeWalkthrough: 'never' }).errors, []);
+  assert.match(validateConfig({ ...CONFIG_DEFAULTS, codeWalkthrough: 'sometimes' }).errors.join(), /codeWalkthrough/);
+  assert.deepEqual(validateConfig({ ...CONFIG_DEFAULTS, chapters: { concept: { code: false }, pr: { code: true } } }).errors, []);
 });

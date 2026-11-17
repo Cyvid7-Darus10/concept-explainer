@@ -7,7 +7,7 @@ export const SCHEMA_VERSION = 2;
 
 export const CHAPTER_KEYS = [
   'map', 'flows', 'changes', 'tree', 'data', 'concepts', 'quiz', 'glossary', 'run',
-  'context', 'diff', 'options', 'risks', 'rollout', 'timeline', 'visuals',
+  'context', 'diff', 'options', 'risks', 'rollout', 'timeline', 'visuals', 'code',
 ];
 
 // What an explainer explains. Each type picks default chapters and the objects it needs.
@@ -15,14 +15,19 @@ export const EXPLAINER_TYPES = ['repo', 'pr', 'change', 'proposal', 'migration',
 export const DEFAULT_TYPE = 'repo';
 
 export const TYPE_RULES = {
-  repo: { chapters: ['map', 'flows', 'changes', 'tree', 'data', 'concepts', 'quiz', 'glossary', 'run'], requires: ['nodes'], citesCode: true },
-  pr: { chapters: ['context', 'diff', 'map', 'flows', 'risks', 'rollout', 'quiz'], requires: ['context', 'diff'], citesCode: true },
-  change: { chapters: ['context', 'diff', 'flows', 'risks', 'quiz'], requires: ['context', 'diff'], citesCode: true },
-  proposal: { chapters: ['context', 'options', 'map', 'flows', 'risks', 'rollout', 'quiz'], requires: ['context', 'options'], citesCode: false },
-  migration: { chapters: ['context', 'options', 'map', 'flows', 'rollout', 'risks', 'quiz'], requires: ['context', 'options'], citesCode: true },
-  incident: { chapters: ['context', 'timeline', 'flows', 'risks', 'rollout', 'quiz'], requires: ['context', 'timeline'], citesCode: false },
-  concept: { chapters: ['concepts', 'map', 'flows', 'glossary', 'quiz'], requires: ['concepts'], citesCode: false },
+  repo: { chapters: ['map', 'flows', 'changes', 'tree', 'data', 'concepts', 'quiz', 'glossary', 'run'], requires: ['nodes'], citesCode: true, optional: ['code'] },
+  pr: { chapters: ['context', 'diff', 'map', 'flows', 'risks', 'rollout', 'quiz'], requires: ['context', 'diff'], citesCode: true, optional: ['code'] },
+  change: { chapters: ['context', 'diff', 'flows', 'risks', 'quiz'], requires: ['context', 'diff'], citesCode: true, optional: ['code'] },
+  proposal: { chapters: ['context', 'options', 'map', 'flows', 'risks', 'rollout', 'quiz'], requires: ['context', 'options'], citesCode: false, optional: ['code'] },
+  migration: { chapters: ['context', 'options', 'map', 'flows', 'rollout', 'risks', 'quiz'], requires: ['context', 'options'], citesCode: true, optional: ['code'] },
+  incident: { chapters: ['context', 'timeline', 'flows', 'risks', 'rollout', 'quiz'], requires: ['context', 'timeline'], citesCode: false, optional: ['code'] },
+  concept: { chapters: ['concepts', 'map', 'flows', 'glossary', 'quiz'], requires: ['concepts'], citesCode: false, optional: ['code'] },
 };
+
+// The code walkthrough is optional for every type: added only when code
+// carries the root of the idea (config codeWalkthrough, references/code-walkthrough.md).
+export const OPTIONAL_CHAPTERS = ['code'];
+export const WALK_STEP_KINDS = ['what', 'why', 'gotcha', 'input', 'output'];
 
 export const SOURCE_KINDS = ['repo', 'pr', 'commit', 'doc', 'issue', 'url', 'notes'];
 export const STATUSES = ['draft', 'proposed', 'accepted', 'rejected', 'in-progress', 'merged', 'done'];
@@ -79,6 +84,11 @@ export const LIMITS = {
   diff: 40,
   keyFiles: 4,
   diagrams: 8,
+  // Code walkthroughs: above a max is a warning, except codeLines.hard, which is an error.
+  walkthroughs: 5,
+  codeLines: { min: 5, max: 40, hard: 80 },
+  walkSteps: { min: 2, max: 12 },
+  noteSentences: 2,
   parts: { min: 2, max: 6 },
   visualItems: {
     layers: { min: 2, max: 8 },
@@ -101,7 +111,7 @@ export const MARKUP = /<\/?[a-z][a-z0-9-]*(\s[^>]*)?>/i;
 
 // Prose fields are read by people; code-ish fields are exempt from style checks.
 export const NON_PROSE_KEYS = new Set(['code', 'file', 'files', 'path', 'command', 'url', 'ref', 'id', 'type', 'name', 'lang', 'from', 'to', 'layer', 'kind', 'color', 'date', 'generatedAt', 'commit', 'repo', 'author', 'authorType', 'chapters', 'preset', 'stack', '$schema',
-  'status', 'impact', 'variant', 'pair', 'at', 'lines', 'in', 'parent', 'schemaVersion']);
+  'status', 'impact', 'variant', 'pair', 'at', 'lines', 'in', 'parent', 'schemaVersion', 'refs', 'illustrative']);
 
 // Em dash, en dash, or a spaced hyphen used as punctuation.
 export const DASH = /\s[\u2014\u2013-]\s|\u2014|\u2013/;

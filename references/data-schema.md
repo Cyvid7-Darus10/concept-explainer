@@ -19,7 +19,7 @@ Every string is rendered as **plain text**: markup is rejected, and newlines onl
 | `source` | object | `{ kind, ref, url? }`. `kind` is `repo`, `pr`, `commit`, `doc`, `issue`, `url` or `notes`. `url` must be http or https. |
 | `status` | string | `draft`, `proposed`, `accepted`, `rejected`, `in-progress`, `merged` or `done`. For pr, proposal and migration. |
 | `tags` | string[] | Up to 8 free text tags. The library filters by them. |
-| `chapters` | string[] | The order of chapters, from `map, flows, changes, tree, data, concepts, quiz, glossary, run, context, diff, options, risks, rollout, timeline, visuals`. Chapters with no data are skipped automatically. |
+| `chapters` | string[] | The order of chapters, from `map, flows, changes, tree, data, concepts, quiz, glossary, run, context, diff, options, risks, rollout, timeline, visuals, code`. Chapters with no data are skipped automatically. |
 | `generatedAt` | ISO date | Shown in the footer. |
 | `commit` | string | The SHA the explainer describes. |
 
@@ -141,6 +141,10 @@ All optional; the type decides which are required (`references/types.md`).
 
 `[{ at, label, detail?, kind? }]`, up to 20 events. `at` is the time from the record, as written there. `kind` is `detect`, `act`, `fix` or `learn`.
 
+### `walkthroughs` (optional, every type)
+
+`[{ id, title, file, lang?, why, code, steps[], takeaway, illustrative? }]`, chapter key `code`. One real snippet (5 to 40 lines) with its important lines annotated in reading order: `steps[]` are `{ lines: "N" | "N-M" (file line numbers), note, why?, kind?, refs? }`. Paste `code` from `concept-explainer snippet <repo> <path:start-end>`; `--repo` checks it equals the file. Never required. Full rules: `references/code-walkthrough.md`.
+
 ### `diagrams`
 
 `[{ id, kind, title, caption, ...shape }]`, up to 8. The nine kinds and their shapes are in `references/visuals.md`. `caption` states the takeaway as a sentence; `validate` warns on a label.
@@ -158,6 +162,7 @@ Every field named `url`, anywhere in the file, must start with `http://` or `htt
 | `#map/<nodeId>`, `#flows/<flowId>/<n>`, `#changes/<id>`, `#data/<entity>`, `#concepts/<i>`, `#glossary/<term>`, `#tree/<path>` | That item (v1 chapters) |
 | `#context`, `#diff/<path>`, `#options/<i>`, `#risks/<i>`, `#rollout/<i>`, `#timeline/<i>` | That item (v2 chapters, indexes from 0) |
 | `#visuals/<diagramId>/<part>` | That diagram, and a part from 0 |
+| `#code/<id>`, `#code/<id>/<n>`, `#code/<id>/done` | A code walkthrough, a step from 1, or its takeaway |
 | `#quiz/<n>`, `#quiz/done` | One quiz question, from 1, or the result |
 
 Each id is one segment, encoded with `encodeURIComponent`.

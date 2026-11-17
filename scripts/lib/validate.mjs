@@ -7,6 +7,7 @@ import {
   arr, checkEnum, checkUniqueIds, collector, isObject, isText, requireText, sentences, words,
 } from './validate-util.mjs';
 import { checkV2, typeOf } from './validate-v2.mjs';
+import { checkWalkthroughSources, checkWalkthroughs } from './validate-code.mjs';
 
 /**
  * @typedef {{ errors: string[], warnings: string[] }} ValidationResult
@@ -225,11 +226,15 @@ export function validateExplainer(data, options = {}) {
   checkChanges(report, arr(data.changes), nodeIds);
   checkLessons(report, data);
   checkV2(report, data, nodeIds);
+  checkWalkthroughs(report, data, nodeIds, type);
   checkLessonShape(report, data);
   checkNoMarkup(report, data);
   checkHiddenCharacters(report, data);
   checkProseStyle(report, data);
   checkPlaceholders(report, data);
-  if (options.repoRoot) checkFilesExist(report, data, options.repoRoot);
+  if (options.repoRoot) {
+    checkFilesExist(report, data, options.repoRoot);
+    checkWalkthroughSources(report, data, options.repoRoot);
+  }
   return report.result();
 }

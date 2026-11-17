@@ -20,6 +20,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
   chapters: {},
   quiz: true,
   analogies: true,
+  codeWalkthrough: 'auto',
   model: 'auto',
   budgetUsd: null,
   confirmBeforeStart: true,
@@ -34,6 +35,8 @@ const ENUMS = {
   audience: ['newcomer', 'engineer', 'expert'],
   depth: ['overview', 'standard', 'deep'],
   model: ['auto', ...MODEL_IDS],
+  // auto: when code carries the root of the idea; always: at least one when the type cites code; never.
+  codeWalkthrough: ['auto', 'always', 'never'],
 };
 const BOOLEANS = ['quiz', 'analogies', 'confirmBeforeStart'];
 
@@ -46,7 +49,8 @@ function chapterErrors(chapters) {
     if (!EXPLAINER_TYPES.includes(type)) return [`chapters.${type}: "${type}" is not a type (use ${EXPLAINER_TYPES.join(', ')})`];
     if (!isObject(flags)) return [`chapters.${type}: must be { <chapter>: true|false }`];
     return Object.entries(flags).flatMap(([key, on]) => {
-      if (!TYPE_RULES[type].chapters.includes(key)) return [`chapters.${type}.${key}: not a ${type} chapter (use ${TYPE_RULES[type].chapters.join(', ')})`];
+      const allowed = [...TYPE_RULES[type].chapters, ...TYPE_RULES[type].optional];
+      if (!allowed.includes(key)) return [`chapters.${type}.${key}: not a ${type} chapter (use ${allowed.join(', ')})`];
       return typeof on === 'boolean' ? [] : [`chapters.${type}.${key}: must be true or false`];
     });
   });

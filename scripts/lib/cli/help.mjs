@@ -9,6 +9,7 @@ Make one
   concept-explainer init <repo> [--preset id]          Starter explainer.json for a repo (preset picked from scan)
   concept-explainer init [input] --type <type>         Starter for pr, change, proposal, migration, incident or concept
   concept-explainer diff <repo> --base <ref>           Draft diff[] and node statuses from git (--head, --data f --write)
+  concept-explainer snippet <repo> <path:start-end>     Print exact lines as JSON for a code walkthrough (--lang x)
   concept-explainer changes <repo> [--data file]       Draft "what changed and why" entries from git history
   concept-explainer validate <file> [--repo dir]       Check the data; --repo also checks cited files (types that cite code)
   concept-explainer build <file> [--out f] [--repo d]  Validate, render one HTML file, publish it to the library

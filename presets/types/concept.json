@@ -10,6 +10,10 @@
     "glossary",
     "quiz"
   ],
+  "optionalChapters": [
+    "code"
+  ],
+  "codeWalkthrough": "Optional. Only when a few lines carry the idea; use illustrative: true with no file for pseudo-code.",
   "sourceKind": "doc",
   "mustCover": [
     "The idea in one sentence a newcomer can repeat",
