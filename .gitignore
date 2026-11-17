@@ -13,3 +13,8 @@ coverage/
 /examples/pr-cursor-paging.html
 /examples/proposal-live-updates.html
 /examples/concept-idempotency-keys.html
+
+# Secrets never belong in the repo.
+.env
+.env.*
+!.env.example
