@@ -209,9 +209,15 @@ export function publishExplainer(data, options = {}) {
     : chooseSlug(manifest.explainers, baseSlugFor(data, options), source);
   const at = now();
 
-  writeAtomic(join(paths.dirFor(slug), 'explainer.json'), toJson(data));
+  const dataPath = join(paths.dirFor(slug), 'explainer.json');
+  // A replacing import keeps the old data beside the new, never deleting it.
+  if (options.backupExisting && existsSync(dataPath)) {
+    writeAtomic(`${dataPath}.replaced-${at.replace(/[:.]/g, '-')}`, readFileSync(dataPath, 'utf8'));
+  }
+  writeAtomic(dataPath, toJson(data));
   const pagePath = writePage(paths, slug, data, options, style);
-  const entry = entryFor(data, { slug, sourcePath: options.sourcePath, repoPath: options.repoPath, publishedAt: at });
+  const origin = options.origin === 'import' ? { origin: 'import', importedAt: at } : {};
+  const entry = { ...entryFor(data, { slug, sourcePath: options.sourcePath, repoPath: options.repoPath, publishedAt: at }), ...origin };
   const next = upsertEntry(manifest, entry, at);
   writeAtomic(paths.manifest, toJson(next));
   const hubPath = options.skipHub ? paths.hub : writeHub(home, next, options);
@@ -256,7 +262,8 @@ export function rebuildLibrary(options = {}) {
   const next = [...stored].reduce((acc, [slug, { data, mtime }]) => {
     const previous = known.get(slug) || {};
     writePage(paths, slug, data, options, style);
-    const entry = entryFor(data, { slug, sourcePath: previous.sourcePath, repoPath: previous.repoPath, publishedAt: previous.publishedAt || mtime });
+    const kept = previous.origin === 'import' ? { origin: 'import', importedAt: previous.importedAt } : {};
+    const entry = { ...entryFor(data, { slug, sourcePath: previous.sourcePath, repoPath: previous.repoPath, publishedAt: previous.publishedAt || mtime }), ...kept };
     return upsertEntry(acc, entry, at);
   }, emptyManifest(at));
 

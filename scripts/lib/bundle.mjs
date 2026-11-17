@@ -162,8 +162,8 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
     const taken = entries.some((e) => e.slug === base);
     if (taken && onConflict === 'skip') return summary.skipped.push({ index, title, slug: base, reason: 'already in the library' });
     if (same && onConflict === 'replace') {
-      writes.push({ slug: base, data });
-      return summary.replaced.push({ slug: base, title, note });
+      writes.push({ slug: base, data, replace: true });
+      return summary.replaced.push({ slug: base, title, note, overwrites: { slug: same.slug, title: same.title } });
     }
     const slug = freeSlug(entries, base);
     const renamed = slug === base ? '' : `renamed from ${base}${same ? '' : ' (that slug holds a different explainer)'}`;
@@ -176,7 +176,9 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
 
 /** Write a planned import, then refresh the hub once. Returns the summary. */
 export function applyImport(home, plan) {
-  plan.writes.forEach(({ slug, data }) => publishExplainer(data, { home, slug, skipHub: true }));
+  plan.writes.forEach(({ slug, data, replace }) => publishExplainer(data, {
+    home, slug, skipHub: true, origin: 'import', backupExisting: Boolean(replace),
+  }));
   if (plan.writes.length) writeHub(home, readManifest(home).manifest);
   return { ...plan.summary, dryRun: false };
 }
