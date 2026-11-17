@@ -7,7 +7,7 @@ import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
-import { readConfig, rebuildLibrary, writeConfig } from './library.mjs';
+import { readConfig, rebuildLibrary, withLibraryLock, writeConfig } from './library.mjs';
 import { MAX_BUNDLE_BYTES, applyImport, createBundle, parseBundle, planImport } from './bundle.mjs';
 import { SLUG_PATTERN } from './library-model.mjs';
 import { pageCspFrom } from './build.mjs';
@@ -44,6 +44,30 @@ function sendJson(res, status, body) {
 }
 
 const fail = (res, status, error) => sendJson(res, status, { error });
+
+// Writes never block the event loop on the library lock: each try takes it
+// only if it is free (no Atomics.wait), and between tries the server keeps
+// serving. After SERVE_LOCK_WAIT_MS the request gets 503 "library is busy".
+export const SERVE_LOCK_WAIT_MS = 2000;
+const SERVE_LOCK_RETRY_MS = 50;
+const BUSY = Symbol('busy');
+const nap = (ms) => new Promise((done) => { setTimeout(done, ms); });
+
+async function whenFree(res, home, fn, waitMs = SERVE_LOCK_WAIT_MS) {
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    try {
+      return withLibraryLock(home, fn, 0);
+    } catch (error) {
+      if (error.code !== 'LIBRARY_BUSY') throw error;
+      if (Date.now() >= deadline) {
+        fail(res, 503, 'library is busy');
+        return BUSY;
+      }
+    }
+    await nap(SERVE_LOCK_RETRY_MS);
+  }
+}
 
 function sameToken(given, token) {
   const a = Buffer.from(String(given || ''));
@@ -177,14 +201,19 @@ function exportBundle(state, url, res) {
 async function importBundle(state, url, req, res) {
   const raw = await writeBody(state, req, res, MAX_BUNDLE_BYTES);
   if (raw === null) return undefined;
+  const options = { onConflict: url.searchParams.get('onConflict') || undefined };
+  let bundle;
   let plan;
   try {
-    plan = planImport(state.home, parseBundle(raw), { onConflict: url.searchParams.get('onConflict') || undefined });
+    bundle = parseBundle(raw);
+    plan = planImport(state.home, bundle, options);
   } catch (error) {
     return fail(res, 400, error.message);
   }
-  // ?dryRun=1 plans only. Without it the plan is applied and the hub rebuilt.
-  const summary = url.searchParams.get('dryRun') === '1' ? plan.summary : applyImport(state.home, plan);
+  // ?dryRun=1 plans only. Without it the import plans again under the lock and writes.
+  if (url.searchParams.get('dryRun') === '1') return sendJson(res, 200, { summary: plan.summary });
+  const summary = await whenFree(res, state.home, () => applyImport(state.home, bundle, options), state.lockWaitMs);
+  if (summary === BUSY) return undefined;
   return sendJson(res, 200, { summary });
 }
 
@@ -200,12 +229,17 @@ async function saveConfig(state, req, res) {
   }
   if (!changes || typeof changes !== 'object' || Array.isArray(changes)) return fail(res, 400, 'body must be a JSON object of settings');
   let config;
-  try {
-    config = writeConfig(home, changes);
-  } catch (error) {
-    return fail(res, 400, error.message);
-  }
-  rebuildLibrary({ home });
+  const saved = await whenFree(res, home, () => {
+    try {
+      config = writeConfig(home, changes);
+    } catch (error) {
+      return error;
+    }
+    rebuildLibrary({ home });
+    return null;
+  }, state.lockWaitMs);
+  if (saved === BUSY) return undefined;
+  if (saved) return fail(res, 400, saved.message);
   return sendJson(res, 200, { config });
 }
 
@@ -241,11 +275,11 @@ function handler(state) {
 
 /**
  * Serve the library until closed.
- * @param {{ home: string, port?: number, quiet?: boolean }} options
+ * @param {{ home: string, port?: number, lockWaitMs?: number }} options lockWaitMs: how long a write waits for the library lock before 503
  * @returns {Promise<{ server: import('node:http').Server, port: number, token: string, url: string, close: () => Promise<void> }>}
  */
-export function startLibraryServer({ home, port = 0 }) {
-  const state = { home, root: realpathSync(home), token: randomBytes(24).toString('hex'), port: 0 };
+export function startLibraryServer({ home, port = 0, lockWaitMs = SERVE_LOCK_WAIT_MS }) {
+  const state = { home, root: realpathSync(home), token: randomBytes(24).toString('hex'), port: 0, lockWaitMs };
   const server = createServer(handler(state));
   return new Promise((done, reject) => {
     server.once('error', (error) => reject(new Error(`serve on ${HOST}:${port}: ${error.message}`)));

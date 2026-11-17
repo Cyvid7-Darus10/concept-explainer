@@ -181,9 +181,15 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
   return { summary, writes };
 }
 
-/** Write a planned import, then refresh the hub once. Returns the summary. */
-export function applyImport(home, plan) {
-  return withLibraryLock(home, () => applyUnlocked(home, plan));
+/**
+ * Import a bundle: plan it and write it under one hold of the library lock, so
+ * no publish can take a planned slug in between. Returns the summary.
+ * @param {string} home
+ * @param {object} bundle from parseBundle()
+ * @param {{ onConflict?: 'rename'|'skip'|'replace', lockTimeoutMs?: number }} options
+ */
+export function applyImport(home, bundle, { onConflict, lockTimeoutMs } = {}) {
+  return withLibraryLock(home, () => applyUnlocked(home, planImport(home, bundle, { onConflict })), lockTimeoutMs);
 }
 
 function applyUnlocked(home, plan) {

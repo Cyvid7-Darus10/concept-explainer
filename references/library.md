@@ -48,7 +48,7 @@ Every write in the library goes to a temp file in the same folder (created with 
 
 **Private.** The home is `0700` and its files `0600`; a home created with looser permissions is tightened on the next write.
 
-**One writer at a time.** Every read-modify-write (publish, remove, rebuild, import, config, the hub) holds `<home>/.lock`, a folder with the owner's pid, shared by the CLI and `library serve`. A lock whose process is gone is cleared. A busy library waits up to 30 seconds, then fails with `library is busy: ... held by pid N`.
+**One writer at a time.** Every read-modify-write (publish, remove, rebuild, import, config, the hub) holds `<home>/.lock`, shared by the CLI and `library serve`. The folder holds an `owner` file, `<pid>:<random nonce>`, and is taken by renaming a ready-made folder into place. A lock whose process is gone is moved to a unique tombstone and removed only if the tombstone still names that dead owner, so two processes clearing one stale lock never both win. A writer releases the lock only while it still holds its own nonce. An import plans its slugs inside the same hold of the lock that writes them, so a publish in between can never be overwritten. The CLI waits up to 30 seconds, then fails with `library is busy: ... held by pid N`. `library serve` never blocks while it waits: it retries for 2 seconds, then answers `503 {"error":"library is busy"}`.
 
 ### `install`
 

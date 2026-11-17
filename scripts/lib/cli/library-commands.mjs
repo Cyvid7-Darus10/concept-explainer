@@ -144,8 +144,11 @@ export const LIBRARY_COMMANDS = {
 
   import(positionals, opts) {
     const file = requirePositional(positionals, '<bundle.explainers.json>');
-    const plan = asUsage(() => planImport(home(), readBundleFile(file), { onConflict: opts['on-conflict'] }));
-    const summary = opts['dry-run'] ? plan.summary : applyImport(home(), plan);
+    const bundle = asUsage(() => readBundleFile(file));
+    const options = { onConflict: opts['on-conflict'] };
+    // Planning checks the options; a real import plans again inside the lock.
+    const plan = asUsage(() => planImport(home(), bundle, options));
+    const summary = opts['dry-run'] ? plan.summary : applyImport(home(), bundle, options);
     const line = (verb, item) => `  ${verb.padEnd(8)}${item.slug || `#${item.index}`}${item.title ? `  ${oneLine(item.title)}` : ''}${item.note ? `  (${oneLine(item.note)})` : ''}${item.reason ? `  (${oneLine(item.reason)})` : ''}\n`;
     out(summary.dryRun ? 'Dry run: nothing was written.\n' : 'Imported.\n');
     summary.added.forEach((item) => out(line('add', item)));

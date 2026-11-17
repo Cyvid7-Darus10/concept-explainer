@@ -253,6 +253,10 @@ function publishUnlocked(data, options) {
   const { slug, existing } = options.slug
     ? { slug: checkedSlug(options.slug), existing: manifest.explainers.some((e) => e.slug === options.slug) }
     : chooseSlug(manifest.explainers, baseSlugFor(data, options), source);
+  // A planned slug that someone else took meanwhile is never silently overwritten.
+  if (options.slug && !options.backupExisting && (existing || existsSync(paths.dirFor(slug)))) {
+    throw new Error(`publish explainer: slug "${slug}" was taken since the plan`);
+  }
   const at = now();
 
   const dataPath = join(paths.dirFor(slug), 'explainer.json');

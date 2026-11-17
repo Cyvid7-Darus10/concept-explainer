@@ -22,7 +22,7 @@ function libraryWith(...items) {
 }
 
 const bundleOf = (explainers) => JSON.stringify({ format: BUNDLE_FORMAT, version: 1, exportedAt: 't', explainers });
-const importText = (home, text, options = {}) => applyImport(home, planImport(home, parseBundle(text), options));
+const importText = (home, text, options = {}) => applyImport(home, parseBundle(text), options);
 
 test('export then import into an empty library gives the same data', () => {
   const from = libraryWith(taskflow, pr, concept);
@@ -153,7 +153,7 @@ test('prototype pollution keys are dropped and never reach Object.prototype', ()
   assert.ok(!Object.prototype.hasOwnProperty.call(bundle.explainers[0].data, '__proto__'));
   assert.ok(!Object.prototype.hasOwnProperty.call(bundle.explainers[0].data, 'constructor'));
   const to = tempHome();
-  applyImport(to, planImport(to, bundle, {}));
+  applyImport(to, bundle, {});
   assert.equal(({}).polluted, undefined);
   assert.doesNotMatch(readFileSync(join(to, 'explainers', 'p', 'explainer.json'), 'utf8'), /polluted/);
 });
@@ -175,7 +175,7 @@ test('replace backs up the old data, names it in the dry run, and marks the entr
   const withHint = text.replace('"slug":"x"', `"slug":"${slug}"`);
   const plan = planImport(to, parseBundle(withHint), { onConflict: 'replace' });
   assert.deepEqual(plan.summary.replaced[0].overwrites, { slug, title: pr.meta.title });
-  applyImport(to, plan);
+  applyImport(to, parseBundle(withHint), { onConflict: 'replace' });
   const dir = join(to, 'explainers', slug);
   const backups = readdirSync(dir).filter((f) => f.startsWith('explainer.json.replaced-'));
   assert.equal(backups.length, 1);
@@ -204,10 +204,11 @@ test('two items replacing one slug in one bundle: the original is kept and the d
   first.meta.title = 'First replacement';
   const second = structuredClone(pr);
   second.meta.title = 'Second replacement';
-  const plan = planImport(to, parseBundle(bundleOf([{ slug, data: first }, { slug, data: second }])), { onConflict: 'replace' });
+  const twice = bundleOf([{ slug, data: first }, { slug, data: second }]);
+  const plan = planImport(to, parseBundle(twice), { onConflict: 'replace' });
   assert.equal(plan.summary.replaced.length, 1);
   assert.deepEqual(plan.summary.skipped.map((s) => [s.index, s.reason]), [[1, 'duplicate in this bundle']]);
-  applyImport(to, plan);
+  applyImport(to, parseBundle(twice), { onConflict: 'replace' });
   const dir = join(to, 'explainers', slug);
   const backups = readdirSync(dir).filter((f) => f.startsWith('explainer.json.replaced-'));
   assert.equal(backups.length, 1);
@@ -224,4 +225,27 @@ test('backups never overwrite each other, even within one millisecond', () => {
   const backups = readdirSync(join(to, 'explainers', slug)).filter((f) => f.startsWith('explainer.json.replaced-'));
   assert.equal(backups.length, 2);
   assert.match(backups[0], /^explainer\.json\.replaced-[\dT-]+Z-[0-9a-f]{8}$/);
+});
+
+test('a publish between the dry run and the import is never overwritten: the import plans again under the lock', () => {
+  const to = tempHome();
+  const text = bundleOf([{ slug: 'shared-slug', data: concept }]);
+  const dry = planImport(to, parseBundle(text), {});
+  assert.deepEqual(dry.summary.added.map((a) => a.slug), ['shared-slug']);
+  // Someone else publishes a different explainer at that slug before the import runs.
+  publishExplainer(taskflow, { home: to, slug: 'shared-slug' });
+  const summary = applyImport(to, parseBundle(text), {});
+  assert.equal(summary.dryRun, false);
+  assert.deepEqual(summary.added.map((a) => a.slug), ['shared-slug-2']);
+  assert.equal(stored(to, 'shared-slug').meta.title, taskflow.meta.title, 'the other publish survives');
+  assert.equal(stored(to, 'shared-slug-2').meta.title, concept.meta.title);
+});
+
+test('publishing to a slug that is taken, without asking for a backup, refuses', () => {
+  const to = tempHome();
+  publishExplainer(taskflow, { home: to, slug: 'held' });
+  assert.throws(() => publishExplainer(concept, { home: to, slug: 'held' }), /publish explainer: slug "held" was taken since the plan/);
+  assert.equal(stored(to, 'held').meta.title, taskflow.meta.title);
+  publishExplainer(concept, { home: to, slug: 'held', backupExisting: true });
+  assert.equal(stored(to, 'held').meta.title, concept.meta.title);
 });
