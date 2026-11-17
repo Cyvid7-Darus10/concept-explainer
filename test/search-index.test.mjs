@@ -102,3 +102,29 @@ test('malformed data never throws', () => {
   assert.deepEqual(buildSearchIndex('x', {}).map((e) => e.type), ['explainer']);
   assert.doesNotThrow(() => buildSearchIndex('x', { meta: null, nodes: 'nope', flows: [null, { id: 'f', steps: null }] }));
 });
+
+const v2 = {
+  schemaVersion: 2,
+  meta: { type: 'pr', title: 'PR 7', summary: 'Adds paging.', status: 'merged' },
+  context: { problem: 'Lists were slow.', goals: ['Fast lists'], nonGoals: [] },
+  diff: [{ path: 'src/api/list.ts', status: 'modified', summary: 'Adds a cursor.' }],
+  options: [{ title: 'Cursor', summary: 'Stable pages.' }, { title: 'Offset', summary: 'Simple.' }],
+  risks: [{ risk: 'Old clients break', impact: 'medium', mitigation: 'Keep offset for a month.' }],
+  rollout: [{ label: 'Ship behind a flag' }],
+  timeline: [{ at: '10:02', label: 'Alert fires', kind: 'detect' }],
+  diagrams: [{ id: 'paging model', kind: 'cycle', title: 'How a page loads', caption: 'Fetch, render, repeat.' }],
+};
+
+test('v2 chapters get their own entry types and deep links', () => {
+  const entries = buildSearchIndex('x', v2);
+  const href = (type) => entries.filter((e) => e.type === type).map((e) => e.href);
+  const P = 'explainers/x/index.html';
+  assert.deepEqual(href('diff'), [`${P}#diff/src%2Fapi%2Flist.ts`]);
+  assert.deepEqual(href('option'), [`${P}#options/0`, `${P}#options/1`]);
+  assert.deepEqual(href('risk'), [`${P}#risks/0`]);
+  assert.deepEqual(href('rollout'), [`${P}#rollout/0`]);
+  assert.deepEqual(href('event'), [`${P}#timeline/0`]);
+  assert.deepEqual(href('visual'), [`${P}#visuals/paging%20model`]);
+  ['diff', 'option', 'risk', 'rollout', 'event', 'visual'].forEach((t) => assert.ok(SEARCH_TYPES.includes(t)));
+  assert.match(entries.find((e) => e.type === 'explainer').text, /Lists were slow/);
+});

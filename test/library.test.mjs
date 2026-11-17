@@ -45,7 +45,7 @@ test('publish writes the data, the page, the manifest and the hub', () => {
   const hub = embedded(readFileSync(paths.hub, 'utf8'), 'explainer-data');
   assert.deepEqual(hub.manifest, manifest);
   assert.ok(hub.index.some((e) => e.href === 'explainers/acme-taskflow/index.html#flows/create-task/1'));
-  assert.deepEqual(readdirSync(home).sort(), ['explainers', 'index.html', 'library.json'], 'no temp files left behind');
+  assert.deepEqual(readdirSync(home).sort(), ['explainers', 'index.html', 'kit.html', 'library.json'], 'no temp files left behind');
 });
 
 test('publishing the same source again updates in place', () => {
@@ -159,4 +159,21 @@ test('hostile titles stay inert in the hub', () => {
   assert.equal((html.match(/<\/script>/gi) || []).length, templateTags, 'only the template\'s own closing tags');
   assert.doesNotMatch(html, /<img src=x/);
   assert.equal(embedded(html, 'explainer-data').manifest.explainers[0].title, title);
+});
+
+test('the library carries the kit page, linked from the hub', () => {
+  const home = tempHome();
+  publishExplainer(example, { home });
+  const kit = join(home, 'kit.html');
+  assert.ok(existsSync(kit));
+  const kitHtml = readFileSync(kit, 'utf8');
+  assert.match(kitHtml, /bootGallery\(\);/);
+  const context = embedded(kitHtml, 'explainer-context');
+  assert.equal(context.libraryHref, 'index.html');
+  assert.equal(context.style, 'clean');
+  assert.ok(embedded(kitHtml, 'explainer-data').kinds.length > 5);
+  assert.equal(embedded(readFileSync(libraryPaths(home).hub, 'utf8'), 'explainer-data').kitHref, 'kit.html');
+  writeFileSync(kit, 'stale');
+  rebuildLibrary({ home });
+  assert.match(readFileSync(kit, 'utf8'), /^<!doctype html>/);
 });

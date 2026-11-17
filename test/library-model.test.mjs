@@ -55,7 +55,7 @@ test('entryFor summarises the data with counts and layers', () => {
   assert.equal(entry.counts.quiz, example.quiz.length);
   assert.deepEqual(entry.layers[0], { label: example.layers[0].label, color: example.layers[0].color });
   assert.equal(entry.publishedAt, '2026-11-18T00:00:00.000Z');
-  assert.deepEqual(Object.keys(entry).sort(), ['commit', 'counts', 'generatedAt', 'layers', 'preset', 'publishedAt', 'repo', 'repoPath', 'slug', 'sourcePath', 'stack', 'summary', 'title'].sort());
+  assert.deepEqual(Object.keys(entry).sort(), ['commit', 'counts', 'generatedAt', 'layers', 'preset', 'publishedAt', 'repo', 'repoPath', 'slug', 'source', 'sourcePath', 'stack', 'status', 'summary', 'tags', 'title', 'type'].sort());
 });
 
 test('entryFor tolerates sparse data', () => {
@@ -87,4 +87,23 @@ test('isManifest accepts only the documented shape', () => {
   assert.ok(!isManifest({ version: 1 }));
   assert.ok(!isManifest({ version: 1, explainers: [{ slug: '../evil' }] }));
   assert.ok(!isManifest({ version: 2, explainers: [] }));
+});
+
+test('entries carry the type, status, tags, source and the v2 counts', () => {
+  const data = {
+    schemaVersion: 2,
+    meta: { type: 'proposal', title: 'Queues', summary: 'S.', status: 'accepted', tags: ['infra', 'email'], source: { kind: 'doc', ref: 'rfc-12.md' } },
+    options: [{}, {}], risks: [{}], rollout: [{}, {}, {}], timeline: [], diff: [{}], diagrams: [{}, {}],
+  };
+  const entry = entryFor(data, { slug: 'queues', publishedAt: 't' });
+  assert.equal(entry.type, 'proposal');
+  assert.equal(entry.status, 'accepted');
+  assert.deepEqual(entry.tags, ['infra', 'email']);
+  assert.deepEqual(entry.source, { kind: 'doc', ref: 'rfc-12.md' });
+  assert.deepEqual(entry.counts, { layers: 0, nodes: 0, flows: 0, changes: 0, concepts: 0, files: 0, quiz: 0, diff: 1, options: 2, risks: 1, rollout: 3, timeline: 0, diagrams: 2 });
+  const v1 = entryFor(example, { slug: 'a', publishedAt: 't' });
+  assert.equal(v1.type, 'repo');
+  assert.equal(v1.status, null);
+  assert.deepEqual(v1.tags, []);
+  assert.equal(v1.source, null);
 });
