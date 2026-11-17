@@ -4,7 +4,7 @@
 // then it moves the old one aside instead of deleting it. It also removes the
 // old repo-explainer link and rule, but only when they are provably ours.
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { writeAtomic } from './library.mjs';
@@ -39,14 +39,22 @@ const realOrNull = (path) => {
   }
 };
 
-const backupName = (path) => `${path}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+// Backups go to <config>/backups/, never beside the original, where Claude
+// would load an old skill folder or rule as if it were live.
+function backupPath(configDir, kind, name) {
+  mkdirSync(join(configDir, 'backups'), { recursive: true });
+  return join(configDir, 'backups', `${kind}-${name}.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`);
+}
 
 // Decide what to do with the skill link before touching anything.
 function planSkill(skillDir, target, force) {
   const stat = lstatOrNull(target);
   if (!stat) return { kind: 'link' };
   if (realOrNull(target) === realOrNull(skillDir)) return { kind: 'noop' };
-  if (stat.isSymbolicLink()) return { kind: 'relink' };
+  if (stat.isSymbolicLink()) {
+    if (!force) throw new Error(`install: ${target} points to ${readlinkSync(target)}, not this skill. Rerun with --force to relink it`);
+    return { kind: 'relink' };
+  }
   if (!force) {
     const what = stat.isDirectory() ? 'a real folder' : 'a real file';
     throw new Error(`install: ${target} is ${what}, not a link to this skill. Move it away or rerun with --force (it will be kept as a backup)`);
@@ -114,7 +122,7 @@ export function installSkill({ skillDir, configDir = resolveConfigDir(), force =
     mkdirSync(join(configDir, 'skills'), { recursive: true });
     if (skill.kind === 'relink') rmSync(skillTarget);
     if (skill.kind === 'replace') {
-      const backup = backupName(skillTarget);
+      const backup = backupPath(configDir, 'skill', SKILL_NAME);
       renameSync(skillTarget, backup);
       actions.push(`moved the old skill folder to ${backup}`);
     }
@@ -127,7 +135,7 @@ export function installSkill({ skillDir, configDir = resolveConfigDir(), force =
   } else {
     if (rule.kind === 'unlink') rmSync(ruleTarget);
     if (rule.kind === 'replace') {
-      const backup = backupName(ruleTarget);
+      const backup = backupPath(configDir, 'rule', RULE_NAME);
       renameSync(ruleTarget, backup);
       actions.push(`moved the old rule to ${backup}`);
     }
