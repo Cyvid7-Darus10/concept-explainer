@@ -1,7 +1,8 @@
 // `concept-explainer diff`: draft diff[] and node statuses for a PR or change
 // from git. Summaries stay TODO: the agent writes them from the code and the
 // PR description, never from guesses. Git runs with an argument array, no shell.
-import { git, mapFilesToNodes } from './changes.mjs';
+import { mapFilesToNodes } from './changes.mjs';
+import { git } from './git.mjs';
 
 const STATUS_CODES = { A: 'added', M: 'modified', D: 'removed', R: 'renamed', C: 'added', T: 'modified' };
 const SAFE_REF = /^[^\s-][^\s]*$/;

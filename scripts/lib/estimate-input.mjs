@@ -1,7 +1,7 @@
 // Measure what an estimate is about: a diff's size or a source document's length.
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { git } from './changes.mjs';
+import { git } from './git.mjs';
 
 const TEXT_EXT = new Set(['.md', '.mdx', '.txt', '.rst', '.adoc', '.org', '.html', '.htm', '.json', '.yaml', '.yml', '.csv', '.log']);
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'vendor']);
