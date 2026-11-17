@@ -67,7 +67,28 @@ export function baseSlugFor(data, { repoPath, sourcePath } = {}) {
   return FALLBACK_SLUG;
 }
 
-const sourceRef = (value) => (isObject(value) ? str(value.url) || str(value.ref) : null);
+// A source url counts only when it is http(s), the same rule entryFor keeps it by.
+const safeUrl = (value) => {
+  const url = isObject(value) ? str(value.url) : null;
+  return url && /^https?:\/\//i.test(url) ? url : null;
+};
+const sourceRef = (value) => (isObject(value) ? safeUrl(value) || str(value.ref) : null);
+
+/**
+ * What makes two explainers the same, read from their data: the type, the
+ * repo and the source reference (an http(s) url, else the ref), all trimmed.
+ * Publish, import and entryFor all use this, so they always agree.
+ * @param {unknown} data
+ * @returns {{ type: string, repo: string|undefined, ref: string|undefined }}
+ */
+export function sourceIdentity(data) {
+  const meta = isObject(data) && isObject(data.meta) ? data.meta : {};
+  return {
+    type: EXPLAINER_TYPES.includes(meta.type) ? meta.type : DEFAULT_TYPE,
+    repo: str(meta.repo) ?? undefined,
+    ref: sourceRef(meta.source) ?? undefined,
+  };
+}
 
 /**
  * Two entries describe the same explainer only when they have the same type.
@@ -117,9 +138,10 @@ export function freeSlug(entries, base) {
 export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
   const d = isObject(data) ? data : {};
   const meta = isObject(d.meta) ? d.meta : {};
+  const url = safeUrl(meta.source);
   return {
     slug,
-    type: EXPLAINER_TYPES.includes(meta.type) ? meta.type : DEFAULT_TYPE,
+    type: sourceIdentity(d).type,
     title: str(meta.title) || slug,
     summary: str(meta.summary) || '',
     repo: str(meta.repo),
@@ -130,7 +152,7 @@ export function entryFor(data, { slug, sourcePath, repoPath, publishedAt }) {
     status: str(meta.status),
     tags: Array.isArray(meta.tags) ? meta.tags.filter((t) => typeof t === 'string').slice(0, 8) : [],
     source: isObject(meta.source) && str(meta.source.ref)
-      ? { kind: str(meta.source.kind), ref: str(meta.source.ref), ...(str(meta.source.url) && /^https?:\/\//i.test(meta.source.url) ? { url: str(meta.source.url) } : {}) }
+      ? { kind: str(meta.source.kind), ref: str(meta.source.ref), ...(url ? { url } : {}) }
       : null,
     commit: str(meta.commit),
     generatedAt: str(meta.generatedAt),

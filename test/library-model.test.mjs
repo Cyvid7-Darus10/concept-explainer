@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  slugify, baseSlugFor, chooseSlug, entryFor, upsertEntry, withoutEntry, emptyManifest, isManifest, SLUG_PATTERN,
+  slugify, baseSlugFor, chooseSlug, entryFor, upsertEntry, withoutEntry, emptyManifest, isManifest, SLUG_PATTERN, sameSource, sourceIdentity,
 } from '../scripts/lib/library-model.mjs';
 
 const example = JSON.parse(readFileSync(new URL('../examples/taskflow.explainer.json', import.meta.url), 'utf8'));
@@ -165,4 +165,20 @@ test('other types use their first visual as a thumbnail, trimmed to its shape', 
   assert.deepEqual(venn.items, [{ in: ['a', 'b'] }]);
   assert.equal(entryFor({ meta: { type: 'incident', title: 'I' } }, { slug: 'e', publishedAt: 't' }).thumb, null);
   assert.ok(JSON.stringify(entryFor(withDiagram, { slug: 'd', publishedAt: 't' }).thumb).length < 2000);
+});
+
+test('sourceIdentity is the one source key: type, repo and a trimmed source reference', () => {
+  const data = { meta: { type: 'pr', repo: ' acme/api ', source: { kind: 'pr', ref: '#42', url: '  https://example.com/pr/42 ' } } };
+  assert.deepEqual(sourceIdentity(data), { type: 'pr', repo: 'acme/api', ref: 'https://example.com/pr/42' });
+  assert.deepEqual(sourceIdentity({ meta: { type: 'pr', source: { ref: ' #42 ', url: 'ftp://example.com/x' } } }), { type: 'pr', repo: undefined, ref: '#42' }, 'a url that is not http(s) is not an identity');
+  assert.deepEqual(sourceIdentity(null), { type: 'repo', repo: undefined, ref: undefined });
+});
+
+test('an entry matches the identity of the data it was made from, even with stray spaces', () => {
+  const data = { meta: { type: 'pr', title: 'T', summary: 'S', repo: 'acme/api', source: { kind: 'pr', ref: '#42', url: ' https://example.com/pr/42' } } };
+  const entry = entryFor(data, { slug: 's', publishedAt: 'now' });
+  assert.equal(entry.source.url, 'https://example.com/pr/42');
+  const respaced = structuredClone(data);
+  respaced.meta.source.url = 'https://example.com/pr/42   ';
+  assert.ok(sameSource(entry, sourceIdentity(respaced)));
 });

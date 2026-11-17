@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -248,4 +248,21 @@ test('publishing to a slug that is taken, without asking for a backup, refuses',
   assert.equal(stored(to, 'held').meta.title, taskflow.meta.title);
   publishExplainer(concept, { home: to, slug: 'held', backupExisting: true });
   assert.equal(stored(to, 'held').meta.title, concept.meta.title);
+});
+
+test('export names the explainer whose data file is missing', () => {
+  const from = libraryWith(taskflow, concept);
+  const slug = listExplainers({ home: from })[0].slug;
+  rmSync(join(from, 'explainers', slug, 'explainer.json'));
+  assert.throws(() => createBundle(from, {}), new RegExp(`read explainer "${slug}": .*explainer\\.json is missing or not valid JSON`));
+});
+
+test('publish and import agree on the source: a re-import with a respaced url replaces, not duplicates', () => {
+  const to = libraryWith(pr);
+  const slug = listExplainers({ home: to })[0].slug;
+  const respaced = structuredClone(pr);
+  respaced.meta.source = { ...respaced.meta.source, url: `  ${respaced.meta.source.url}  ` };
+  const summary = importText(to, bundleOf([{ slug, data: respaced }]), { onConflict: 'replace' });
+  assert.deepEqual(summary.replaced.map((r) => r.slug), [slug]);
+  assert.equal(listExplainers({ home: to }).length, 1);
 });

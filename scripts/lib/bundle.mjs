@@ -5,8 +5,8 @@
 // markup or code. Contract: references/library.md.
 import { readFileSync, statSync } from 'node:fs';
 import { buildSearchIndex } from './search-index.mjs';
-import { baseSlugFor, entryFor, freeSlug, sameSource, slugify } from './library-model.mjs';
-import { libraryPaths, publishExplainer, readManifest, withLibraryLock, writeHub } from './library.mjs';
+import { baseSlugFor, freeSlug, sameSource, slugify, sourceIdentity } from './library-model.mjs';
+import { publishExplainer, readManifest, readStoredExplainer, withLibraryLock, writeHub } from './library.mjs';
 import { validateExplainer } from './validate.mjs';
 
 import { BUNDLE_FORMAT, BUNDLE_VERSION, MAX_BUNDLE_BYTES, MAX_BUNDLE_EXPLAINERS } from './bundle-format.mjs';
@@ -18,10 +18,6 @@ const SAFE_URL = /^https?:\/\//i;
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const lower = (value) => String(value || '').toLowerCase();
-
-function readStored(home, slug) {
-  return JSON.parse(readFileSync(`${libraryPaths(home).dirFor(slug)}/explainer.json`, 'utf8'));
-}
 
 function matches(entry, data, selectors) {
   if (selectors.type && entry.type !== selectors.type) return false;
@@ -50,7 +46,7 @@ export function createBundle(home, selectors = {}, { now = new Date().toISOStrin
   });
   const picked = manifest.explainers
     .filter((e) => !selectors.slugs || !selectors.slugs.length || selectors.slugs.includes(e.slug))
-    .map((entry) => ({ entry, data: readStored(home, entry.slug) }))
+    .map((entry) => ({ entry, data: readStoredExplainer(home, entry.slug) }))
     .filter(({ entry, data }) => matches(entry, data, selectors));
   if (!picked.length) throw new Error('export: nothing matches those selectors');
   return {
@@ -129,15 +125,6 @@ function checkItem(item) {
   return { data, dropped };
 }
 
-function sourceOf(data) {
-  const meta = data.meta;
-  return {
-    type: entryFor(data, { slug: 'x', publishedAt: '' }).type,
-    repo: meta.repo,
-    ref: isObject(meta.source) ? meta.source.url || meta.source.ref : undefined,
-  };
-}
-
 /**
  * Decide what an import would do, without writing. The result is the dry run.
  * @param {string} home
@@ -157,7 +144,7 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
     const { data, dropped } = checked;
     const note = dropped ? `dropped ${dropped} unsafe link${dropped === 1 ? '' : 's'}` : '';
     const base = typeof item.slug === 'string' && item.slug.trim() ? slugify(item.slug) : baseSlugFor(data);
-    const source = sourceOf(data);
+    const source = sourceIdentity(data);
     const same = entries.find((e) => e.slug === base && sameSource(e, source));
     const taken = entries.some((e) => e.slug === base);
     // Two items aimed at one slug: the first wins, so a replace never backs up its own output.

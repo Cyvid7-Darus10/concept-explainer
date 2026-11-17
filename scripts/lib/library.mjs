@@ -13,7 +13,7 @@ import { buildSearchIndex } from './search-index.mjs';
 import { parseStyle } from './style.mjs';
 import { normalizeConfig, publicConfig, validateConfig } from './config.mjs';
 import {
-  SLUG_PATTERN, baseSlugFor, chooseSlug, emptyManifest, entryFor, isManifest, upsertEntry, withoutEntry,
+  SLUG_PATTERN, baseSlugFor, chooseSlug, emptyManifest, entryFor, isManifest, sourceIdentity, upsertEntry, withoutEntry,
 } from './library-model.mjs';
 
 // Explainer pages link back to the hub with this relative path.
@@ -138,6 +138,14 @@ function readStoredData(paths, slug) {
   }
 }
 
+/** One explainer's stored data. Throws naming the slug when it is missing or broken. */
+export function readStoredExplainer(home, slug) {
+  const paths = libraryPaths(home);
+  const data = readStoredData(paths, slug);
+  if (data === null) throw new Error(`read explainer "${slug}": ${join(paths.dirFor(slug), 'explainer.json')} is missing or not valid JSON`);
+  return data;
+}
+
 // Every explainers/<slug>/explainer.json that parses, as [slug, data, mtime].
 function scanStored(paths) {
   if (!existsSync(paths.explainers)) return [];
@@ -241,14 +249,7 @@ function publishUnlocked(data, options) {
   const paths = libraryPaths(home);
   const style = styleFor(home, options.style);
   const { manifest, recovered } = readManifest(home);
-  const meta = data.meta;
-  const source = {
-    type: entryFor(data, { slug: 'x', publishedAt: '' }).type,
-    repo: meta.repo,
-    ref: meta.source && typeof meta.source === 'object' ? meta.source.url || meta.source.ref : undefined,
-    repoPath: options.repoPath,
-    sourcePath: options.sourcePath,
-  };
+  const source = { ...sourceIdentity(data), repoPath: options.repoPath, sourcePath: options.sourcePath };
   // An explicit slug (from import) is used as is; otherwise pick one by source.
   const { slug, existing } = options.slug
     ? { slug: checkedSlug(options.slug), existing: manifest.explainers.some((e) => e.slug === options.slug) }
