@@ -33,8 +33,11 @@ h4.viz-title { font-size: 17px; letter-spacing: -0.015em; }
 .viz-link.is-on { stroke: var(--select); stroke-width: 1.75; }
 .viz-tip.is-rest { fill: var(--faint); }
 .viz-tip.is-on { fill: var(--select); }
-.viz-edge-label { font-family: var(--mono); font-size: 11.5px; fill: var(--muted); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
-.viz-edge-label.is-on { fill: var(--ink); }
+/* Edge labels sit off the stroke on a canvas pill with a hairline ring. */
+.viz-edge-label { font-family: var(--mono); font-size: 11.5px; fill: var(--muted); }
+.viz-edge-pill { fill: var(--canvas); stroke: var(--line); stroke-width: 1; rx: var(--radius-sm); }
+.viz-edge-tag.is-on .viz-edge-label { fill: var(--ink); }
+.viz-edge-tag.is-on .viz-edge-pill { stroke: var(--select); }
 .viz-svg.has-selection .viz-part:not(.is-selected):not(.is-related) { opacity: 0.5; }
 .viz-part { transition: opacity 160ms var(--ease); }
 .viz-part.is-related .viz-box { stroke: var(--muted); }

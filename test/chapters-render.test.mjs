@@ -387,3 +387,36 @@ test('a flow step or concept that cites covered code links to its walkthrough st
   assert.equal(env.ctx.chWalkthroughLink(EXAMPLES.taskflow, 'nope.ts:1'), null);
   assert.equal(env.ctx.chWalkthroughLink(EXAMPLES.taskflow, 'apps/web/app/api/tasks/route.ts:20').textContent, 'Walk through this code');
 });
+
+test('state diagrams: no label sits on any edge, and no arc crosses a self-loop', () => {
+  const env = loadChapters();
+  const states = allVisuals().filter(([, v]) => v.kind === 'state');
+  assert.ok(states.some(([name]) => name === 'all:cart-states'), 'the fixture with a self-loop is checked');
+  const inside = (r, [x, y], pad = 0) => x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad;
+  const bbox = (points) => {
+    const xs = points.map((p) => p[0]);
+    const ys = points.map((p) => p[1]);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  };
+  [330, 700, 1040].forEach((width) => states.forEach(([name, visual]) => {
+    const drawing = env.ctx.vizDrawState(visual, width, 'm');
+    const { paths, labels, boxes } = drawing.geometry;
+    assert.equal(paths.length, visual.transitions.length, `${name} at ${width}: one path per transition`);
+    labels.forEach((label) => {
+      paths.forEach((path) => {
+        // A numbered badge sits on its own line by design; a text label sits on none.
+        if (label.onLine && path.key === label.key) return;
+        assert.ok(!path.points.some((pt) => inside(label.rect, pt)), `${name} at ${width}: label "${label.key.label}" sits on edge "${path.key.label}"`);
+      });
+      boxes.forEach((box) => assert.ok(!(label.rect.x < box.x + box.w && box.x < label.rect.x + label.rect.w && label.rect.y < box.y + box.h && box.y < label.rect.y + label.rect.h), `${name} at ${width}: label "${label.key.label}" covers a state`));
+      assert.ok(label.rect.y >= 0 && label.rect.y + label.rect.h <= drawing.height && label.rect.x >= 0 && label.rect.x + label.rect.w <= width, `${name} at ${width}: label "${label.key.label}" inside the drawing`);
+    });
+    const loops = paths.filter((p) => p.key.from === p.key.to);
+    loops.forEach((loop) => {
+      const area = bbox(loop.points);
+      paths.filter((p) => p !== loop).forEach((other) => {
+        assert.ok(!other.points.some((pt) => inside(area, pt, 1)), `${name} at ${width}: "${other.key.label}" crosses the self-loop "${loop.key.label}"`);
+      });
+    });
+  }));
+});

@@ -37,14 +37,100 @@ function vizArcLevels(spans) {
   return levels;
 }
 
-function vizLinkLabel(value, x, y, chars, anchor = 'middle') {
-  if (!value) return null;
-  return s('text', { class: 'viz-edge-label', x, y, 'text-anchor': anchor, 'dominant-baseline': 'central' }, vizWrap(value, chars, 1)[0]);
-}
-
 function vizRelationList(items) {
   if (!items.length) return null;
   return h('ul', { class: 'viz-rel' }, items.map((item) => h('li', null, softBreaks(item))));
+}
+
+// Points along a cubic or a straight segment, to test labels against lines.
+function vizCubic(p0, p1, p2, p3, n = 40) {
+  return Array.from({ length: n + 1 }, (_, k) => {
+    const t = k / n;
+    const u = 1 - t;
+    return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+      u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]];
+  });
+}
+
+function vizSegment(p0, p1, n = 16) {
+  return Array.from({ length: n + 1 }, (_, k) => [p0[0] + ((p1[0] - p0[0]) * k) / n, p0[1] + ((p1[1] - p0[1]) * k) / n]);
+}
+
+function vizRectsMeet(a, b, pad = 0) {
+  return a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+}
+
+function vizRectHasPoint(r, points, pad = 0) {
+  return points.some(([x, y]) => x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad);
+}
+
+const VIZ_PILL = { padX: 6, h: 18 };
+
+/**
+ * Place each label off every stroke: try spots moving out from its anchor
+ * and take the first that clears all paths, boxes and placed labels.
+ * Each wanted label is { key, value, x, y, dx, dy, chars }; (dx, dy) points outward.
+ */
+function vizPlaceLabels(wanted, { paths, boxes, width, size }) {
+  const placed = [];
+  wanted.forEach((want) => {
+    const value = vizWrap(want.value, want.chars, 1)[0];
+    const w = vizTextWidth(value, size) + VIZ_PILL.padX * 2;
+    const spot = (along, side) => {
+      const cx = want.x + want.dx * along + side;
+      const cy = want.y + want.dy * along;
+      return { x: Math.min(Math.max(cx - w / 2, 1), width - w - 1), y: cy - VIZ_PILL.h / 2, w, h: VIZ_PILL.h };
+    };
+    const tries = [];
+    for (let along = 0; along <= 96; along += 6) [0, -w * 0.6, w * 0.6, -w * 1.2, w * 1.2].forEach((side) => tries.push(spot(along, side)));
+    const clear = (r) => !paths.some((p) => vizRectHasPoint(r, p.points, 3))
+      && !boxes.some((b) => vizRectsMeet(r, b, 3)) && !placed.some((o) => vizRectsMeet(r, o.rect, 3));
+    placed.push({ key: want.key, value, rect: tries.find(clear) || tries[0] });
+  });
+  return placed;
+}
+
+function vizLabelPill(item) {
+  const { rect, value } = item;
+  return s('g', { class: 'viz-edge-tag' },
+    s('rect', { class: 'viz-edge-pill', x: rect.x + 0.5, y: rect.y + 0.5, width: rect.w - 1, height: rect.h - 1 }),
+    s('text', { class: 'viz-edge-label', x: rect.x + rect.w / 2, y: rect.y + rect.h / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, value));
+}
+
+// Row layout: boxes across; forward arcs above, backward below, each side on
+// its own levels (longer spans further out); self-loops in the gap beside
+// their box, which no arc enters (arcs use box tops and bottoms).
+function vizStateRow(order, transitions, width, top) {
+  const pos = new Map(order.map((id, i) => [id, i]));
+  const slot = width / order.length;
+  const boxW = Math.min(slot - 32, 170);
+  const boxes = new Map(order.map((id, i) => [id, { x: i * slot + (slot - boxW) / 2, y: top, w: boxW, h: VIZ_STATE.boxH }]));
+  const ahead = (tr) => pos.get(tr.to) > pos.get(tr.from);
+  const above = transitions.filter((tr) => tr.from !== tr.to && ahead(tr));
+  const below = transitions.filter((tr) => tr.from !== tr.to && !ahead(tr));
+  const levelsAbove = vizArcLevels(above.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+  const levelsBelow = vizArcLevels(below.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+  const geo = transitions.map((tr) => {
+    const a = boxes.get(tr.from);
+    const b = boxes.get(tr.to);
+    if (tr.from === tr.to) {
+      const r = a.x + a.w;
+      const p = [[r, a.y + 13], [r + 24, a.y + 6], [r + 24, a.y + a.h - 6], [r + 3, a.y + a.h - 13]];
+      return { tr, d: `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`, points: vizCubic(...p), anchor: { x: r + 12, y: a.y + a.h + 14, dx: 0, dy: 1 } };
+    }
+    const forward = ahead(tr);
+    const level = forward ? levelsAbove[above.indexOf(tr)] : levelsBelow[below.indexOf(tr)];
+    const lift = (12 + level * VIZ_STATE.level) * 1.33;
+    const x1 = a.x + a.w / 2 + (forward ? a.w * 0.18 : -a.w * 0.18);
+    const x2 = b.x + b.w / 2 + (forward ? -b.w * 0.18 : b.w * 0.18);
+    const y = forward ? a.y : a.y + a.h;
+    const cy = forward ? y - lift : y + lift;
+    const p = [[x1, y], [x1, cy], [x2, cy], [x2, y + (forward ? -3 : 3)]];
+    const apex = forward ? y - lift * 0.75 : y + lift * 0.75;
+    return { tr, d: `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`, points: vizCubic(...p), anchor: { x: (x1 + x2) / 2, y: apex + (forward ? -12 : 12), dx: 0, dy: forward ? -1 : 1 } };
+  });
+  const down = Math.max(0, ...levelsBelow);
+  return { boxes, geo, chars: vizChars(Math.max(slot * 1.4, 80), VIZ_STATE.label), floor: top + VIZ_STATE.boxH + (down ? 26 + down * VIZ_STATE.level : 8) };
 }
 
 /** state: boxes in a row (wide) or a column (narrow); transitions as arcs. */
@@ -55,91 +141,85 @@ function vizDrawState(visual, width, marker) {
   const pos = new Map(order.map((id, i) => [id, i]));
   const row = width / Math.max(order.length, 1) >= VIZ_STATE.rowSlot;
   const label = (id) => text((states.find((st) => st.id === id) || {}).label, String(id));
-  const boxes = new Map();
   const links = [];
+  const geometry = { paths: [], labels: [] };
+  let boxes;
   let height;
   let keyList = null;
 
-  const span = (tr) => Math.abs(pos.get(tr.to) - pos.get(tr.from));
-  const ahead = (tr) => pos.get(tr.to) > pos.get(tr.from);
   if (row) {
-    const slot = width / order.length;
-    const boxW = Math.min(slot - 28, 170);
-    // Forward arcs go above the boxes, backward ones below; each side stacks its own levels.
-    const above = transitions.filter((tr) => tr.from !== tr.to && ahead(tr));
-    const below = transitions.filter((tr) => tr.from !== tr.to && !ahead(tr));
-    const levelsAbove = vizArcLevels(above.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
-    const levelsBelow = vizArcLevels(below.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
-    const selfs = transitions.some((tr) => tr.from === tr.to);
-    const up = Math.max(selfs ? 1 : 0, ...levelsAbove, 0);
-    const down = Math.max(...levelsBelow, 0);
-    const top = up ? 30 + up * VIZ_STATE.level : 6;
-    order.forEach((id, i) => boxes.set(id, { x: i * slot + (slot - boxW) / 2, y: top, w: boxW, h: VIZ_STATE.boxH }));
-    const chars = vizChars(Math.max(slot * 0.9, 70), VIZ_STATE.label);
-    transitions.forEach((tr) => {
-      const a = boxes.get(tr.from);
-      const b = boxes.get(tr.to);
-      let d;
-      let lx;
-      let ly;
-      if (tr.from === tr.to) {
-        const x = a.x + a.w - 18;
-        d = `M${x - 10},${a.y} C${x - 14},${a.y - 30} ${x + 22},${a.y - 30} ${x + 10},${a.y - 2}`;
-        lx = x + 6;
-        ly = a.y - 34;
-      } else {
-        const forward = ahead(tr);
-        const level = forward ? levelsAbove[above.indexOf(tr)] : levelsBelow[below.indexOf(tr)];
-        const lift = (12 + level * VIZ_STATE.level) * 1.33;
-        const x1 = a.x + a.w / 2 + (forward ? a.w * 0.18 : -a.w * 0.18);
-        const x2 = b.x + b.w / 2 + (forward ? -b.w * 0.18 : b.w * 0.18);
-        const y = forward ? a.y : a.y + a.h;
-        const cy = forward ? y - lift : y + lift;
-        d = `M${x1},${y} C${x1},${cy} ${x2},${cy} ${x2},${y + (forward ? -3 : 3)}`;
-        lx = (x1 + x2) / 2;
-        // The label sits just outside the arc's apex, so the line never crosses it.
-        ly = forward ? y - lift * 0.75 - 9 : y + lift * 0.75 + 9;
-      }
-      links.push({ t: tr, path: s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: vizLinkLabel(tr.label, lx, ly, chars) });
+    // Lay out and place labels; lay out again lower when anything would leave the top.
+    let top = 40;
+    let layout;
+    let placed;
+    for (let pass = 0; pass < 3; pass += 1) {
+      layout = vizStateRow(order, transitions, width, top);
+      placed = vizPlaceLabels(layout.geo.filter((g) => text(g.tr.label)).map((g) => ({ key: g, value: g.tr.label, ...g.anchor, chars: layout.chars })),
+        { paths: layout.geo, boxes: [...layout.boxes.values()], width, size: VIZ_STATE.label });
+      const highest = Math.min(top, ...placed.map((p) => p.rect.y), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1])));
+      if (highest >= 4) break;
+      top += 4 - highest;
+    }
+    boxes = layout.boxes;
+    layout.geo.forEach((g) => {
+      const item = placed.find((p) => p.key === g);
+      links.push({ t: g.tr, path: s('path', { class: 'viz-link', d: g.d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: item ? vizLabelPill(item) : null });
+      geometry.paths.push({ key: g.tr, points: g.points });
+      if (item) geometry.labels.push({ key: g.tr, rect: item.rect, onLine: false });
     });
-    height = top + VIZ_STATE.boxH + (down ? 24 + down * VIZ_STATE.level : 6);
+    height = Math.max(layout.floor, ...placed.map((p) => p.rect.y + p.rect.h + 4), ...layout.geo.flatMap((g) => g.points.map((pt) => pt[1] + 4)));
   } else {
+    const lane = 30;
     const boxW = Math.min(200, Math.max(120, Math.round(width * 0.42)));
-    order.forEach((id, i) => boxes.set(id, { x: 1, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }));
-    const right = boxW + 1;
-    // Every transition that is not a next-door step down bends out to the right, on its own level.
-    const bends = transitions.filter((tr) => !(ahead(tr) && span(tr) === 1));
+    boxes = new Map(order.map((id, i) => [id, { x: lane, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }]));
+    const right = lane + boxW;
+    const span = (tr) => Math.abs(pos.get(tr.to) - pos.get(tr.from));
+    const ahead = (tr) => pos.get(tr.to) > pos.get(tr.from);
+    // Self-loops sit in their own lane on the left; next-door steps down are
+    // straight; every other transition bends out to the right on its own level.
+    const bends = transitions.filter((tr) => tr.from !== tr.to && !(ahead(tr) && span(tr) === 1));
     const levels = vizArcLevels(bends.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
     const maxLevel = Math.max(1, ...levels);
-    const step = Math.min(VIZ_STATE.level, Math.max(10, (width - right - 24) / maxLevel));
-    // Labels would cross the arcs here, so each arc gets a numbered badge and
-    // the key under the drawing spells it out.
+    const step = Math.min(VIZ_STATE.level, Math.max(18, (width - right - 24) / maxLevel));
+    // Labels would cross the arcs here, so each arc gets a numbered badge on
+    // its own line and the key under the drawing spells it out.
     transitions.forEach((tr, k) => {
       const a = boxes.get(tr.from);
       const b = boxes.get(tr.to);
-      let d;
+      let p;
+      let points;
       let bx;
       let by;
-      if (ahead(tr) && span(tr) === 1) {
-        d = `M${a.x + a.w / 2},${a.y + a.h} L${b.x + b.w / 2},${b.y - 3}`;
+      if (tr.from === tr.to) {
+        p = [[a.x, a.y + 12], [a.x - 26, a.y + 4], [a.x - 26, a.y + a.h - 4], [a.x - 3, a.y + a.h - 12]];
+        points = vizCubic(...p);
+        bx = a.x - 19;
+        by = a.y + a.h / 2;
+      } else if (ahead(tr) && span(tr) === 1) {
+        p = [[a.x + a.w / 2, a.y + a.h], [b.x + b.w / 2, b.y - 3]];
+        points = vizSegment(...p);
         bx = a.x + a.w / 2;
         by = (a.y + a.h + b.y) / 2;
       } else {
         const bulge = right + 8 + levels[bends.indexOf(tr)] * step;
-        const y1 = tr.from === tr.to ? a.y + 12 : a.y + a.h / 2 + (ahead(tr) ? 8 : -8);
-        const y2 = tr.from === tr.to ? a.y + a.h - 12 : b.y + b.h / 2 + (ahead(tr) ? -8 : 8);
+        const y1 = a.y + a.h / 2 + (ahead(tr) ? 8 : -8);
+        const y2 = b.y + b.h / 2 + (ahead(tr) ? -8 : 8);
         const reach = right + (bulge - right) * 1.33;
-        d = `M${right},${y1} C${reach},${y1} ${reach},${y2} ${right + 3},${y2}`;
+        p = [[right, y1], [reach, y1], [reach, y2], [right + 3, y2]];
+        points = vizCubic(...p);
         bx = bulge;
         by = (y1 + y2) / 2;
       }
+      const d = p.length === 2 ? `M${p[0]} L${p[1]}` : `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`;
       const badge = s('g', { class: 'viz-badge' }, s('circle', { cx: bx, cy: by, r: 8 }),
         s('text', { x: bx, y: by, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, String(k + 1)));
       links.push({ t: tr, path: s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: badge });
+      geometry.paths.push({ key: tr, points });
+      geometry.labels.push({ key: tr, rect: { x: bx - 8, y: by - 8, w: 16, h: 16 }, onLine: true });
     });
     keyList = h('ol', { class: 'viz-key-list', 'aria-label': 'Transitions' }, transitions.map((tr, k) => h('li', null,
       h('span', { class: 'viz-key-n', 'aria-hidden': 'true' }, String(k + 1)),
-      h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} \u2192 ${label(tr.to)}`)))));
+      h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} → ${label(tr.to)}`)))));
     height = order.length * (VIZ_STATE.boxH + VIZ_STATE.vGap) - VIZ_STATE.vGap + 2;
   }
 
@@ -167,6 +247,8 @@ function vizDrawState(visual, width, marker) {
     parts,
     height,
     legend: keyList,
+    // For tests: every edge as points, every label as a box, every state box.
+    geometry: { ...geometry, boxes: [...boxes.values()] },
     highlight(index) {
       const id = index === null ? null : parts[index].id;
       links.forEach((l) => {
