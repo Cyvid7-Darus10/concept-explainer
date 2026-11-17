@@ -22,24 +22,23 @@ const allSources = [
   ...readdirSync(new URL('../template/js/chapters/', import.meta.url)).map((f) => `chapters/${f}`),
 ].map((f) => ({ file: f, source: read(`../template/js/${f}`) }));
 const defines = (name, source) => new RegExp(`(function\\s+${name}\\s*\\(|(const|let)\\s+${name}\\s*=)`).test(source);
-const CODE_TODO = ENTRIES.some((e) => e.key === 'code') ? false : 'the code walkthrough chapter is not wired into app.js yet';
 
 test('the chapter table parses', () => {
   assert.ok(ENTRIES.length >= 16, `found ${ENTRIES.length} entries`);
 });
 
 for (const key of CHAPTER_KEYS) {
-  test(`chapter "${key}" has exactly one entry in app.js`, { todo: key === 'code' ? CODE_TODO : false }, () => {
+  test(`chapter "${key}" has exactly one entry in app.js`, () => {
     assert.equal(ENTRIES.filter((e) => e.key === key).length, 1);
   });
 }
 
-test('the walkthrough chapter key is in the schema once the chapter ships', { todo: CHAPTER_KEYS.includes('code') ? false : 'schema CHAPTER_KEYS has no "code" yet' }, () => {
+test('the walkthrough chapter key is in the schema', () => {
   assert.ok(CHAPTER_KEYS.includes('code'));
 });
 
 test('every chapter entry is a schema chapter key', () => {
-  ENTRIES.forEach((e) => assert.ok(CHAPTER_KEYS.includes(e.key) || e.key === 'code', `${e.key} is not in CHAPTER_KEYS`));
+  ENTRIES.forEach((e) => assert.ok(CHAPTER_KEYS.includes(e.key), `${e.key} is not in CHAPTER_KEYS`));
 });
 
 test('every chapter renderer is defined in a file the build ships', () => {

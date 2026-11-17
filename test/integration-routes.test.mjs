@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildExplainer } from '../scripts/lib/build.mjs';
 import { buildSearchIndex } from '../scripts/lib/search-index.mjs';
+import { shownChapters } from '../scripts/lib/chapters.mjs';
 import { bootPage, snapshot } from './page-harness.mjs';
 
 // Every href the library search can produce must land on a real view and on
@@ -16,9 +17,6 @@ const SOURCES = {
   'chapters-all': './fixtures/chapters-all.explainer.json',
 };
 const load = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
-const APP = readFileSync(new URL('../template/js/app.js', import.meta.url), 'utf8');
-// The code walkthrough chapter is planned but may not be wired into the page yet.
-const CODE_WIRED = /key:\s*'code'/.test(APP);
 // Types that open a whole chapter, not one item in it.
 const CHAPTER_LEVEL = new Set(['explainer', 'run']);
 
@@ -31,14 +29,14 @@ for (const [slug, path] of Object.entries(SOURCES)) {
     const page = bootPage(buildExplainer(data, { context: { slug } }));
     const shown = new Set(page.views());
     // Hrefs into chapters this page does not show are checked on their own, below.
-    const entries = buildSearchIndex(slug, data).filter((e) => shown.has(viewOf(hashOf(e.href))) || viewOf(hashOf(e.href)) === 'code');
+    const entries = buildSearchIndex(slug, data).filter((e) => shown.has(viewOf(hashOf(e.href))));
+    assert.equal(entries.length, buildSearchIndex(slug, data).length, 'the index links only into chapters this page shows');
     assert.ok(entries.length > 5, 'the index has entries to check');
     const byType = new Map();
     entries.forEach((e) => byType.set(e.type, [...(byType.get(e.type) || []), e]));
 
     for (const [type, group] of byType) {
-      const isCode = group.some((e) => viewOf(hashOf(e.href)) === 'code');
-      await t.test(type, { todo: isCode && !CODE_WIRED ? 'the code walkthrough chapter is not wired into app.js yet' : false }, () => {
+      await t.test(type, () => {
         const hrefs = [...new Set(group.map((e) => e.href))];
         const states = hrefs.map((href) => {
           const hash = hashOf(href);
@@ -47,15 +45,23 @@ for (const [slug, path] of Object.entries(SOURCES)) {
           return { hash, state: snapshot(landed.section) };
         });
         if (CHAPTER_LEVEL.has(type)) return;
-        if (states.length > 1) {
+        // "X/1" is X at its first step (a walkthrough and its step 1): the same target.
+        const hashes = new Set(states.map((x) => x.hash));
+        const targets = states.filter(({ hash }) => !(hash.endsWith('/1') && hashes.has(hash.slice(0, -2))));
+        // ...and both open exactly the same thing.
+        states.filter(({ hash }) => hash.endsWith('/1') && hashes.has(hash.slice(0, -2))).forEach(({ hash, state }) => {
+          const parent = states.find((x) => x.hash === hash.slice(0, -2));
+          assert.equal(state, parent.state, `#${hash} and #${parent.hash} should both open the item at its first step`);
+        });
+        if (targets.length > 1) {
           // Fallback would leave every item showing the same state.
           const seen = new Map();
-          states.forEach(({ hash, state }) => {
+          targets.forEach(({ hash, state }) => {
             assert.ok(!seen.has(state), `${hash} shows the same state as ${seen.get(state)}: the router fell back instead of opening the item`);
             seen.set(state, hash);
           });
         } else {
-          const [{ hash }] = states;
+          const [{ hash }] = targets;
           const entry = group[0];
           const { section } = page.route(hash);
           assert.ok(section.textContent.includes(entry.title), `${hash}: "${entry.title}" is not on the view`);
@@ -73,19 +79,17 @@ test('an unknown id falls back to its chapter, and an unknown chapter to the ove
   assert.equal(page.route('').view, 'overview');
 });
 
-// FINDING (backend, scripts/lib/search-index.mjs): the index links into every
-// chapter that has data, but a page shows only meta.chapters when it is set.
-// Those hrefs open the Overview. Seen in pr-cursor-paging and
-// proposal-live-updates (glossary) and chapters-all (quiz).
-test('the search index links only to chapters the page shows', { todo: 'finding for backend: search-index.mjs should follow meta.chapters' }, () => {
-  const hidden = [];
-  for (const [slug, path] of Object.entries(SOURCES)) {
-    const data = load(path);
-    const shown = new Set(bootPage(buildExplainer(data, { context: { slug } })).views());
-    buildSearchIndex(slug, data).forEach((e) => {
-      const view = viewOf(hashOf(e.href));
-      if (view !== 'code' && !shown.has(view)) hidden.push(`${slug}: ${hashOf(e.href)}`);
-    });
-  }
-  assert.deepEqual(hidden, []);
-});
+// The index and the page decide which chapters show by the same rule
+// (scripts/lib/chapters.mjs on one side, app.js chooseChapters on the other).
+for (const [slug, path] of Object.entries(SOURCES)) {
+  const data = load(path);
+  test(`${slug}: the shared chapter rule and the page show the same chapters`, () => {
+    const views = bootPage(buildExplainer(data, { context: { slug } })).views().filter((v) => !['overview', 'settings'].includes(v));
+    assert.deepEqual(views, shownChapters(data));
+  });
+  test(`${slug}: the search index links only into chapters the rule shows`, () => {
+    const shown = new Set(shownChapters(data));
+    const outside = buildSearchIndex(slug, data).map((e) => hashOf(e.href)).filter((h) => h && !shown.has(viewOf(h)));
+    assert.deepEqual(outside, []);
+  });
+}
