@@ -150,6 +150,7 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
   let entries = readManifest(home).manifest.explainers;
   const summary = { dryRun: true, added: [], replaced: [], skipped: [], rejected: [] };
   const writes = [];
+  const planned = new Set();
   bundle.explainers.forEach((item, index) => {
     const checked = checkItem(item);
     const title = isObject(item) && isObject(item.data) && isObject(item.data.meta) ? String(item.data.meta.title || '') : '';
@@ -160,15 +161,21 @@ export function planImport(home, bundle, { onConflict = 'rename' } = {}) {
     const source = sourceOf(data);
     const same = entries.find((e) => e.slug === base && sameSource(e, source));
     const taken = entries.some((e) => e.slug === base);
+    // Two items aimed at one slug: the first wins, so a replace never backs up its own output.
+    if (planned.has(base) && (onConflict !== 'rename' || same)) {
+      return summary.skipped.push({ index, title, slug: base, reason: 'duplicate in this bundle' });
+    }
     if (taken && onConflict === 'skip') return summary.skipped.push({ index, title, slug: base, reason: 'already in the library' });
     if (same && onConflict === 'replace') {
       writes.push({ slug: base, data, replace: true });
+      planned.add(base);
       return summary.replaced.push({ slug: base, title, note, overwrites: { slug: same.slug, title: same.title } });
     }
     const slug = freeSlug(entries, base);
     const renamed = slug === base ? '' : `renamed from ${base}${same ? '' : ' (that slug holds a different explainer)'}`;
     entries = [...entries, { slug, ...source }];
     writes.push({ slug, data });
+    planned.add(slug);
     return summary.added.push({ slug, title, note: [renamed, note].filter(Boolean).join('; ') });
   });
   return { summary, writes };

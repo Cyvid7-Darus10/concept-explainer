@@ -307,8 +307,10 @@ function publishUnlocked(data, options) {
 
   const dataPath = join(paths.dirFor(slug), 'explainer.json');
   // A replacing import keeps the old data beside the new, never deleting it.
+  // The name is unique (time plus random) and 'wx' fails rather than overwrite.
   if (options.backupExisting && existsSync(dataPath)) {
-    writeAtomic(`${dataPath}.replaced-${at.replace(/[:.]/g, '-')}`, readFileSync(dataPath, 'utf8'));
+    const backup = `${dataPath}.replaced-${at.replace(/[:.]/g, '-')}-${randomBytes(4).toString('hex')}`;
+    writeFileSync(backup, readFileSync(dataPath), { flag: 'wx', mode: 0o600 });
   }
   writeAtomic(dataPath, toJson(data));
   const pagePath = writePage(paths, slug, data, options, style);
