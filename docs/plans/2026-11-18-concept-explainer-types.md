@@ -195,3 +195,78 @@ their own library.
 - Tests: round trip (export then import into an empty home gives equal data), conflict modes,
   malicious bundles (markup in strings stays text, `javascript:` URLs dropped, `../` slugs
   sanitised, oversize, wrong format, prototype pollution keys like `__proto__` ignored).
+
+## 8. App launcher (owner request, 2026-11-18)
+
+No Electron or Tauri. HTML stays the core: every explainer is one self-contained file that works from
+file:// and can be shared. The launcher only makes the library feel like an app. Ships on a stacked
+branch `feat/app-launcher` as 0.3.0 unless it passes review before the 0.2.0 release.
+
+### 8.1 `library serve` as an installable PWA
+- **Stable origin.** An installed PWA is tied to scheme, host and port, so a random port breaks it.
+  Default port **4747** (`--port`, config `servePort`, 1024 to 65535; `--port 0` = random for tests).
+  URLs always use `127.0.0.1`; Host `localhost:<port>` gets a 308 to `127.0.0.1`.
+- **Port busy.** If 4747 answers `GET /api/health` with our fingerprint, reuse it. If something else
+  holds it, use the first free port in 4748 to 4757 and say the installed app will not work there.
+  Never take over a foreign process.
+- **Fixed app routes** from the package (a fixed map, never built from the request path):
+  `/manifest.webmanifest`, `/sw.js`, `/app/icon-192.png`, `/app/icon-512.png`, `/app/maskable-512.png`,
+  `/app/icon.svg`. Library files still come only from the home folder with traversal and symlink checks.
+- **Manifest.** `id "/"`, `start_url "/index.html"`, `scope "/"`, `display "standalone"`,
+  name "Concept Explainer", short name "Explainers", background and theme `#fafafa`, Clean orange icons.
+- **Pages stay standalone.** `template/js/pwa.js` adds the manifest link and registers `/sw.js` only on
+  `http://127.0.0.1`. On file:// it does nothing. Save-as-page and bundles never carry manifest, SW or tokens.
+- **Service worker:** GET, same origin, status 200 only; **never `/api/*`** (tested). Pages network first
+  with a 3 s timeout then cache. Install caches hub, kit, manifest, icons; after each hub load it caches
+  every `explainers/<slug>/index.html` from `/library.json` (cap 200 pages / 100 MB) and drops removed
+  ones. Cache name carries the manifest `updatedAt`; old caches deleted on activate. Offline: a quiet
+  banner "Reading offline. Start Concept Explainer to save settings or import." and writes disabled.
+
+### 8.2 Pairing (how a page gets the right to write)
+1. `library serve`, `launch` or the launcher writes a one-time code to `<home>/.serve/pair/<id>.json`
+   (folder 0700, file 0600, sha256 of the code, 120 s expiry) and opens `index.html#pair=<code>`.
+2. The page sends `POST /api/pair` with the code, header `X-Concept-Explainer-Pair: 1`, Origin, Host and
+   `Sec-Fetch-Site: same-origin` checked. The code is used once and deleted; the server returns a 32 byte
+   device token and stores only its sha256 in `<home>/.serve/devices.json` (0600).
+3. The page keeps it in localStorage (`concept-explainer:device`, try/catch), clears the fragment with
+   `history.replaceState`, then starts the router. The installed PWA shares that storage.
+4. Every write (`/api/config`, `/api/import`) needs `X-Concept-Explainer-Token` (per-run or device token),
+   right Origin and Host, JSON body. OPTIONS gets 405 with no CORS headers.
+5. `library serve --forget-devices` revokes all devices. Without a token a page behaves as on file://.
+Known limit: while the server runs, other local accounts can read pages on 127.0.0.1; they cannot write.
+
+### 8.3 `launch` and the idle stop
+- `concept-explainer launch` reads `<home>/.serve/server.json` (`{ pid, port, instance, version,
+  startedAt }`); running only if the pid is alive and `GET /api/health` returns the same instance.
+- Otherwise it takes `<home>/.serve/start.lock` (atomic mkdir, stale if its pid is gone), starts a
+  detached `library serve --idle 30` logging to `<home>/.serve/serve.log` (1 MB cap, one rotation), waits
+  up to 5 s for health, writes a pairing code and opens the hub. Concurrent clicks start one server.
+- `--idle <minutes>` (config `serveIdleMinutes`, 0 to 1440; launcher 30, manual serve 0 = never).
+
+### 8.4 `install --launcher` / `uninstall --launcher`
+- Store `realpath(process.execPath)` (Node >= 18.3) and this package's absolute bin path at install
+  time, since GUI apps do not get shell PATH and mise/nvm shims move. Warn when node lives in a
+  mise/nvm/fnm/volta versions folder; offer `--node <path>`. At launch, check both paths and show a
+  native alert (osascript / notify-send / log) telling the user to reinstall the launcher.
+  `CONCEPT_EXPLAINER_HOME`, when set, is baked in.
+- **macOS:** `~/Applications/Concept Explainer.app` with Info.plist (bundle id
+  `io.github.cyvid7-darus10.concept-explainer`, `LSUIElement` true), a 0755 `/bin/sh` executable that
+  execs node `launch` with every path single-quoted and escaped, and `AppIcon.icns` made with sips +
+  iconutil from `assets/app/icon-1024.png` (warning, no icon, on failure). No notarization needed.
+- **Linux:** `~/.local/share/applications/concept-explainer.desktop` (Exec quoted per spec) and a 512 px
+  hicolor icon; `update-desktop-database` when present.
+- **Windows:** a Start Menu `.lnk` via PowerShell `WScript.Shell`, paths passed as arguments or env vars
+  (never interpolated), minimized; icon in `%LOCALAPPDATA%\concept-explainer\icon.ico`; fall back to a
+  `.cmd`.
+- Every written path and its sha256 go to `<home>/.serve/launcher.json`. Idempotent; never overwrite a
+  path we did not write without `--force` (keeps a `.bak`). `uninstall --launcher` stops a launcher-started
+  server and removes only recorded paths whose hash still matches (and the .app only with our bundle id).
+
+### 8.5 Tests
+Serve app routes and types; localhost redirect; pairing once-only, expiry, wrong Origin, missing header,
+cross-site Sec-Fetch-Site, OPTIONS 405; device token accepted then revoked; port reuse vs fallback; idle
+stop on an injected clock. `launch` single start under concurrency, stale lock, foreign server. Launcher
+files per platform with paths containing spaces, `'`, `$`, `%`; valid plist; .desktop escaping;
+PowerShell argument arrays; uninstall removes exactly recorded files. `sw.js` in `node:vm` with fake
+caches/fetch: no `/api/*` or POST cached, offline fallback, old cache cleanup. Browser: Chrome install on
+127.0.0.1:4747, offline reading after idle stop, pairing, Safari Add to Dock, a real macOS launcher click.
