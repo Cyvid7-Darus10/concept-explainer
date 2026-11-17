@@ -73,17 +73,17 @@ export function buildExplainer(data, options = {}) {
 
 /**
  * Render the library hub: every explainer in the library, searchable.
- * The page reads `{ manifest, index }` from its explainer-data tag.
+ * The page reads `{ style, manifest, index }` from its explainer-data tag.
  * @param {object} manifest library.json contents
  * @param {object[]} searchIndex entries from search-index.mjs
- * @param {{ templateDir?: string }} [options]
+ * @param {{ templateDir?: string, style?: string }} [options] `style` is the hub skin, 'clean' by default
  * @returns {string}
  */
 export function buildLibrary(manifest, searchIndex, options = {}) {
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR, LIBRARY_SCRIPT_ORDER, 'library.html');
   const count = manifest && Array.isArray(manifest.explainers) ? manifest.explainers.length : 0;
   const description = `${count} explainer${count === 1 ? '' : 's'}: search, browse and open them in one place.`;
-  return assemble(parts, 'Explainer library · Repo Explainer', { manifest, index: searchIndex }, 'bootLibrary();', description);
+  return assemble(parts, 'Explainer library · Repo Explainer', { style: options.style || 'clean', manifest, index: searchIndex }, 'bootLibrary();', description);
 }
 
 /**

@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "build:example": "node bin/repo-explainer.mjs build examples/taskflow.explainer.json --no-library",
+    "build:example": "node bin/repo-explainer.mjs build examples/taskflow.explainer.json --no-library --style clean",
     "build:gallery": "node bin/repo-explainer.mjs gallery --out examples/gallery.html",
     "build:assets": "node bin/repo-explainer.mjs assets --out assets",
     "check": "npm test && npm run build:example && npm run build:gallery"

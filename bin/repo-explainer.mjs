@@ -13,7 +13,7 @@ import { createStarter, listPatterns, listPresets } from '../scripts/lib/init.mj
 import { exportIcons, exportLogos } from '../scripts/lib/assets.mjs';
 import { PRICING, costTable, formatUsd, sizeOf } from '../scripts/lib/estimate.mjs';
 import {
-  ensureHub, libraryPaths, listExplainers, publishExplainer, rebuildLibrary, removeExplainer, resolveHome,
+  ensureHub, libraryPaths, listExplainers, publishExplainer, readConfig, rebuildLibrary, removeExplainer, resolveHome, styleFor, writeConfig,
 } from '../scripts/lib/library.mjs';
 import { installSkill, resolveConfigDir } from '../scripts/lib/install.mjs';
 
@@ -28,7 +28,7 @@ Usage
   repo-explainer changes <repo> [--data file]      Draft "what changed & why" entries from git history
   repo-explainer validate <file> [--repo dir]      Check the data; --repo also checks every cited file exists
   repo-explainer build <file> [--out f] [--repo d] Validate, render one self-contained HTML file, publish it to the library
-  repo-explainer library [list|path|add|remove|rebuild|open]
+  repo-explainer library [list|path|add|remove|rebuild|open|style]
                                                    Every explainer in one searchable hub (see below)
   repo-explainer install [--force]                 Link this skill into Claude and add the library rule
   repo-explainer presets                           List presets
@@ -43,6 +43,7 @@ Options
   --strict       Treat warnings as errors         --write     merge drafted changes into --data file
   --open         Open the built file              --remote    repo URL for PR links (e.g. https://github.com/o/r)
   --no-library   Build without publishing         --force     install: replace a real folder or edited rule (kept as backup)
+  --style        clean (default) or playful, for build, library add and library rebuild
 
 Library (home: $REPO_EXPLAINER_HOME, else ~/.repo-explainer)
   library [list]                   List published explainers
@@ -51,6 +52,7 @@ Library (home: $REPO_EXPLAINER_HOME, else ~/.repo-explainer)
   library remove <slug>            Delete one explainer from the library
   library rebuild                  Re-render every page and the hub with the current template
   library open                     Open the hub in your browser
+  library style [clean|playful]    Print or set the default style (saved in <home>/config.json)
 `;
 
 const OPTIONS = {
@@ -66,6 +68,7 @@ const OPTIONS = {
   strict: { type: 'boolean' },
   open: { type: 'boolean' },
   'no-library': { type: 'boolean' },
+  style: { type: 'string' },
   force: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
 };
@@ -99,8 +102,17 @@ function report({ errors, warnings }, strict) {
   return !failed;
 }
 
-function publish(data, file, opts) {
-  const result = publishExplainer(data, { home: resolveHome(), sourcePath: resolve(file), repoPath: opts.repo && resolve(opts.repo) });
+// The style for this run: --style when given, else the library default. Checked before any work.
+function chosenStyle(opts) {
+  try {
+    return styleFor(resolveHome(), opts.style);
+  } catch (error) {
+    throw new UsageError(error.message);
+  }
+}
+
+function publish(data, file, opts, style) {
+  const result = publishExplainer(data, { home: resolveHome(), sourcePath: resolve(file), repoPath: opts.repo && resolve(opts.repo), style });
   if (result.recovered) process.stderr.write('  ⚠ library.json was corrupt; it was backed up and rebuilt\n');
   process.stderr.write(`✔ ${result.updated ? 'updated' : 'added'} ${result.slug} in the library\n  page: ${result.pagePath}\n  library: ${result.hubPath}\n`);
   return result;
@@ -132,8 +144,9 @@ const LIBRARY_COMMANDS = {
   },
   add(positionals, opts) {
     const file = requirePositional(positionals, '<explainer.json>');
+    const style = chosenStyle(opts);
     const data = validated(file, opts);
-    if (data) publish(data, file, opts);
+    if (data) publish(data, file, opts, style);
   },
   remove(positionals) {
     const slug = requirePositional(positionals, '<slug>');
@@ -144,13 +157,26 @@ const LIBRARY_COMMANDS = {
     }
     process.stderr.write(`✔ removed ${slug}\n  library: ${libraryPaths(resolveHome()).hub}\n`);
   },
-  rebuild() {
-    const { rebuilt, skipped, hubPath } = rebuildLibrary({ home: resolveHome() });
+  rebuild(_positionals, opts) {
+    const { rebuilt, skipped, hubPath } = rebuildLibrary({ home: resolveHome(), style: chosenStyle(opts) });
     skipped.forEach((slug) => process.stderr.write(`  ⚠ dropped ${slug}: its explainer.json is missing or broken\n`));
     process.stderr.write(`✔ rebuilt ${rebuilt.length} explainer(s)\n  library: ${hubPath}\n`);
   },
   open() {
     openPath(ensureHub({ home: resolveHome() }));
+  },
+  style(positionals) {
+    if (!positionals[0]) {
+      process.stdout.write(`${readConfig(resolveHome()).style}\n`);
+      return;
+    }
+    let config;
+    try {
+      config = writeConfig(resolveHome(), { style: positionals[0] });
+    } catch (error) {
+      throw new UsageError(error.message);
+    }
+    process.stderr.write(`✔ default style: ${config.style}\n  run \`repo-explainer library rebuild\` to restyle pages already in the library\n`);
   },
 };
 
@@ -198,13 +224,14 @@ const COMMANDS = {
 
   build(positionals, opts) {
     const file = requirePositional(positionals, '<file>');
+    const style = chosenStyle(opts);
     const data = validated(file, opts);
     if (!data) return;
     const out = opts.out || join(dirname(file), `${basename(file).replace(/(\.explainer)?\.json$/, '')}.html`);
-    writeFile(out, buildExplainer(data));
+    writeFile(out, buildExplainer(data, { context: { style } }));
     if (!opts['no-library']) {
       try {
-        publish(data, file, opts);
+        publish(data, file, opts, style);
       } catch (error) {
         throw new Error(`built ${out}, but publishing to the library failed: ${error.message}`);
       }
@@ -215,7 +242,7 @@ const COMMANDS = {
   library(positionals, opts) {
     const [sub = 'list', ...rest] = positionals;
     const run = LIBRARY_COMMANDS[sub];
-    if (!run) throw new UsageError(`unknown library command "${sub}". Use list, path, add, remove, rebuild or open`);
+    if (!run) throw new UsageError(`unknown library command "${sub}". Use list, path, add, remove, rebuild, open or style`);
     run(rest, opts);
   },
 

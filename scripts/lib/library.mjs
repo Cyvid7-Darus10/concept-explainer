@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { buildExplainer, buildLibrary } from './build.mjs';
 import { buildSearchIndex } from './search-index.mjs';
+import { DEFAULT_STYLE, parseStyle } from './style.mjs';
 import {
   SLUG_PATTERN, baseSlugFor, chooseSlug, emptyManifest, entryFor, isManifest, upsertEntry, withoutEntry,
 } from './library-model.mjs';
@@ -25,6 +26,7 @@ export function libraryPaths(home) {
     home,
     hub: join(home, 'index.html'),
     manifest: join(home, 'library.json'),
+    config: join(home, 'config.json'),
     explainers,
     dirFor: (slug) => join(explainers, slug),
   };
@@ -45,6 +47,27 @@ export function writeAtomic(path, content) {
 
 const now = () => new Date().toISOString();
 const toJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
+
+/** Library settings from <home>/config.json. Missing or broken means the defaults. */
+export function readConfig(home) {
+  try {
+    return { style: parseStyle(JSON.parse(readFileSync(libraryPaths(home).config, 'utf8')).style) };
+  } catch {
+    return { style: DEFAULT_STYLE };
+  }
+}
+
+/** Save library settings. Throws on an unknown style. */
+export function writeConfig(home, { style }) {
+  const config = { style: parseStyle(style) };
+  writeAtomic(libraryPaths(home).config, toJson(config));
+  return config;
+}
+
+// The style for one run: the flag when given, else the library default.
+export function styleFor(home, style) {
+  return style === undefined || style === null ? readConfig(home).style : parseStyle(style);
+}
 
 function readStoredData(paths, slug) {
   try {
@@ -98,20 +121,21 @@ export function readManifest(home) {
 export function writeHub(home, manifest, options = {}) {
   const paths = libraryPaths(home);
   const index = manifest.explainers.flatMap((entry) => buildSearchIndex(entry.slug, readStoredData(paths, entry.slug) || { meta: entry }));
-  writeAtomic(paths.hub, buildLibrary(manifest, index, options));
+  writeAtomic(paths.hub, buildLibrary(manifest, index, { templateDir: options.templateDir, style: readConfig(home).style }));
   return paths.hub;
 }
 
-function writePage(paths, slug, data, options) {
+function writePage(paths, slug, data, options, style) {
   const pagePath = join(paths.dirFor(slug), 'index.html');
-  writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context: { libraryHref: HUB_FROM_PAGE, slug } }));
+  writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context: { libraryHref: HUB_FROM_PAGE, slug, style } }));
   return pagePath;
 }
 
 /**
  * Copy an explainer into the library, build its page, and refresh the hub.
  * @param {object} data validated explainer data
- * @param {{ home?: string, sourcePath?: string, repoPath?: string, templateDir?: string }} [options]
+ * @param {{ home?: string, sourcePath?: string, repoPath?: string, style?: string, templateDir?: string }} [options]
+ *   `style` defaults to the library default from config.json.
  * @returns {{ slug: string, updated: boolean, pagePath: string, hubPath: string, recovered: boolean }}
  */
 export function publishExplainer(data, options = {}) {
@@ -120,18 +144,19 @@ export function publishExplainer(data, options = {}) {
   }
   const home = options.home || resolveHome();
   const paths = libraryPaths(home);
+  const style = styleFor(home, options.style);
   const { manifest, recovered } = readManifest(home);
   const source = { repo: data.meta.repo, repoPath: options.repoPath, sourcePath: options.sourcePath };
   const { slug, existing } = chooseSlug(manifest.explainers, baseSlugFor(data, options), source);
   const at = now();
 
   writeAtomic(join(paths.dirFor(slug), 'explainer.json'), toJson(data));
-  const pagePath = writePage(paths, slug, data, options);
+  const pagePath = writePage(paths, slug, data, options, style);
   const entry = entryFor(data, { slug, sourcePath: options.sourcePath, repoPath: options.repoPath, publishedAt: at });
   const next = upsertEntry(manifest, entry, at);
   writeAtomic(paths.manifest, toJson(next));
   const hubPath = writeHub(home, next, options);
-  return { slug, updated: existing, pagePath, hubPath, recovered };
+  return { slug, updated: existing, pagePath, hubPath, recovered, style };
 }
 
 /** Delete one explainer from the library and refresh the hub. */
@@ -151,12 +176,13 @@ export function removeExplainer(slug, options = {}) {
 /**
  * Re-render every page and the hub from the stored data with the current
  * template. Entries whose data is gone or broken are dropped; folders with
- * data but no entry are adopted.
+ * data but no entry are adopted. Pages get `options.style`, else the library default.
  * @returns {{ rebuilt: string[], skipped: string[], hubPath: string }}
  */
 export function rebuildLibrary(options = {}) {
   const home = options.home || resolveHome();
   const paths = libraryPaths(home);
+  const style = styleFor(home, options.style);
   const { manifest } = readManifest(home);
   const known = new Map(manifest.explainers.map((e) => [e.slug, e]));
   const stored = new Map(scanStored(paths).map(([slug, data, mtime]) => [slug, { data, mtime }]));
@@ -165,14 +191,14 @@ export function rebuildLibrary(options = {}) {
   const skipped = [...known.keys()].filter((slug) => !stored.has(slug));
   const next = [...stored].reduce((acc, [slug, { data, mtime }]) => {
     const previous = known.get(slug) || {};
-    writePage(paths, slug, data, options);
+    writePage(paths, slug, data, options, style);
     const entry = entryFor(data, { slug, sourcePath: previous.sourcePath, repoPath: previous.repoPath, publishedAt: previous.publishedAt || mtime });
     return upsertEntry(acc, entry, at);
   }, emptyManifest(at));
 
   writeAtomic(paths.manifest, toJson(next));
   const hubPath = writeHub(home, next, options);
-  return { rebuilt: [...stored.keys()], skipped, hubPath };
+  return { rebuilt: [...stored.keys()], skipped, hubPath, style };
 }
 
 /** Manifest entries, newest first. Never writes unless the manifest is corrupt. */
