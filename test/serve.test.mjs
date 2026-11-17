@@ -69,6 +69,22 @@ test('path traversal and links out of the library are refused', async () => {
   }
 });
 
+test('only the hub, the kit, explainer pages and fonts are served; data files never', async () => {
+  writeFileSync(join(home, 'config.json'), JSON.stringify({ instructions: 'private house notes' }));
+  writeFileSync(join(home, 'index.html.tmp-123-abcd'), 'half written');
+  writeFileSync(join(home, 'library.json.corrupt-2026'), '{}');
+  for (const path of ['/config.json', '/library.json', '/explainers/acme-taskflow/explainer.json', '/index.html.tmp-123-abcd',
+    '/library.json.corrupt-2026', '/.lock/pid', '/.serve/x', '/explainers/acme-taskflow/explainer.json.replaced-1', '/explainers/ACME/index.html',
+    '/fonts/../config.json', '/fonts/x.js', '/kit.html/']) {
+    const res = await send({ path });
+    assert.equal(res.status, 404, `${path} gave ${res.status}`);
+    assert.doesNotMatch(res.body, /private house notes|"explainers"|half written/);
+  }
+  for (const path of ['/', '/index.html', '/kit.html', '/explainers/acme-taskflow/', '/explainers/acme-taskflow/index.html']) {
+    assert.equal((await send({ path })).status, 200, path);
+  }
+});
+
 test('a wrong Host header is refused, against DNS rebinding', async () => {
   assert.equal((await send({ path: '/index.html', headers: { host: 'evil.example:80' } })).status, 403);
 });
@@ -95,8 +111,7 @@ test('pages get a strict CSP that hashes their inline script and style', async (
   assert.doesNotMatch(csp.replace("style-src-attr 'unsafe-inline'", ''), /unsafe-inline|unsafe-eval/);
   assert.match(csp, /connect-src 'self'/);
   assert.match(csp, /frame-ancestors 'none'/);
-  const json = await send({ path: '/library.json' });
-  assert.match(json.headers['content-security-policy'], /^default-src 'none'/);
+  assert.equal((await send({ path: '/library.json' })).status, 404);
 });
 
 test('saving needs the token, the right origin and JSON', async () => {

@@ -69,8 +69,11 @@ test('publish writes the data, the page, the manifest and the hub', () => {
   assert.equal(manifest.explainers[0].sourcePath, '/w/taskflow/.explainer/explainer.json');
   assert.equal(manifest.explainers[0].repoPath, '/w/taskflow');
 
-  const hub = embedded(readFileSync(paths.hub, 'utf8'), 'explainer-data');
-  assert.deepEqual(hub.manifest, manifest);
+  const hubHtml = readFileSync(paths.hub, 'utf8');
+  const hub = embedded(hubHtml, 'explainer-data');
+  assert.deepEqual(hub.manifest.explainers.map((e) => e.slug), manifest.explainers.map((e) => e.slug));
+  assert.ok(hub.manifest.explainers.every((e) => !('sourcePath' in e) && !('repoPath' in e)), 'no local paths in the hub');
+  assert.doesNotMatch(hubHtml, /\/w\/taskflow/);
   assert.ok(hub.index.some((e) => e.href === 'explainers/acme-taskflow/index.html#flows/create-task/1'));
   assert.deepEqual(readdirSync(home).sort(), ['explainers', 'index.html', 'kit.html', 'library.json'], 'no temp files left behind');
 });

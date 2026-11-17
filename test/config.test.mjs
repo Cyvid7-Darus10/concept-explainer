@@ -86,7 +86,11 @@ test('pages and the hub carry the current config', () => {
   const tag = (html, id) => JSON.parse(html.match(new RegExp(`id="${id}">([\\s\\S]*?)</script>`))[1]);
   const context = tag(readFileSync(pagePath, 'utf8'), 'explainer-context');
   assert.equal(context.config.audience, 'expert');
-  assert.equal(context.config.instructions, 'Short words.');
-  assert.equal(tag(readFileSync(libraryPaths(home).hub, 'utf8'), 'explainer-data').config.audience, 'expert');
-  assert.equal(tag(readFileSync(libraryPaths(home).kit, 'utf8'), 'explainer-context').config.audience, 'expert');
+  assert.equal('instructions' in context.config, false, 'instructions may be private: never embedded in a page');
+  const hub = readFileSync(libraryPaths(home).hub, 'utf8');
+  assert.equal(tag(hub, 'explainer-data').config.audience, 'expert');
+  assert.doesNotMatch(hub, /Short words/);
+  const kit = readFileSync(libraryPaths(home).kit, 'utf8');
+  assert.equal(tag(kit, 'explainer-context').config.audience, 'expert');
+  assert.doesNotMatch(kit + readFileSync(pagePath, 'utf8'), /Short words/);
 });
