@@ -75,7 +75,7 @@ test('publish writes the data, the page, the manifest and the hub', () => {
   assert.ok(hub.manifest.explainers.every((e) => !('sourcePath' in e) && !('repoPath' in e)), 'no local paths in the hub');
   assert.doesNotMatch(hubHtml, /\/w\/taskflow/);
   assert.ok(hub.index.some((e) => e.href === 'explainers/acme-taskflow/index.html#flows/create-task/1'));
-  assert.deepEqual(readdirSync(home).sort(), ['explainers', 'index.html', 'kit.html', 'library.json'], 'no temp files left behind');
+  assert.deepEqual(readdirSync(home).sort(), ['explainers', 'fonts', 'index.html', 'kit.html', 'library.json'], 'no temp files left behind');
 });
 
 test('publishing the same source again updates in place', () => {

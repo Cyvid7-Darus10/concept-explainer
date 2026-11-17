@@ -201,3 +201,11 @@ test('only GET, HEAD and the API methods are allowed', async () => {
   assert.equal((await send({ method: 'PUT', path: '/library.json' })).status, 405);
   assert.equal((await send({ path: '/api/other' })).status, 404);
 });
+
+test('fonts are served from the library with their type', async () => {
+  const font = await send({ path: '/fonts/geist-latin.woff2' });
+  assert.equal(font.status, 200);
+  assert.equal(font.headers['content-type'], 'font/woff2');
+  assert.equal((await send({ path: '/fonts/OFL.txt' })).status, 200);
+  assert.equal((await send({ path: '/fonts/fonts.json' })).status, 404);
+});
