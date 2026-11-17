@@ -25,27 +25,6 @@ function chooseChapters(data) {
     });
 }
 
-// The library context is optional: missing, broken or unfilled means standalone.
-function readContext() {
-  const el = document.getElementById('explainer-context');
-  const raw = el ? el.textContent.trim() : '';
-  if (!raw || raw === '__CONTEXT__') return {};
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch (error) {
-    return {};
-  }
-}
-
-// A relative link (../../index.html) or an http(s) one. No other schemes.
-function safeHref(value) {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const trimmed = value.trim();
-  if (safeUrl(trimmed)) return safeUrl(trimmed);
-  return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(trimmed) ? null : trimmed;
-}
-
 // ---------- Viewed chapters (this browser only) ----------
 function viewedStore(meta) {
   const key = `repo-explainer:viewed:${text(meta.repo, meta.title)}:${text(meta.commit, '')}`;
@@ -105,13 +84,13 @@ function buildShell(data, chapters, context, registry) {
   const progressLines = [];
   const side = h('aside', { class: 'side', 'aria-label': 'Sidebar' },
     brandRow(),
-    h('div', { class: 'side-repo' }, h('b', null, meta.title), meta.repo && h('span', { class: 'mono' }, meta.repo)),
+    h('div', { class: 'side-repo' }, h('b', { title: meta.title }, meta.title), meta.repo && h('span', { class: 'mono', title: meta.repo }, meta.repo)),
     navList(chapters, data, links),
     h('div', { class: 'side-foot' }, footBits(meta, context, registry, progressLines)));
 
   const closeButton = h('button', { class: 'btn sheet-close', type: 'button' }, h('span', { class: 'close-icon', 'aria-hidden': 'true' }), 'Close');
   const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Menu' },
-    h('div', { class: 'sheet-head' }, h('span', { class: 'name' }, meta.title), closeButton),
+    h('div', { class: 'sheet-head' }, h('span', { class: 'name', title: meta.title }, meta.title), closeButton),
     navList(chapters, data, links),
     h('div', { class: 'sheet-foot' }, footBits(meta, context, registry, progressLines)));
   closeButton.addEventListener('click', () => sheet.close());
@@ -125,7 +104,7 @@ function buildShell(data, chapters, context, registry) {
     h('span', { class: 'menu-icon', 'aria-hidden': 'true' }), 'Menu');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
     h('a', { class: 'brand', href: '#overview', 'aria-label': 'Overview' }, brandMark(),
-      h('span', { class: 'bar-names' }, h('span', { class: 'name' }, meta.title), barView)),
+      h('span', { class: 'bar-names' }, h('span', { class: 'name', title: meta.title }, meta.title), barView)),
     h('div', { class: 'bar-actions' },
       library && h('a', { class: 'btn bar-library', href: library }, 'Library'),
       menuButton)));
@@ -265,13 +244,6 @@ function boot() {
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
   registry.paint();
-  // The skip link moves focus only; a "#main" hash would read as a view name.
-  const skip = document.querySelector('.skip');
-  if (skip) {
-    skip.addEventListener('click', (event) => {
-      event.preventDefault();
-      main.focus();
-    });
-  }
+  wireSkipLink(main);
   createRouter(views, shell, chapters, viewed, data.meta).route({ initial: true });
 }

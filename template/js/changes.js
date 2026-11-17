@@ -101,7 +101,7 @@ function changeItem(change, nodeIndex, isTarget) {
       change.risk && h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'Risk'), h('p', null, change.risk)),
       list(change.nodes).length > 0 && h('div', { class: 'change-nodes' }, list(change.nodes).map((id) => {
         const node = nodeIndex.get(id);
-        return h('a', { class: 'chip', href: `#map/${linkPart(id)}` }, node ? node.label : id);
+        return h('a', { class: 'chip', href: `#map/${linkPart(id)}`, title: node ? node.label : id }, node ? node.label : id);
       })),
       list(change.files).length > 0 && h('div', { class: 'change-nodes' }, list(change.files).slice(0, 6).map(fileChip))));
 }

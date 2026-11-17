@@ -145,7 +145,7 @@ function mapColumn(layer, nodes, changedIds, onSelect) {
   const colors = paletteFor(layer.color);
   const layerNodes = nodes.filter((node) => node.layer === layer.id);
   return h('div', { class: 'map-col', style: `--layer:${colors.ink}` },
-    h('div', { class: 'map-col-head' }, layer.label),
+    h('div', { class: 'map-col-head', title: layer.label }, h('span', { class: 'map-col-name' }, layer.label)),
     layerNodes.map((node) => h('button', {
       class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),
     },

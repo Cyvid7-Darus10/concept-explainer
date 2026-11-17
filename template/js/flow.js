@@ -54,7 +54,7 @@ function renderFlows(data, mount) {
       onclick: () => setState({ flowIndex: i, stepIndex: 0, finished: false }),
     },
     h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
-    h('span', { class: 'flow-pick-title' }, f.title)))));
+    h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, f.title)))));
     fill(meta,
       flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, flow.trigger)),
       flow.summary && h('p', { class: 'flow-summary' }, flow.summary));
