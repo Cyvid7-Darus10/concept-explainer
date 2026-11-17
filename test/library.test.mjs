@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFil
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import {
-  resolveHome, libraryPaths, readManifest, publishExplainer, removeExplainer, rebuildLibrary, listExplainers, ensureHub,
+  resolveHome, migrateLegacyHome, libraryPaths, readManifest, publishExplainer, removeExplainer, rebuildLibrary, listExplainers, ensureHub,
 } from '../scripts/lib/library.mjs';
 
 const example = JSON.parse(readFileSync(new URL('../examples/taskflow.explainer.json', import.meta.url), 'utf8'));
@@ -17,10 +17,37 @@ function embedded(html, id) {
   return JSON.parse(match[1]);
 }
 
-test('home comes from REPO_EXPLAINER_HOME, else ~/.repo-explainer', () => {
+test('home comes from CONCEPT_EXPLAINER_HOME, then REPO_EXPLAINER_HOME, else ~/.concept-explainer', () => {
+  assert.equal(resolveHome({ CONCEPT_EXPLAINER_HOME: '/tmp/new', REPO_EXPLAINER_HOME: '/tmp/old' }), '/tmp/new');
   assert.equal(resolveHome({ REPO_EXPLAINER_HOME: '/tmp/x' }), '/tmp/x');
-  assert.equal(resolveHome({}), join(homedir(), '.repo-explainer'));
-  assert.equal(resolveHome({ REPO_EXPLAINER_HOME: '' }), join(homedir(), '.repo-explainer'));
+  assert.equal(resolveHome({}), join(homedir(), '.concept-explainer'));
+  assert.equal(resolveHome({ CONCEPT_EXPLAINER_HOME: '' }), join(homedir(), '.concept-explainer'));
+});
+
+test('the old ~/.repo-explainer moves to ~/.concept-explainer once, and nothing is deleted', () => {
+  const fakeHome = tempHome();
+  const old = join(fakeHome, '.repo-explainer');
+  mkdirSync(join(old, 'explainers'), { recursive: true });
+  writeFileSync(join(old, 'library.json'), '{"keep":true}');
+  const moved = migrateLegacyHome({ env: {}, homeDir: fakeHome });
+  assert.match(moved, /moved .*\.repo-explainer to .*\.concept-explainer/);
+  assert.equal(readFileSync(join(fakeHome, '.concept-explainer', 'library.json'), 'utf8'), '{"keep":true}');
+  assert.ok(!existsSync(old));
+  assert.equal(migrateLegacyHome({ env: {}, homeDir: fakeHome }), null, 'second run does nothing');
+});
+
+test('the move never runs over an existing new home or a home set by env', () => {
+  const both = tempHome();
+  mkdirSync(join(both, '.repo-explainer'));
+  mkdirSync(join(both, '.concept-explainer'));
+  writeFileSync(join(both, '.repo-explainer', 'library.json'), 'old');
+  assert.equal(migrateLegacyHome({ env: {}, homeDir: both }), null);
+  assert.equal(readFileSync(join(both, '.repo-explainer', 'library.json'), 'utf8'), 'old');
+  const pinned = tempHome();
+  mkdirSync(join(pinned, '.repo-explainer'));
+  assert.equal(migrateLegacyHome({ env: { CONCEPT_EXPLAINER_HOME: '/tmp/elsewhere' }, homeDir: pinned }), null);
+  assert.equal(migrateLegacyHome({ env: { REPO_EXPLAINER_HOME: '/tmp/elsewhere' }, homeDir: pinned }), null);
+  assert.ok(existsSync(join(pinned, '.repo-explainer')));
 });
 
 test('publish writes the data, the page, the manifest and the hub', () => {

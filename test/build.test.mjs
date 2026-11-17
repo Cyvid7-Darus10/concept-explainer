@@ -19,7 +19,7 @@ test('build produces one self-contained page with every placeholder filled', () 
   const html = buildExplainer(example);
   assert.match(html, /^<!doctype html>/);
   assert.doesNotMatch(html, /__TITLE__|__EXPLAINER_DATA__|\/\*__STYLES__\*\/|\/\*__SCRIPTS__\*\//);
-  assert.match(html, /<title>Taskflow, explained · Repo Explainer<\/title>/);
+  assert.match(html, /<title>Taskflow, explained · Concept Explainer<\/title>/);
   assert.match(html, /boot\(\);/);
   assert.match(html, /<meta name="description" content="A team to-do app\./);
   assert.deepEqual(embeddedJson(html), example);
@@ -60,7 +60,7 @@ test('gallery builds with its own boot and without the explainer boot', () => {
 test('placeholder names inside data are never expanded a second time', () => {
   const data = { meta: { title: 'x __EXPLAINER_DATA__ /*__SCRIPTS__*/', summary: '__TITLE__ "quoted"' } };
   const html = buildExplainer(data);
-  assert.match(html, /<title>x __EXPLAINER_DATA__ \/\*__SCRIPTS__\*\/ · Repo Explainer<\/title>/);
+  assert.match(html, /<title>x __EXPLAINER_DATA__ \/\*__SCRIPTS__\*\/ · Concept Explainer<\/title>/);
   assert.match(html, /<meta name="description" content="__TITLE__ &quot;quoted&quot;">/);
   assert.equal((html.match(/<script>/g) || []).length, 1, 'no second script block injected');
   assert.deepEqual(embeddedJson(html), data);
