@@ -41,7 +41,7 @@ function kitSidebar(registry, version) {
     h('nav', { class: 'links', 'aria-label': 'Kit' }, h('ul', null, KIT_SECTIONS.map((sec) => h('li', null,
       h('a', { href: `#${sec.id}` }, h('span', { class: 'nav-label' }, sec.nav)))))),
     h('div', { class: 'side-foot' },
-      h('div', { class: 'side-theme' }, h('span', { class: 'side-theme-label' }, 'Theme'), themeSwitch(registry))));
+      lookControls(registry)));
 }
 
 function kitComponents() {
@@ -71,7 +71,7 @@ function kitComponents() {
 }
 
 function bootGallery() {
-  applyTheme(storedTheme());
+  applyLook(readContext());
   const data = JSON.parse(document.getElementById('explainer-data').textContent);
   const kinds = list(data.kinds);
   const patterns = list(data.patterns);
@@ -79,8 +79,8 @@ function bootGallery() {
   const registry = themeRegistry();
   const app = document.getElementById('app');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
-    h('a', { class: 'brand', href: '#main' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer kit')),
-    themeSwitch(registry)));
+    h('a', { class: 'brand', href: '#main', 'aria-label': 'Repo Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
+    h('div', { class: 'bar-actions' }, styleSwitch(registry), themeSwitch(registry))));
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, top, h('div', { class: 'wrap' },
     h('div', { class: 'view' },
       h('header', { class: 'view-head' },
@@ -95,10 +95,10 @@ function bootGallery() {
           icon(kind), h('code', null, kind), kinds.includes(kind) ? null : tag('UI only'))))),
 
       kitSection('kit-layers', 'Layer markers', 'Set a layer "color" to one of these names. It shows as a small square and a thin bar on each box, never as a fill.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: `--layer:${colors.ink}` },
+        h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: layerStyle(name) },
           h('span', { class: 'map-col-head' }, name),
           h('button', { class: 'node', type: 'button' }, h('span', { class: 'node-icon' }, icon('service')),
-            h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, colors.ink))))))),
+            h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, `${colors.ink} / ${PLAYFUL_LAYERS[name]}`))))))),
 
       kitSection('kit-tokens', 'Tokens', 'Fixed. These are the only colours in styles.css. Each switches value in the dark theme. Explainers never add others.',
         h('div', { class: 'kit-grid kit-grid-wide' }, KIT_TOKENS.map(swatch))),

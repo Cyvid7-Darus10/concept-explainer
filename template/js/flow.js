@@ -3,6 +3,8 @@
 const SEQ = { minCol: 130, maxCol: 220, head: 64, top: 40, row: 58, pad: 20 };
 const DASHED_KINDS = new Set(['response', 'async']);
 const FLOW_SIDE_BY_SIDE = '(min-width: 1180px)';
+const FLOW_CARD_WIDTH = 380;
+const LABEL_CHAR = 6.6;
 
 function renderFlows(data, mount) {
   const flows = list(data.flows);
@@ -23,11 +25,21 @@ function renderFlows(data, mount) {
     if (headsWrap.firstElementChild) headsWrap.firstElementChild.style.transform = `translateX(${-bodyWrap.scrollLeft}px)`;
   }, { passive: true });
   const panel = h('div', { class: 'panel step-card', 'aria-live': 'polite' });
-  const root = h('div', { class: 'flow-player' }, picker, meta, h('div', { class: 'flow-layout' }, seqWrap, panel));
+  const layout = h('div', { class: 'flow-layout' }, seqWrap, panel);
+  const root = h('div', { class: 'flow-player' }, picker, meta, layout);
+  // Side by side only when the widest flow fits beside the step card without
+  // sideways scrolling; otherwise the card comes first and the diagram gets
+  // the full width. Decided for the whole page, so flows do not jump around.
+  const widest = Math.max(...flows.map((f) => flowActors(list(f.steps)).length), 1);
+  const fitsBeside = () => window.matchMedia(FLOW_SIDE_BY_SIDE).matches
+    && root.clientWidth - FLOW_CARD_WIDTH - 16 >= widest * SEQ.minCol + SEQ.pad * 2;
   let lastWidth = 0;
   new ResizeObserver(() => {
-    if (Math.abs(seqWrap.clientWidth - lastWidth) > 24) { lastWidth = seqWrap.clientWidth; render(); }
-  }).observe(seqWrap);
+    if (Math.abs(root.clientWidth - lastWidth) <= 24) return;
+    lastWidth = root.clientWidth;
+    layout.classList.toggle('is-stacked', !fitsBeside());
+    render();
+  }).observe(root);
   // The step card follows the reader only while it fits on screen: no inner scroll areas.
   new ResizeObserver(() => {
     panel.classList.toggle('is-static', panel.offsetHeight > window.innerHeight - 96);
@@ -70,7 +82,7 @@ function renderFlows(data, mount) {
     }
     if (animate) slideIn(panel.firstElementChild, state.direction);
     // Stacked layouts keep the reader at the Continue button instead.
-    if (animate && !state.finished && window.matchMedia(FLOW_SIDE_BY_SIDE).matches) revealCurrentStep(diagram.body);
+    if (animate && !state.finished && !layout.classList.contains('is-stacked')) revealCurrentStep(diagram.body);
     if (animate && state.finished) pop(panel.querySelector('.trophy'));
   }
 
@@ -190,7 +202,11 @@ function sequenceStep(step, i, currentIndex, xOf, width, go, col) {
   const d = self
     ? `M${x1},${y} h44 v18 h-40`
     : `M${x1 + dir * 12},${y} L${x2 - dir * 8},${y}`;
-  const labelX = self ? x1 + 52 : (x1 + x2) / 2;
+  // A label may run past a short hop, but always stays inside the diagram.
+  const room = self ? width - (x1 + 52) - SEQ.pad : Math.max(Math.abs(x2 - x1), col * 1.6) - 12;
+  const label = truncate(step.label, Math.max(10, Math.floor(room / LABEL_CHAR)));
+  const half = (label.length * LABEL_CHAR) / 2;
+  const labelX = self ? x1 + 52 : Math.min(Math.max((x1 + x2) / 2, half + 6), width - half - 6);
   const group = s('g', {
     class: `seq-step ${status}${DASHED_KINDS.has(step.kind) ? ' is-dashed' : ''}`,
     role: 'button', tabindex: '0', 'aria-label': `Step ${i + 1}: ${step.label}`,
@@ -203,8 +219,7 @@ function sequenceStep(step, i, currentIndex, xOf, width, go, col) {
     : { class: 'arrow', d, 'marker-end': `url(#seq-arrow-${status})` }),
   s('circle', { class: 'badge-bg', cx: x1, cy: y, r: 10 }),
   s('text', { class: 'badge-num', x: x1, y: y + 3.5, 'text-anchor': 'middle' }, String(i + 1)),
-  s('text', { class: 'label', x: labelX, y: y - 10, 'text-anchor': self ? 'start' : 'middle' },
-    truncate(step.label, Math.max(14, Math.floor(((self ? col : Math.abs(x2 - x1)) - 16) / 6.6))), s('title', null, step.label)));
+  s('text', { class: 'label', x: labelX, y: y - 10, 'text-anchor': self ? 'start' : 'middle' }, label, s('title', null, step.label)));
 
   if (i === 0) group.prepend(seqMarkers());
   if (status === 'is-current' && !reducedMotion()) {

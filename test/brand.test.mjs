@@ -5,8 +5,13 @@ import { readFileSync, readdirSync } from 'node:fs';
 // Guardrails from references/design-system.md. If one of these fails, the
 // change is a design-system change: update that document in the same PR.
 
-const css = readFileSync(new URL('../template/styles.css', import.meta.url), 'utf8');
+import { STYLE_ORDER } from '../scripts/lib/build.mjs';
+
+// The stylesheet is template/styles/*.css joined in STYLE_ORDER (Playful last).
+const stylesDir = new URL('../template/styles/', import.meta.url);
+const css = STYLE_ORDER.map((f) => readFileSync(new URL(f, stylesDir), 'utf8')).join('\n');
 const html = readFileSync(new URL('../template/explainer.html', import.meta.url), 'utf8');
+const hubHtml = readFileSync(new URL('../template/library.html', import.meta.url), 'utf8');
 const jsDir = new URL('../template/js/', import.meta.url);
 // Comments may name banned things ("never innerHTML"); only code counts.
 const stripComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -21,8 +26,20 @@ const ALLOWED_COLORS = new Set([
   '#111111', '#1a1a1a', '#2c2c2c', '#ededed', '#c4c4c4', '#a3a3a3', '#8c8c8c', '#5a5a5a',
   '#ff7043', '#c8410e', '#e0521c', '#ff8a5c', '#62c073', '#ff6166',
   '#5b9a6e', '#5b86c4', '#4a5d8a', '#76739a', '#c39a3d', '#c0689a',
+  // Playful, light: Duolingo-inspired greens, blues, greys, and the AA text variants.
+  '#ffffff', '#e5e5e5', '#3c3c3c', '#4b4b4b', '#757575', '#afafaf', '#58cc02', '#61e002', '#58a700', '#3c7d00',
+  '#cc3333', '#d7ffb8', '#ffdfe0', '#042c60', '#1479b8', '#1cb0f6', '#ddf4ff', '#000437', '#e8ecff', '#a5ed6e',
+  '#8a90c2', '#ffd66b', '#ffc800', '#ff86d0',
+  // Playful, dark.
+  '#131f24', '#202f36', '#37464f', '#f1f7fb', '#dce6ec', '#a7bac4', '#8fa3ad', '#52656d', '#93d333', '#79b933',
+  '#ff7878', '#2b4022', '#4a2a2e', '#49c0f8', '#1a3a4a', '#0b1418',
+  // Playful icon illustrations (icons.js), from the original kit.
+  '#fff5d3', '#a56d00', '#ffd84d', '#cfcfcf',
 ]);
-const ALLOWED_RADII = new Set(['6px', 'var(--radius)', '4px', '9999px', '0', '50%', '1px', '2px']);
+const ALLOWED_RADII = new Set(['6px', 'var(--radius)', 'var(--radius-sm)', '4px', '8px', '12px', '9999px', '0', '50%', '1px', '2px']);
+
+// The Playful token block, and every Playful rule after it.
+const PLAYFUL_START = cssCode.indexOf(':root[data-style="playful"] {');
 
 // Split on commas that are not inside parentheses.
 function splitTopLevel(value) {
@@ -64,7 +81,7 @@ test('box-shadow is only ever a ring: every shadow has blur 0', () => {
   assert.ok(values.length > 0, 'expected hairline rings in the stylesheet');
   const blurred = values.flatMap((value) => (value === 'none' ? [] : shadowLayers(value)))
     .filter((layer) => {
-      const lengths = layer.replace(/var\([^)]*\)|rgb\([^)]*\)|#[0-9a-f]+|currentColor|inset/gi, ' ').trim().split(/\s+/).filter(Boolean);
+      const lengths = layer.replace(/var\([^)]*\)|rgb\([^)]*\)|#[0-9a-f]+|currentColor|transparent|inset/gi, ' ').trim().split(/\s+/).filter(Boolean);
       assert.ok(lengths.length >= 2 && lengths.length <= 4, `unreadable shadow "${layer}"`);
       return lengths.length >= 3 && parseFloat(lengths[2]) !== 0;
     });
@@ -84,9 +101,26 @@ test('every hex color is a design token value', () => {
   assert.deepEqual(strays, [], `colors outside the tokens: ${strays.join(', ')}`);
 });
 
-test('the orange is the only accent: no other brand colours in the stylesheet', () => {
-  assert.match(css, /--accent: #fc5e32;/);
-  assert.doesNotMatch(`${css}\n${js}`, /#58cc02|#1cb0f6|#ffc800|#ff4b4b/i, 'the old Duolingo palette is gone');
+test('Clean is the default skin and the orange is its only accent', () => {
+  assert.match(cssCode.slice(0, PLAYFUL_START), /:root \{[^}]*--accent: #fc5e32;/);
+  const cleanPart = cssCode.slice(0, PLAYFUL_START);
+  assert.doesNotMatch(cleanPart, /#58cc02|#1cb0f6|#ffc800/i, 'Playful colours stay in the Playful block');
+});
+
+test('every style file is listed in STYLE_ORDER and kept under 800 lines', () => {
+  const files = readdirSync(stylesDir).filter((f) => f.endsWith('.css')).sort();
+  assert.deepEqual(files, [...STYLE_ORDER].sort());
+  STYLE_ORDER.forEach((f) => assert.ok(readFileSync(new URL(f, stylesDir), 'utf8').split('\n').length < 800, f));
+  assert.equal(STYLE_ORDER.at(-1), 'playful.css', 'Playful overrides come last');
+});
+
+test('both skins exist, each with light and dark tokens', () => {
+  assert.ok(PLAYFUL_START > 0, 'a :root[data-style="playful"] block');
+  assert.match(cssCode, /:root\[data-style="playful"\]:not\(\[data-theme="light"\]\)/);
+  assert.match(cssCode, /:root\[data-style="playful"\]\[data-theme="dark"\] \{/);
+  assert.match(js, /function applyStyle\(/);
+  assert.match(js, /'repo-explainer:style'/);
+  assert.doesNotMatch(js, /Duolingo/, 'the UI says Clean and Playful, never the brand');
 });
 
 test('border radii stay on the scale', () => {
@@ -112,11 +146,13 @@ test('rendering never uses innerHTML or eval', () => {
   assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|\beval\(|new Function\(/);
 });
 
-test('fonts are Geist and Geist Mono, with no Nunito left', () => {
-  assert.match(css, /--sans: "Geist"/);
-  assert.match(css, /--mono: "Geist Mono"/);
-  assert.match(html, /family=Geist:[^"]*family=Geist\+Mono/);
-  assert.doesNotMatch(`${css}\n${html}\n${js}`, /Nunito|JetBrains/i);
+test('Clean uses Geist; Nunito and JetBrains Mono appear only for Playful', () => {
+  assert.match(cssCode.slice(0, PLAYFUL_START), /--sans: "Geist"/);
+  assert.match(cssCode.slice(0, PLAYFUL_START), /--mono: "Geist Mono"/);
+  assert.doesNotMatch(cssCode.slice(0, PLAYFUL_START), /Nunito|JetBrains/i);
+  assert.match(cssCode.slice(PLAYFUL_START), /--sans: "Nunito"/);
+  assert.doesNotMatch(js, /Nunito|JetBrains/i);
+  [html, hubHtml].forEach((page) => assert.match(page, /family=Geist:[^"]*family=Geist\+Mono[^"]*family=Nunito[^"]*family=JetBrains\+Mono/));
 });
 
 test('links from data go through the http(s) allowlist', () => {
@@ -124,8 +160,8 @@ test('links from data go through the http(s) allowlist', () => {
   assert.match(js, /href: safeUrl\(/);
 });
 
-test('the page carries the library context slot', () => {
-  assert.match(html, /<script type="application\/json" id="explainer-context">__CONTEXT__<\/script>/);
+test('the explainer and the hub carry the context slot', () => {
+  [html, hubHtml].forEach((page) => assert.match(page, /<script type="application\/json" id="explainer-context">__CONTEXT__<\/script>/));
 });
 
 // Overflow guardrails. Long identifiers and paths must wrap inside their box;

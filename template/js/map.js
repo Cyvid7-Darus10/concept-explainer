@@ -129,8 +129,15 @@ function renderMap(data, mount) {
       h('span', null, h('i', { class: 'dash' }), 'Async / events'),
       changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently')),
   );
-  const redraw = () => window.requestAnimationFrame(drawEdges);
-  new ResizeObserver(redraw).observe(canvas);
+  // As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto
+  // the next row, so the map never scrolls sideways.
+  const fitColumns = () => {
+    const width = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+    const fit = Math.max(1, Math.min(layers.length, Math.floor((width + MAP_GAP) / (MAP_MIN_COL + MAP_GAP))));
+    if (canvas.style.getPropertyValue('--fit-cols') !== String(fit)) canvas.style.setProperty('--fit-cols', String(fit));
+  };
+  const redraw = () => window.requestAnimationFrame(() => { fitColumns(); drawEdges(); });
+  new ResizeObserver(redraw).observe(canvas.parentElement || canvas);
   if (document.fonts) document.fonts.ready.then(redraw);
   return {
     open([id] = []) {
@@ -141,10 +148,12 @@ function renderMap(data, mount) {
   };
 }
 
+const MAP_MIN_COL = 150;
+const MAP_GAP = 40;
+
 function mapColumn(layer, nodes, changedIds, onSelect) {
-  const colors = paletteFor(layer.color);
   const layerNodes = nodes.filter((node) => node.layer === layer.id);
-  return h('div', { class: 'map-col', style: `--layer:${colors.ink}` },
+  return h('div', { class: 'map-col', style: layerStyle(layer.color) },
     h('div', { class: 'map-col-head', title: layer.label }, h('span', { class: 'map-col-name' }, layer.label)),
     layerNodes.map((node) => h('button', {
       class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),

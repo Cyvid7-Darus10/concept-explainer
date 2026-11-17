@@ -86,7 +86,7 @@ function layerMarkers(layers) {
   const items = list(layers).filter((l) => l && l.label);
   if (!items.length) return null;
   return h('span', { class: 'lib-layers', 'aria-label': `Layers: ${items.map((l) => l.label).join(', ')}` },
-    items.slice(0, 8).map((l) => h('span', { class: 'layer-dot', title: l.label, style: `--layer:${paletteFor(l.color).ink}` })));
+    items.slice(0, 8).map((l) => h('span', { class: 'layer-dot', title: l.label, style: layerStyle(l.color) })));
 }
 
 function stackTags(stack, max = 4) {
@@ -119,21 +119,49 @@ function explainerCard(explainer) {
   return href ? h('a', { class: 'card lib-card', href }, parts) : h('div', { class: 'card lib-card' }, parts);
 }
 
-function resultRow(entry) {
+// Wrap each query word found in the text in <mark>, as text nodes only.
+function highlight(value, words) {
+  const source = String(value);
+  const lower = source.toLowerCase();
+  const ranges = words.flatMap((word) => {
+    const found = [];
+    for (let at = lower.indexOf(word); at >= 0 && word; at = lower.indexOf(word, at + word.length)) found.push([at, at + word.length]);
+    return found;
+  }).sort((a, b) => a[0] - b[0])
+    .reduce((merged, range) => {
+      const last = merged[merged.length - 1];
+      return last && range[0] <= last[1] ? [...merged.slice(0, -1), [last[0], Math.max(last[1], range[1])]] : [...merged, range];
+    }, []);
+  const parts = [];
+  let cursor = 0;
+  ranges.forEach(([start, end]) => {
+    if (start > cursor) parts.push(source.slice(cursor, start));
+    parts.push(h('mark', null, source.slice(start, end)));
+    cursor = end;
+  });
+  if (cursor < source.length) parts.push(source.slice(cursor));
+  return parts;
+}
+
+function queryWords(query) {
+  return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+function resultRow(entry, words) {
   const href = libraryHref(entry.href);
   const body = [
     h('span', { class: 'tag result-type' }, TYPE_LABELS[entry.type] || text(entry.type, 'Item')),
     h('span', { class: 'result-text' },
-      h('span', { class: 'result-title' }, text(entry.title, 'Untitled')),
-      text(entry.text) && h('span', { class: 'result-snippet' }, entry.text)),
+      h('span', { class: 'result-title' }, highlight(text(entry.title, 'Untitled'), words)),
+      text(entry.text) && h('span', { class: 'result-snippet' }, highlight(entry.text, words))),
   ];
   return h('li', null, href ? h('a', { class: 'result-link', href }, body) : h('span', { class: 'result-link is-plain' }, body));
 }
 
-function resultGroups(groups, titles) {
+function resultGroups(groups, titles, words) {
   return [...groups.entries()].map(([slug, entries]) => h('section', { class: 'panel result-group', 'aria-label': titles.get(slug) || slug },
     h('div', { class: 'panel-bar' }, h('span', { class: 'result-group-title', title: titles.get(slug) || slug }, titles.get(slug) || slug), h('span', null, plural(entries.length, 'match', 'matches'))),
-    h('ul', { class: 'rows' }, entries.map(resultRow))));
+    h('ul', { class: 'rows' }, entries.map((entry) => resultRow(entry, words)))));
 }
 
 function emptyLibrary() {
@@ -181,7 +209,7 @@ function hubShell(views, explainers, updatedAt, registry) {
   const links = [];
   const foot = () => [
     h('p', { class: 'side-progress' }, `${plural(explainers.length, 'explainer')}${updatedAt ? `, updated ${updatedAt}` : ''}`),
-    h('div', { class: 'side-theme' }, h('span', { class: 'side-theme-label' }, 'Theme'), themeSwitch(registry)),
+    lookControls(registry),
   ];
   const side = h('aside', { class: 'side', 'aria-label': 'Sidebar' },
     h('a', { class: 'brand', href: '#all' }, brandMark(), h('span', { class: 'name' }, 'Repo Explainer')),
@@ -229,7 +257,7 @@ function moveFocus(container, step) {
 }
 
 function bootLibrary() {
-  applyTheme(storedTheme());
+  applyLook(readContext());
   const app = document.getElementById('app');
   let data;
   try {
@@ -304,7 +332,7 @@ function bootLibrary() {
       status.textContent = hits.length
         ? `${plural(hits.length, 'result')} in ${plural(groups.size, 'explainer')}${hits.length === RESULT_LIMIT ? ', showing the best' : ''}.`
         : `Nothing matches "${query}".`;
-      fill(results, ...resultGroups(groups, titles));
+      fill(results, ...resultGroups(groups, titles, queryWords(query)));
       grid.hidden = true;
     } else {
       status.textContent = explainers.length && shown.length !== explainers.length ? `${plural(shown.length, 'explainer')} match these filters.` : '';

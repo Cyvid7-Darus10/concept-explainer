@@ -67,7 +67,7 @@ function footBits(meta, context, registry, progressLines) {
   return [
     progress,
     library && h('div', { class: 'side-util' }, h('a', { class: 'util', href: library }, h('span', { class: 'util-ic' }, icon('library_shelf')), 'Library')),
-    h('div', { class: 'side-theme' }, h('span', { class: 'side-theme-label' }, 'Theme'), themeSwitch(registry)),
+    lookControls(registry),
     (meta.generatedAt || meta.commit) && h('p', { class: 'side-stamp' },
       meta.generatedAt && h('span', null, `Generated ${formatDate(meta.generatedAt)}`),
       meta.commit && h('span', null, `Commit ${String(meta.commit).slice(0, 7)}`)),
@@ -213,7 +213,8 @@ function fatal(app, message) {
 }
 
 function boot() {
-  applyTheme(storedTheme());
+  const context = readContext();
+  applyLook(context);
   const app = document.getElementById('app');
   let data;
   try {
@@ -226,7 +227,6 @@ function boot() {
     fatal(app, 'The embedded data has no meta.title. Run repo-explainer validate to see what is missing.');
     return;
   }
-  const context = readContext();
   const chapters = chooseChapters(data);
   const viewed = viewedStore(data.meta);
   const registry = themeRegistry();
