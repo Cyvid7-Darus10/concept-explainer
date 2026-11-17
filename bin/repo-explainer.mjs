@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { execFileSync } from 'node:child_process';
 import { buildExplainer, buildGallery } from '../scripts/lib/build.mjs';
@@ -11,6 +12,12 @@ import { collectChanges } from '../scripts/lib/changes.mjs';
 import { createStarter, listPatterns, listPresets } from '../scripts/lib/init.mjs';
 import { exportIcons, exportLogos } from '../scripts/lib/assets.mjs';
 import { PRICING, costTable, formatUsd, sizeOf } from '../scripts/lib/estimate.mjs';
+import {
+  ensureHub, libraryPaths, listExplainers, publishExplainer, rebuildLibrary, removeExplainer, resolveHome,
+} from '../scripts/lib/library.mjs';
+import { installSkill, resolveConfigDir } from '../scripts/lib/install.mjs';
+
+const SKILL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const HELP = `repo-explainer: turn a repo into a guided, interactive HTML tour
 
@@ -20,7 +27,10 @@ Usage
   repo-explainer init <repo> [--preset id]         Write a starter explainer.json (preset auto-picked from scan)
   repo-explainer changes <repo> [--data file]      Draft "what changed & why" entries from git history
   repo-explainer validate <file> [--repo dir]      Check the data; --repo also checks every cited file exists
-  repo-explainer build <file> [--out f] [--repo d] Validate, then render one self-contained HTML file
+  repo-explainer build <file> [--out f] [--repo d] Validate, render one self-contained HTML file, publish it to the library
+  repo-explainer library [list|path|add|remove|rebuild|open]
+                                                   Every explainer in one searchable hub (see below)
+  repo-explainer install [--force]                 Link this skill into Claude and add the library rule
   repo-explainer presets                           List presets
   repo-explainer patterns [id]                     List reusable flow patterns, or print one
   repo-explainer assets [--out dir]                Export logo + icon SVGs
@@ -32,6 +42,15 @@ Options
   --repo, -r     Repo root for file checks        --merges    only merge commits (PR merges)
   --strict       Treat warnings as errors         --write     merge drafted changes into --data file
   --open         Open the built file              --remote    repo URL for PR links (e.g. https://github.com/o/r)
+  --no-library   Build without publishing         --force     install: replace a real folder or edited rule (kept as backup)
+
+Library (home: $REPO_EXPLAINER_HOME, else ~/.repo-explainer)
+  library [list]                   List published explainers
+  library path                     Print the hub page path (<home>/index.html)
+  library add <file> [--repo d]    Validate and publish an explainer.json without writing an HTML copy
+  library remove <slug>            Delete one explainer from the library
+  library rebuild                  Re-render every page and the hub with the current template
+  library open                     Open the hub in your browser
 `;
 
 const OPTIONS = {
@@ -46,6 +65,8 @@ const OPTIONS = {
   write: { type: 'boolean' },
   strict: { type: 'boolean' },
   open: { type: 'boolean' },
+  'no-library': { type: 'boolean' },
+  force: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
 };
 
@@ -77,6 +98,66 @@ function report({ errors, warnings }, strict) {
   process.stderr.write(`${failed ? '✖' : '✔'} ${errors.length} error(s), ${warnings.length} warning(s)\n`);
   return !failed;
 }
+
+function openPath(path) {
+  if (process.platform === 'win32') execFileSync('cmd', ['/c', 'start', '', path]);
+  else execFileSync(process.platform === 'darwin' ? 'open' : 'xdg-open', [path]);
+}
+
+function publish(data, file, opts) {
+  const result = publishExplainer(data, { home: resolveHome(), sourcePath: resolve(file), repoPath: opts.repo && resolve(opts.repo) });
+  if (result.recovered) process.stderr.write('  ⚠ library.json was corrupt; it was backed up and rebuilt\n');
+  process.stderr.write(`✔ ${result.updated ? 'updated' : 'added'} ${result.slug} in the library\n  page: ${result.pagePath}\n  library: ${result.hubPath}\n`);
+  return result;
+}
+
+function validated(file, opts) {
+  const data = readJson(file);
+  if (!report(validateExplainer(data, { repoRoot: opts.repo && resolve(opts.repo) }), opts.strict)) {
+    process.exitCode = 1;
+    return null;
+  }
+  return data;
+}
+
+const LIBRARY_COMMANDS = {
+  list() {
+    const entries = listExplainers({ home: resolveHome() });
+    const { hub } = libraryPaths(resolveHome());
+    if (!entries.length) {
+      process.stdout.write(`The library is empty. Run \`repo-explainer build <explainer.json>\` to add one.\n`);
+      return;
+    }
+    const width = Math.max(...entries.map((e) => e.slug.length)) + 2;
+    entries.forEach((e) => process.stdout.write(`${e.slug.padEnd(width)}${e.title}  (${String(e.publishedAt).slice(0, 10)})\n`));
+    process.stdout.write(`\n${entries.length} explainer(s). Hub: ${hub}\n`);
+  },
+  path() {
+    process.stdout.write(`${libraryPaths(resolveHome()).hub}\n`);
+  },
+  add(positionals, opts) {
+    const file = requirePositional(positionals, '<explainer.json>');
+    const data = validated(file, opts);
+    if (data) publish(data, file, opts);
+  },
+  remove(positionals) {
+    const slug = requirePositional(positionals, '<slug>');
+    try {
+      removeExplainer(slug, { home: resolveHome() });
+    } catch (error) {
+      throw new UsageError(error.message);
+    }
+    process.stderr.write(`✔ removed ${slug}\n  library: ${libraryPaths(resolveHome()).hub}\n`);
+  },
+  rebuild() {
+    const { rebuilt, skipped, hubPath } = rebuildLibrary({ home: resolveHome() });
+    skipped.forEach((slug) => process.stderr.write(`  ⚠ dropped ${slug}: its explainer.json is missing or broken\n`));
+    process.stderr.write(`✔ rebuilt ${rebuilt.length} explainer(s)\n  library: ${hubPath}\n`);
+  },
+  open() {
+    openPath(ensureHub({ home: resolveHome() }));
+  },
+};
 
 function requirePositional(positionals, label) {
   if (!positionals[0]) throw new UsageError(`missing ${label}\n\n${HELP}`);
@@ -122,14 +203,36 @@ const COMMANDS = {
 
   build(positionals, opts) {
     const file = requirePositional(positionals, '<file>');
-    const data = readJson(file);
-    if (!report(validateExplainer(data, { repoRoot: opts.repo && resolve(opts.repo) }), opts.strict)) {
-      process.exitCode = 1;
-      return;
-    }
+    const data = validated(file, opts);
+    if (!data) return;
     const out = opts.out || join(dirname(file), `${basename(file).replace(/(\.explainer)?\.json$/, '')}.html`);
     writeFile(out, buildExplainer(data));
-    if (opts.open) execFileSync(process.platform === 'darwin' ? 'open' : 'xdg-open', [out]);
+    if (!opts['no-library']) {
+      try {
+        publish(data, file, opts);
+      } catch (error) {
+        throw new Error(`built ${out}, but publishing to the library failed: ${error.message}`);
+      }
+    }
+    if (opts.open) openPath(out);
+  },
+
+  library(positionals, opts) {
+    const [sub = 'list', ...rest] = positionals;
+    const run = LIBRARY_COMMANDS[sub];
+    if (!run) throw new UsageError(`unknown library command "${sub}". Use list, path, add, remove, rebuild or open`);
+    run(rest, opts);
+  },
+
+  install(_positionals, opts) {
+    let actions;
+    try {
+      actions = installSkill({ skillDir: SKILL_DIR, configDir: resolveConfigDir(), force: Boolean(opts.force) });
+    } catch (error) {
+      throw new UsageError(error.message);
+    }
+    actions.forEach((line) => process.stderr.write(`✔ ${line}\n`));
+    process.stderr.write(`  library: ${libraryPaths(resolveHome()).hub}\n`);
   },
 
   estimate(positionals) {
