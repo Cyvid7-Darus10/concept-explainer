@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildExplainer, buildGallery, buildLibrary, escapeHtml, serializeForScript, TEMPLATE_DIR } from '../scripts/lib/build.mjs';
+import { buildExplainer, buildGallery, buildLibrary, escapeHtml, inlineSafe, serializeForScript, TEMPLATE_DIR } from '../scripts/lib/build.mjs';
 import { NODE_KINDS } from '../scripts/lib/schema.mjs';
 import { listPatterns } from '../scripts/lib/init.mjs';
 
@@ -62,7 +62,8 @@ test('placeholder names inside data are never expanded a second time', () => {
   const html = buildExplainer(data);
   assert.match(html, /<title>x __EXPLAINER_DATA__ \/\*__SCRIPTS__\*\/ · Concept Explainer<\/title>/);
   assert.match(html, /<meta name="description" content="__TITLE__ &quot;quoted&quot;">/);
-  assert.equal((html.match(/<script>/g) || []).length, 1, 'no second script block injected');
+  const baseline = (buildExplainer(example).match(/<script>/g) || []).length;
+  assert.equal((html.match(/<script>/g) || []).length, baseline, 'no second script block injected');
   assert.deepEqual(embeddedJson(html), data);
 });
 
@@ -122,4 +123,15 @@ test('buildLibrary embeds the manifest and index and boots the hub', () => {
   assert.equal(embeddedJson(buildLibrary(manifest, index, { style: 'playful' })).style, 'playful');
   const templateTags = (readFileSync(join(TEMPLATE_DIR, 'library.html'), 'utf8').match(/<\/script>/g) || []).length;
   assert.equal((html.match(/<\/script>/g) || []).length, templateTags, 'only the template\'s own closing tags');
+});
+
+test('template code that mentions </script> cannot end the inline script block', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'rx-tpl-'));
+  cpSync(TEMPLATE_DIR, dir, { recursive: true });
+  writeFileSync(join(dir, 'js', 'app.js'), `${readFileSync(join(dir, 'js', 'app.js'), 'utf8')}\nconst saved = \`<script>x</script>\` + '</SCRIPT >';\n`);
+  const html = buildExplainer(example, { templateDir: dir });
+  const tags = (readFileSync(join(dir, 'explainer.html'), 'utf8').match(/<\/script>/gi) || []).length;
+  assert.equal((html.match(/<\/script/gi) || []).length, tags);
+  assert.ok(html.includes('<script>x<\\/script>'), 'the closing tag in code is escaped');
+  assert.equal(inlineSafe('a </style> b', 'style'), 'a <\\/style> b');
 });

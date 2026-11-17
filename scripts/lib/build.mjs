@@ -51,12 +51,19 @@ function readTemplate(templateDir, order = SCRIPT_ORDER, page = 'explainer.html'
 // A template without a placeholder (say, no context tag yet) simply skips it.
 const PLACEHOLDER_PATTERN = /__TITLE__|__DESCRIPTION__|\/\*__STYLES__\*\/|\/\*__SCRIPTS__\*\/|__EXPLAINER_DATA__|__CONTEXT__/g;
 
+// Inside an inline <script>, the text "</script" ends the block, even in a JS
+// string. "<\/script" means the same thing to JS and cannot end the block.
+// Likewise "</style" inside the stylesheet.
+export function inlineSafe(source, tag) {
+  return source.replace(new RegExp(`<\\/(${tag})`, 'gi'), '<\\/$1');
+}
+
 function assemble({ html, styles, scripts }, title, data, bootCall = '', description = '', context = {}) {
   const values = {
     __TITLE__: escapeHtml(title),
     __DESCRIPTION__: escapeHtml(description),
-    '/*__STYLES__*/': styles,
-    '/*__SCRIPTS__*/': `(() => {\n'use strict';\n${scripts}\n${bootCall}\n})();`,
+    '/*__STYLES__*/': inlineSafe(styles, 'style'),
+    '/*__SCRIPTS__*/': inlineSafe(`(() => {\n'use strict';\n${scripts}\n${bootCall}\n})();`, 'script'),
     __EXPLAINER_DATA__: serializeForScript(data),
     __CONTEXT__: serializeForScript(context),
   };
