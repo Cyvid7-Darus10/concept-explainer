@@ -1,7 +1,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
-import { mkdtempSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startLibraryServer, TOKEN_HEADER } from '../scripts/lib/serve.mjs';
@@ -72,10 +73,29 @@ test('a wrong Host header is refused, against DNS rebinding', async () => {
   assert.equal((await send({ path: '/index.html', headers: { host: 'evil.example:80' } })).status, 403);
 });
 
-test('GET /api/config returns the current config', async () => {
-  const res = await send({ path: '/api/config' });
+test('GET /api/config needs the token, since config can hold private instructions', async () => {
+  assert.equal((await send({ path: '/api/config' })).status, 403);
+  assert.equal((await send({ path: '/api/config', headers: { [TOKEN_HEADER]: 'wrong' } })).status, 403);
+  const res = await send({ path: '/api/config', headers: { [TOKEN_HEADER]: served.token } });
   assert.equal(res.status, 200);
   assert.equal(JSON.parse(res.body).config.style, 'clean');
+});
+
+test('pages get a strict CSP that hashes their inline script and style', async () => {
+  const res = await send({ path: '/index.html' });
+  const csp = res.headers['content-security-policy'];
+  assert.ok(csp, 'CSP header present');
+  const script = res.body.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const style = res.body.match(/<style>([\s\S]*?)<\/style>/)[1];
+  const hash = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
+  assert.match(csp, /default-src 'none'/);
+  assert.ok(csp.includes(`script-src ${hash(script)}`), csp);
+  assert.ok(csp.includes(hash(style)), csp);
+  assert.doesNotMatch(csp.replace("style-src-attr 'unsafe-inline'", ''), /unsafe-inline|unsafe-eval/);
+  assert.match(csp, /connect-src 'self'/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  const json = await send({ path: '/library.json' });
+  assert.match(json.headers['content-security-policy'], /^default-src 'none'/);
 });
 
 test('saving needs the token, the right origin and JSON', async () => {
