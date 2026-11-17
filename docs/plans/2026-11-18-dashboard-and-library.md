@@ -65,6 +65,7 @@ Rules (enforced by `test/brand.test.mjs`, documented in `references/design-syste
 | `#concepts/<index>` | concepts view, that concept (0-based) |
 | `#glossary/<term>` | glossary view, that term (URI-encoded) |
 | `#tree/<path>` | tree view, that path highlighted (URI-encoded) |
+| `#quiz/<n>`, `#quiz/done` | one quiz question (1-based), or the result (as built; see references/data-schema.md) |
 | `#quiz`, `#run` | those views |
 
 Unknown ids fall back to the chapter view; an unknown chapter falls back to Overview. Back/forward work.
