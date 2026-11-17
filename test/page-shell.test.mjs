@@ -7,7 +7,8 @@ import { readFileSync } from 'node:fs';
 // with template/explainer.html, or saved pages would drift from built ones.
 
 const template = readFileSync(new URL('../template/explainer.html', import.meta.url), 'utf8');
-const settings = readFileSync(new URL('../template/js/settings.js', import.meta.url), 'utf8');
+// pageSnapshot lives in share.js.
+const settings = readFileSync(new URL('../template/js/share.js', import.meta.url), 'utf8');
 
 function snapshotSkeleton() {
   const start = settings.indexOf("'<body>'");

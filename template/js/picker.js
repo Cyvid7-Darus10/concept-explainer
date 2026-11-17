@@ -84,20 +84,11 @@ function optionRow(option, id, selected) {
       option.desc && h('span', { class: 'picker-desc' }, option.desc)));
 }
 
-/**
- * A button that opens a listbox popover. Up/Down, Home/End, typeahead,
- * Enter/Space choose, Escape closes and returns focus to the button.
- * @param {{ options: object[], value: string, labelledBy: string, describedBy?: string, onChange?: Function }} spec
- */
-function listboxPicker({ options, value, labelledBy, describedBy, onChange, ariaLabel, buttonContent }) {
+// The button, the popover and its rows. Compact pickers (an icon button)
+// name themselves with aria-label.
+function listboxParts({ options, current, labelOf, labelledBy, describedBy, ariaLabel, buttonContent }) {
   const buttonId = pickerId('picker-button');
   const listId = pickerId('picker-list');
-  let current = options.some((o) => o.value === value) ? value : options[0].value;
-  let active = 0;
-  let typed = '';
-  let typedAt = 0;
-  const labelOf = (v) => (options.find((o) => o.value === v) || options[0]).label;
-  // Compact pickers (an icon button) name themselves with aria-label.
   const valueText = h('span', { class: 'picker-value' }, buttonContent ? buttonContent(current) : labelOf(current));
   const naming = ariaLabel ? { 'aria-label': `${ariaLabel}: ${labelOf(current)}` } : { 'aria-labelledby': `${labelledBy} ${buttonId}` };
   const button = h('button', {
@@ -109,39 +100,98 @@ function listboxPicker({ options, value, labelledBy, describedBy, onChange, aria
     class: 'picker-panel', role: 'listbox', id: listId, tabindex: '-1', hidden: true,
     ...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': labelledBy }),
   }, rows);
-  const root = h('div', { class: 'picker' }, button, panel);
-  const api = { root, close };
+  return { valueText, button, rows, panel, root: h('div', { class: 'picker' }, button, panel) };
+}
 
-  function paintActive() {
-    rows.forEach((row, i) => row.classList.toggle('is-active', i === active));
-    panel.setAttribute('aria-activedescendant', rows[active].id);
+const TYPEAHEAD_PAUSE_MS = 600;
+
+// Typing letters jumps to the first label that starts with them; a pause
+// starts a new search. Returns the matching index, or -1.
+function typeaheadFind(options, typeahead, key) {
+  const now = Date.now();
+  typeahead.typed = now - typeahead.at > TYPEAHEAD_PAUSE_MS ? key.toLowerCase() : typeahead.typed + key.toLowerCase();
+  typeahead.at = now;
+  return options.findIndex((o) => o.label.toLowerCase().startsWith(typeahead.typed));
+}
+
+// Keys inside the open listbox. nav: { active, count, move(i), choose(i), close(focus) }.
+function listboxKeys(event, options, typeahead, nav) {
+  const moves = { ArrowDown: nav.active + 1, ArrowUp: nav.active - 1, Home: 0, End: nav.count - 1 };
+  if (event.key in moves) {
+    event.preventDefault();
+    nav.move(Math.min(Math.max(moves[event.key], 0), nav.count - 1));
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    nav.choose(nav.active);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    nav.close(true);
+  } else if (event.key === 'Tab') {
+    nav.close(false);
+  } else if (event.key.length === 1 && /\S/.test(event.key)) {
+    const found = typeaheadFind(options, typeahead, event.key);
+    if (found >= 0) nav.move(found);
   }
+}
+
+const LISTBOX_OPEN_KEYS = ['ArrowDown', 'ArrowUp', 'Enter', ' '];
+
+// One popover open at a time on the page.
+function showPopover(api, trigger, panel) {
+  if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
+  panel.hidden = false;
+  trigger.setAttribute('aria-expanded', 'true');
+  placePanel(trigger, panel);
+  PICKER.open = api;
+}
+
+function hidePopover(api, trigger, panel) {
+  panel.hidden = true;
+  trigger.setAttribute('aria-expanded', 'false');
+  if (PICKER.open === api) PICKER.open = null;
+}
+
+function paintListboxActive(rows, panel, active) {
+  rows.forEach((row, i) => row.classList.toggle('is-active', i === active));
+  panel.setAttribute('aria-activedescendant', rows[active].id);
+}
+
+// The button shows the chosen label (or icon); the rows mark the choice.
+function showListboxValue({ valueText, button, rows }, options, current, { labelOf, ariaLabel, buttonContent }) {
+  fill(valueText, buttonContent ? buttonContent(current) : labelOf(current));
+  if (ariaLabel) button.setAttribute('aria-label', `${ariaLabel}: ${labelOf(current)}`);
+  rows.forEach((row, j) => row.setAttribute('aria-selected', String(options[j].value === current)));
+}
+
+/**
+ * A button that opens a listbox popover. Up/Down, Home/End, typeahead,
+ * Enter/Space choose, Escape closes and returns focus to the button.
+ * @param {{ options: object[], value: string, labelledBy: string, describedBy?: string, onChange?: Function }} spec
+ */
+function listboxPicker({ options, value, labelledBy, describedBy, onChange, ariaLabel, buttonContent }) {
+  let current = options.some((o) => o.value === value) ? value : options[0].value;
+  let active = 0;
+  const typeahead = { typed: '', at: 0 };
+  const labelOf = (v) => (options.find((o) => o.value === v) || options[0]).label;
+  const { valueText, button, rows, panel, root } = listboxParts({ options, current, labelOf, labelledBy, describedBy, ariaLabel, buttonContent });
+  const api = { root, close };
+  const paintActive = () => paintListboxActive(rows, panel, active);
 
   function open() {
-    if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
     active = Math.max(0, options.findIndex((o) => o.value === current));
-    panel.hidden = false;
-    button.setAttribute('aria-expanded', 'true');
-    placePanel(button, panel);
+    showPopover(api, button, panel);
     paintActive();
     panel.focus({ preventScroll: true });
-    PICKER.open = api;
   }
 
   function close(returnFocus = true) {
     if (panel.hidden) return;
-    panel.hidden = true;
-    button.setAttribute('aria-expanded', 'false');
-    if (PICKER.open === api) PICKER.open = null;
+    hidePopover(api, button, panel);
     if (returnFocus) button.focus();
   }
 
-  function show(next) {
-    current = next;
-    fill(valueText, buttonContent ? buttonContent(current) : labelOf(current));
-    if (ariaLabel) button.setAttribute('aria-label', `${ariaLabel}: ${labelOf(current)}`);
-    rows.forEach((row, j) => row.setAttribute('aria-selected', String(options[j].value === current)));
-  }
+  const show = (next) => { current = next; showListboxValue({ valueText, button, rows }, options, current, { labelOf, ariaLabel, buttonContent }); };
 
   function choose(i) {
     show(options[i].value);
@@ -151,46 +201,61 @@ function listboxPicker({ options, value, labelledBy, describedBy, onChange, aria
 
   button.addEventListener('click', () => (panel.hidden ? open() : close()));
   button.addEventListener('keydown', (event) => {
-    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
-      event.preventDefault();
-      open();
-    }
+    if (!LISTBOX_OPEN_KEYS.includes(event.key)) return;
+    event.preventDefault();
+    open();
   });
-  panel.addEventListener('keydown', (event) => {
-    const moves = { ArrowDown: active + 1, ArrowUp: active - 1, Home: 0, End: options.length - 1 };
-    if (event.key in moves) {
-      event.preventDefault();
-      active = Math.min(Math.max(moves[event.key], 0), options.length - 1);
-      paintActive();
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      choose(active);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      close(true);
-    } else if (event.key === 'Tab') {
-      close(false);
-    } else if (event.key.length === 1 && /\S/.test(event.key)) {
-      const now = Date.now();
-      typed = now - typedAt > 600 ? event.key.toLowerCase() : typed + event.key.toLowerCase();
-      typedAt = now;
-      const found = options.findIndex((o) => o.label.toLowerCase().startsWith(typed));
-      if (found >= 0) { active = found; paintActive(); }
-    }
-  });
+  const move = (i) => { active = i; paintActive(); };
+  panel.addEventListener('keydown', (event) => listboxKeys(event, options, typeahead, { active, count: options.length, move, choose, close }));
   rows.forEach((row, i) => {
     row.addEventListener('click', () => choose(i));
-    row.addEventListener('pointermove', () => { if (active !== i) { active = i; paintActive(); } });
+    row.addEventListener('pointermove', () => { if (active !== i) move(i); });
   });
 
-  return {
-    el: root,
-    read: () => current,
-    focus: () => button.focus(),
-    set: (next) => { if (options.some((o) => o.value === next) && next !== current) show(next); },
-  };
+  const set = (next) => { if (options.some((o) => o.value === next) && next !== current) show(next); };
+  return { el: root, read: () => current, focus: () => button.focus(), set };
 }
+
+const COMBO_SHOWN = 8;
+
+// Suggestions: values that start with the text, or labels that contain it.
+function comboMatches(options, typed) {
+  const q = String(typed).trim().toLowerCase();
+  return options.filter((o) => !q || o.value.toLowerCase().startsWith(q) || o.label.toLowerCase().includes(q)).slice(0, COMBO_SHOWN);
+}
+
+// Keys in the combobox. nav: { open, step(by), take() -> taken, close() }.
+function comboKeys(event, nav) {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    nav.step(event.key === 'ArrowDown' ? 1 : -1);
+  } else if (event.key === 'Enter' && nav.open) {
+    if (nav.take()) event.preventDefault();
+  } else if (event.key === 'Escape' && nav.open) {
+    event.preventDefault();
+    event.stopPropagation();
+    nav.close();
+  }
+}
+
+function comboParts(id, value, describedBy) {
+  const listId = pickerId('combo-list');
+  const input = h('input', {
+    class: 'field picker-input', type: 'text', id, value: String(value ?? ''), role: 'combobox', autocomplete: 'off', spellcheck: 'false',
+    'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': listId, 'aria-describedby': describedBy,
+  });
+  const panel = h('div', { class: 'picker-panel', role: 'listbox', id: listId, hidden: true });
+  return { listId, input, panel, root: h('div', { class: 'picker' }, input, panel) };
+}
+
+function paintComboActive(panel, input, active) {
+  [...panel.children].forEach((row, i) => row.classList.toggle('is-active', i === active));
+  if (active >= 0 && panel.children[active]) input.setAttribute('aria-activedescendant', panel.children[active].id);
+  else input.removeAttribute('aria-activedescendant');
+}
+
+// A click on a suggestion lands before the blur closes the list.
+const COMBO_BLUR_CLOSE_MS = 120;
 
 /**
  * A text field with suggestions (combobox). Free entry is allowed; the
@@ -198,20 +263,14 @@ function listboxPicker({ options, value, labelledBy, describedBy, onChange, aria
  * @param {{ options: object[], value: string, id: string, describedBy?: string }} spec
  */
 function comboPicker({ options, value, id, describedBy }) {
-  const listId = pickerId('combo-list');
+  const { listId, input, panel, root } = comboParts(id, value, describedBy);
   let active = -1;
   let shown = [];
-  const input = h('input', {
-    class: 'field picker-input', type: 'text', id, value: String(value ?? ''), role: 'combobox', autocomplete: 'off', spellcheck: 'false',
-    'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': listId, 'aria-describedby': describedBy,
-  });
-  const panel = h('div', { class: 'picker-panel', role: 'listbox', id: listId, hidden: true });
-  const root = h('div', { class: 'picker' }, input, panel);
   const api = { root, close: () => close() };
+  const paintActive = () => paintComboActive(panel, input, active);
 
   function render() {
-    const q = input.value.trim().toLowerCase();
-    shown = options.filter((o) => !q || o.value.toLowerCase().startsWith(q) || o.label.toLowerCase().includes(q)).slice(0, 8);
+    shown = comboMatches(options, input.value);
     fill(panel, ...shown.map((option, i) => optionRow(option, `${listId}-${i}`, option.value === input.value.trim())));
     [...panel.children].forEach((row, i) => row.addEventListener('pointerdown', (event) => { event.preventDefault(); take(i); }));
     if (!shown.length) { close(); return; }
@@ -219,28 +278,15 @@ function comboPicker({ options, value, id, describedBy }) {
     paintActive();
   }
 
-  function paintActive() {
-    [...panel.children].forEach((row, i) => row.classList.toggle('is-active', i === active));
-    if (active >= 0 && panel.children[active]) input.setAttribute('aria-activedescendant', panel.children[active].id);
-    else input.removeAttribute('aria-activedescendant');
-  }
-
   function open() {
-    if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
     render();
-    if (!shown.length) return;
-    panel.hidden = false;
-    input.setAttribute('aria-expanded', 'true');
-    placePanel(input, panel);
-    PICKER.open = api;
+    if (shown.length) showPopover(api, input, panel);
   }
 
   function close() {
-    panel.hidden = true;
-    input.setAttribute('aria-expanded', 'false');
+    hidePopover(api, input, panel);
     input.removeAttribute('aria-activedescendant');
     active = -1;
-    if (PICKER.open === api) PICKER.open = null;
   }
 
   function take(i) {
@@ -251,22 +297,17 @@ function comboPicker({ options, value, id, describedBy }) {
 
   input.addEventListener('input', () => { active = -1; open(); });
   input.addEventListener('focus', () => open());
-  input.addEventListener('blur', () => window.setTimeout(close, 120));
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
+  input.addEventListener('blur', () => window.setTimeout(close, COMBO_BLUR_CLOSE_MS));
+  input.addEventListener('keydown', (event) => comboKeys(event, {
+    open: panel.hidden === false,
+    step: (by) => {
       if (panel.hidden) open();
-      active = Math.min(Math.max(active + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1);
+      active = Math.min(Math.max(active + by, 0), shown.length - 1);
       paintActive();
-    } else if (event.key === 'Enter' && !panel.hidden && active >= 0) {
-      event.preventDefault();
-      take(active);
-    } else if (event.key === 'Escape' && !panel.hidden) {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-    }
-  });
+    },
+    take: () => { if (active >= 0) take(active); else return false; return true; },
+    close,
+  }));
 
   return { el: root, read: () => input.value.trim(), focus: () => input.focus() };
 }

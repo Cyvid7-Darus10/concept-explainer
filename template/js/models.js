@@ -75,44 +75,8 @@ function renderModels(data, mount) {
     setDeepLink(`data/${linkPart(name)}`);
   }
 
-  function paint() {
-    const related = new Set(edges.filter((e) => e.from === selected || e.to === selected).flatMap((e) => [e.from, e.to]));
-    canvas.classList.add('has-selection');
-    grid.querySelectorAll('.entity').forEach((el) => {
-      el.classList.toggle('is-selected', el.dataset.entity === selected);
-      el.classList.toggle('is-related', related.has(el.dataset.entity));
-      el.setAttribute('aria-pressed', String(el.dataset.entity === selected));
-    });
-    svg.querySelectorAll('[data-edge]').forEach((g) => {
-      const [from, to] = g.dataset.edge.split('→');
-      const active = from === selected || to === selected;
-      g.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
-    });
-  }
-
-  function modelDetail(model) {
-    if (!model) return [];
-    const rels = edges.filter((e) => e.from === model.name || e.to === model.name);
-    return [
-      h('div', { class: 'er-detail-head' },
-        h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
-        model.summary && h('p', null, softBreaks(model.summary))),
-      h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
-        h('div', { class: 'er-row er-row-head', role: 'row' },
-          h('span', { role: 'columnheader' }, 'Field'), h('span', { role: 'columnheader' }, 'Type'), h('span', { role: 'columnheader' }, 'Meaning')),
-        list(model.fields).map((field) => fieldRow(field, modelNames, pick))),
-      rels.length > 0 && h('div', { class: 'er-rels' },
-        h('p', { class: 'eyebrow quiet' }, 'Relationships'),
-        h('ul', { class: 'rel' }, rels.map((edge) => {
-          const other = edge.from === model.name ? edge.to : edge.from;
-          const [a, b] = edge.from === model.name ? edge.ends : [...edge.ends].reverse();
-          return h('li', null,
-            tag(`${a || '?'} : ${b || '?'}`),
-            h('span', null, softBreaks(`${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `)),
-            h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, softBreaks(other)));
-        }))),
-    ];
-  }
+  const paint = () => paintEntities(canvas, grid, svg, edges, selected);
+  const modelDetail = (model) => entityDetail(model, edges, modelNames, pick);
 
   function drawEdges() {
     const box = canvas.getBoundingClientRect();
@@ -134,6 +98,49 @@ function renderModels(data, mount) {
       return grid.querySelector(`[data-entity="${CSS.escape(name)}"]`);
     },
   };
+}
+
+// Highlight the selected entity, its neighbours and their relation lines.
+function paintEntities(canvas, grid, svg, edges, selected) {
+  const related = new Set(edges.filter((e) => e.from === selected || e.to === selected).flatMap((e) => [e.from, e.to]));
+  canvas.classList.add('has-selection');
+  grid.querySelectorAll('.entity').forEach((el) => {
+    el.classList.toggle('is-selected', el.dataset.entity === selected);
+    el.classList.toggle('is-related', related.has(el.dataset.entity));
+    el.setAttribute('aria-pressed', String(el.dataset.entity === selected));
+  });
+  svg.querySelectorAll('[data-edge]').forEach((g) => {
+    const [from, to] = g.dataset.edge.split('→');
+    const active = from === selected || to === selected;
+    g.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
+  });
+}
+
+function entityRelation(model, edge, pick) {
+  const other = edge.from === model.name ? edge.to : edge.from;
+  const [a, b] = edge.from === model.name ? edge.ends : [...edge.ends].reverse();
+  return h('li', null,
+    tag(`${a || '?'} : ${b || '?'}`),
+    h('span', null, softBreaks(`${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `)),
+    h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, softBreaks(other)));
+}
+
+// The detail panel: fields as a table, then the relationships.
+function entityDetail(model, edges, modelNames, pick) {
+  if (!model) return [];
+  const rels = edges.filter((e) => e.from === model.name || e.to === model.name);
+  return [
+    h('div', { class: 'er-detail-head' },
+      h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
+      model.summary && h('p', null, softBreaks(model.summary))),
+    h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
+      h('div', { class: 'er-row er-row-head', role: 'row' },
+        h('span', { role: 'columnheader' }, 'Field'), h('span', { role: 'columnheader' }, 'Type'), h('span', { role: 'columnheader' }, 'Meaning')),
+      list(model.fields).map((field) => fieldRow(field, modelNames, pick))),
+    rels.length > 0 && h('div', { class: 'er-rels' },
+      h('p', { class: 'eyebrow quiet' }, 'Relationships'),
+      h('ul', { class: 'rel' }, rels.map((edge) => entityRelation(model, edge, pick)))),
+  ];
 }
 
 function entityBox(model, index, modelNames, onSelect) {

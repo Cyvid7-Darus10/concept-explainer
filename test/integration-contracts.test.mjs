@@ -7,13 +7,15 @@ import { publishExplainer, writeConfig, libraryPaths } from '../scripts/lib/libr
 import { CONFIG_KEYS, validateConfig } from '../scripts/lib/config.mjs';
 import { CONFLICT_MODES } from '../scripts/lib/bundle.mjs';
 import { HELP } from '../scripts/lib/cli/help.mjs';
+import { SETTINGS_FILES, HUB_FILES } from '../scripts/lib/build.mjs';
 
 // What the page code reads must be what the build writes, and the commands a
 // page shows must be ones the CLI accepts.
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const APP = read('../template/js/app.js');
-const SETTINGS = read('../template/js/settings.js');
-const LIBRARY_JS = read('../template/js/library.js');
+// Features split across files are read as one source, in build order.
+const SETTINGS = SETTINGS_FILES.map((f) => read(`../template/js/${f}`)).join('\n');
+const LIBRARY_JS = HUB_FILES.map((f) => read(`../template/js/${f}`)).join('\n');
 const GALLERY = read('../template/js/gallery.js');
 const MAIN = read('../scripts/lib/cli/main.mjs');
 const SERVE = read('../scripts/lib/serve.mjs');

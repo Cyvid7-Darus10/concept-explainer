@@ -29,67 +29,6 @@ function plural(n, one, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-// ---------- Search ----------
-// Every word must appear in the title or text. Title hits rank first, then
-// the kind of thing (an explainer before a file).
-function scoreEntry(entry, words, phrase) {
-  const title = text(entry.title).toLowerCase();
-  const hay = `${title} ${text(entry.text).toLowerCase()}`;
-  if (!words.every((word) => hay.includes(word))) return null;
-  const typeRank = TYPE_ORDER.indexOf(entry.type);
-  return (title === phrase ? 20 : 0) + (title.startsWith(phrase) ? 8 : 0)
-    + words.filter((word) => title.includes(word)).length * 3 - (typeRank < 0 ? 10 : typeRank) * 0.1;
-}
-
-function searchEntries(index, query, allowed) {
-  const phrase = query.trim().toLowerCase();
-  const words = phrase.split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  return index
-    .filter((entry) => allowed.has(entry.slug))
-    .map((entry) => ({ entry, score: scoreEntry(entry, words, phrase) }))
-    .filter((hit) => hit.score !== null)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, RESULT_LIMIT)
-    .map((hit) => hit.entry);
-}
-
-function groupBySlug(entries) {
-  return entries.reduce((groups, entry) => {
-    const existing = groups.get(entry.slug) || [];
-    return new Map([...groups, [entry.slug, [...existing, entry]]]);
-  }, new Map());
-}
-
-// ---------- Facets ----------
-function stackFacets(explainers) {
-  const counts = explainers.flatMap((e) => list(e.stack).map(String)).reduce((map, item) => map.set(item, (map.get(item) || 0) + 1), new Map());
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, STACK_FACETS).map(([name]) => name);
-}
-
-function typeFacets(explainers) {
-  return [...new Set(explainers.map((e) => e.type || 'repo'))].sort();
-}
-
-function tagFacets(explainers) {
-  const counts = explainers.flatMap((e) => list(e.tags).map(String)).reduce((map, item) => map.set(item, (map.get(item) || 0) + 1), new Map());
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, TAG_FACETS).map(([name]) => name);
-}
-
-function presetFacets(explainers) {
-  return [...new Set(explainers.map((e) => e.preset).filter((p) => typeof p === 'string' && p))].sort();
-}
-
-function facetGroup(label, options, current, onPick, labelOf = (v) => v) {
-  if (!options.length) return null;
-  const chip = (value, name) => h('button', {
-    class: 'facet', type: 'button', 'aria-pressed': String(current === value), onclick: () => onPick(value),
-  }, truncatable(h('span', { class: 'facet-text' }, softBreaks(name)), name));
-  return h('div', { class: 'facet-group', role: 'group', 'aria-label': label },
-    h('span', { class: 'eyebrow quiet' }, label),
-    h('span', { class: 'facet-chips' }, chip(null, 'Any'), options.map((option) => chip(option, labelOf(option)))));
-}
-
 // ---------- Pieces ----------
 function layerMarkers(layers) {
   const items = list(layers).filter((l) => l && l.label);
@@ -163,51 +102,6 @@ function explainerCard(explainer) {
     h('span', { class: 'card-foot' }, h('span', { class: 'lib-counts' }, countsLine(explainer.counts)), h('span', { class: 'card-open' }, 'Open')),
   ];
   return href ? h('a', { class: 'card lib-card', href }, parts) : h('div', { class: 'card lib-card' }, parts);
-}
-
-// Wrap each query word found in the text in <mark>, as text nodes only.
-function highlight(value, words) {
-  const source = String(value);
-  const lower = source.toLowerCase();
-  const ranges = words.flatMap((word) => {
-    const found = [];
-    for (let at = lower.indexOf(word); at >= 0 && word; at = lower.indexOf(word, at + word.length)) found.push([at, at + word.length]);
-    return found;
-  }).sort((a, b) => a[0] - b[0])
-    .reduce((merged, range) => {
-      const last = merged[merged.length - 1];
-      return last && range[0] <= last[1] ? [...merged.slice(0, -1), [last[0], Math.max(last[1], range[1])]] : [...merged, range];
-    }, []);
-  const parts = [];
-  let cursor = 0;
-  ranges.forEach(([start, end]) => {
-    if (start > cursor) parts.push(...softBreaks(source.slice(cursor, start)));
-    parts.push(h('mark', null, softBreaks(source.slice(start, end))));
-    cursor = end;
-  });
-  if (cursor < source.length) parts.push(...softBreaks(source.slice(cursor)));
-  return parts;
-}
-
-function queryWords(query) {
-  return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-}
-
-function resultRow(entry, words) {
-  const href = libraryHref(entry.href);
-  const body = [
-    h('span', { class: 'tag result-type' }, TYPE_LABELS[entry.type] || text(entry.type, 'Item')),
-    h('span', { class: 'result-text' },
-      h('span', { class: 'result-title' }, highlight(text(entry.title, 'Untitled'), words)),
-      text(entry.text) && truncatable(h('span', { class: 'result-snippet' }, highlight(entry.text, words)), entry.text)),
-  ];
-  return h('li', null, href ? h('a', { class: 'result-link', href }, body) : h('span', { class: 'result-link is-plain' }, body));
-}
-
-function resultGroups(groups, titles, words) {
-  return [...groups.entries()].map(([slug, entries]) => h('section', { class: 'panel result-group', 'aria-label': titles.get(slug) || slug },
-    h('div', { class: 'panel-bar' }, truncatable(h('span', { class: 'result-group-title' }, softBreaks(titles.get(slug) || slug)), titles.get(slug) || slug), h('span', null, plural(entries.length, 'match', 'matches'))),
-    h('ul', { class: 'rows' }, entries.map((entry) => resultRow(entry, words)))));
 }
 
 function emptyLibrary() {
@@ -309,185 +203,171 @@ function moveFocus(container, step) {
   return next;
 }
 
-function bootLibrary() {
-  const pageContext = readContext();
-  applyLook(pageContext);
-  applyReading();
-  const app = document.getElementById('app');
-  let data;
-  try {
-    data = JSON.parse(document.getElementById('explainer-data').textContent);
-  } catch (error) {
-    withServe(pageContext);
-    fill(app, h('div', { class: 'fatal', role: 'alert' }, h('h1', null, 'The library could not load'),
-      h('p', null, 'Its data is not valid JSON. Run "concept-explainer library rebuild" to write it again.')));
-    return;
-  }
-  // The hub's data may name the serve endpoints; the token comes from the URL.
-  const dataServe = data && data.serve && typeof data.serve === 'object' ? { serve: { ...data.serve, ...(pageContext.serve || {}) } } : {};
-  const context = withServe({ ...pageContext, ...dataServe });
+// ---------- The hub's data and filters (pure) ----------
+function hubModel(data, context) {
   const manifest = (data && data.manifest) || {};
   const explainers = list(manifest.explainers).filter((e) => e && typeof e.slug === 'string');
   const index = list(data && data.index).filter((e) => e && typeof e.slug === 'string');
-  const titles = new Map(explainers.map((e) => [e.slug, text(e.title, e.slug)]));
   const changes = index.filter((e) => e.type === 'change').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-  const stacks = stackFacets(explainers);
-  const presets = presetFacets(explainers);
-  const kinds = typeFacets(explainers);
-  const tags = tagFacets(explainers);
-  const views = [
-    { key: 'all', nav: 'All explainers', count: explainers.length },
-    { key: 'changes', nav: 'Recent changes', count: changes.length },
-  ];
-  const registry = themeRegistry();
-  const shortDate = displayDate(manifest.updatedAt, { year: false });
-  const shell = hubShell(views, explainers, shortDate, registry, safeHref(data && data.kitHref));
-  const selected = new Set();
-  // Export exactly what the hub shows: the picked cards, else every explainer
-  // the search and filters leave on screen, else the whole library.
-  const shownSlugs = () => {
-    const allowed = allowedSlugs();
-    const query = input.value.trim();
-    return query ? [...groupBySlug(searchEntries(index, query, allowed)).keys()] : explainers.map((e) => e.slug).filter((slug) => allowed.has(slug));
+  return {
+    context, manifest, explainers, index, changes,
+    titles: new Map(explainers.map((e) => [e.slug, text(e.title, e.slug)])),
+    facets: { stacks: stackFacets(explainers), presets: presetFacets(explainers), kinds: typeFacets(explainers), tags: tagFacets(explainers) },
+    views: [
+      { key: 'all', nav: 'All explainers', count: explainers.length },
+      { key: 'changes', nav: 'Recent changes', count: changes.length },
+    ],
   };
-  const getSelection = () => {
-    const filtered = Boolean(state.stack || state.preset || state.type || state.tag || input.value.trim());
-    const slugs = selected.size ? [...selected] : filtered ? shownSlugs() : [];
-    const label = selected.size ? plural(slugs.length, 'picked explainer') : filtered ? plural(slugs.length, 'explainer') : 'the whole library';
-    return { slugs, args: slugs.map(shellQuote).join(' '), label, none: (selected.size > 0 || filtered) && !slugs.length };
+}
+
+// The slugs the facets allow (search narrows further).
+function hubAllowed(explainers, state) {
+  return new Set(explainers
+    .filter((e) => (!state.stack || list(e.stack).map(String).includes(state.stack)) && (!state.preset || e.preset === state.preset)
+      && (!state.type || (e.type || 'repo') === state.type) && (!state.tag || list(e.tags).map(String).includes(state.tag)))
+    .map((e) => e.slug));
+}
+
+// ---------- The hub's views ----------
+function hubElements() {
+  return {
+    input: h('input', {
+      class: 'search hub-search', type: 'search', placeholder: 'Search every explainer', 'aria-label': 'Search every explainer',
+      'aria-describedby': 'hub-search-hint', autocomplete: 'off', spellcheck: 'false',
+    }),
+    hint: h('span', { class: 'search-hint', id: 'hub-search-hint' }, 'Press ', h('kbd', null, '/'), ' to search, ', h('kbd', null, '↓'), ' to move through results.'),
+    status: h('p', { class: 'hub-status', 'aria-live': 'polite' }),
+    filters: h('div', { class: 'hub-filters' }),
+    results: h('div', { class: 'hub-results' }),
+    grid: h('ul', { class: 'cards lib-grid' }),
+    pickBar: h('div', { class: 'pick-bar' }),
+    changesList: h('ul', { class: 'rows' }),
+    authorBar: h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' }),
   };
-  const settings = settingsView(registry, {
-    context, config: context.config || (data && data.config) || null, extra: [hubShareGroup(context, getSelection)],
-  });
-  let state = { stack: null, preset: null, type: null, tag: null, author: 'all' };
-  let focusSearchNext = false;
+}
 
-  const input = h('input', {
-    class: 'search hub-search', type: 'search', placeholder: 'Search every explainer', 'aria-label': 'Search every explainer',
-    'aria-describedby': 'hub-search-hint', autocomplete: 'off', spellcheck: 'false',
-  });
-  const hint = h('span', { class: 'search-hint', id: 'hub-search-hint' }, 'Press ', h('kbd', null, '/'), ' to search, ', h('kbd', null, '↓'), ' to move through results.');
-  const status = h('p', { class: 'hub-status', 'aria-live': 'polite' });
-  const filters = h('div', { class: 'hub-filters' });
-  const results = h('div', { class: 'hub-results' });
-  const grid = h('ul', { class: 'cards lib-grid' });
-  const pickBar = h('div', { class: 'pick-bar' });
-  const changesList = h('ul', { class: 'rows' });
-  const authorBar = h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' });
-
-  const allView = h('section', { class: 'view hub-view', 'data-view': 'all', 'aria-labelledby': 'view-all-title' },
+function hubAllView({ explainers }, ui) {
+  return h('section', { class: 'view hub-view', 'data-view': 'all', 'aria-labelledby': 'view-all-title' },
     h('header', { class: 'view-head' },
       h('p', { class: 'eyebrow quiet' }, 'Library'),
       h('h1', { id: 'view-all-title', tabindex: '-1' }, 'Explainer library'),
       h('p', { class: 'view-lead' }, explainers.length
         ? `${plural(explainers.length, 'explainer')}. Search inside all of them, or open one.`
         : 'Explainers you build show up here.')),
-    explainers.length > 0 && h('div', { class: 'hub-search-wrap' }, input, hint),
-    explainers.length > 1 && filters,
-    status, results,
-    explainers.length > 0 && pickBar,
-    explainers.length ? grid : emptyLibrary());
-  const changesView = h('section', { class: 'view hub-view', 'data-view': 'changes', hidden: true, 'aria-labelledby': 'view-changes-title' },
+    explainers.length > 0 && h('div', { class: 'hub-search-wrap' }, ui.input, ui.hint),
+    explainers.length > 1 && ui.filters,
+    ui.status, ui.results,
+    explainers.length > 0 && ui.pickBar,
+    explainers.length ? ui.grid : emptyLibrary());
+}
+
+function hubChangesView({ changes }, ui) {
+  return h('section', { class: 'view hub-view', 'data-view': 'changes', hidden: true, 'aria-labelledby': 'view-changes-title' },
     h('header', { class: 'view-head' },
       h('p', { class: 'eyebrow quiet' }, 'Across every explainer'),
       h('h1', { id: 'view-changes-title', tabindex: '-1' }, 'Recent changes'),
       h('p', { class: 'view-lead' }, 'Every recorded change, newest first. Open one to see it in its explainer.')),
-    changes.length ? [authorBar, h('div', { class: 'panel' }, changesList)] : h('p', { class: 'empty' }, 'No changes recorded yet.'));
+    changes.length ? [ui.authorBar, h('div', { class: 'panel' }, ui.changesList)] : h('p', { class: 'empty' }, 'No changes recorded yet.'));
+}
 
-  function allowedSlugs() {
-    return new Set(explainers
-      .filter((e) => (!state.stack || list(e.stack).map(String).includes(state.stack)) && (!state.preset || e.preset === state.preset)
-        && (!state.type || (e.type || 'repo') === state.type) && (!state.tag || list(e.tags).map(String).includes(state.tag)))
-      .map((e) => e.slug));
+// The facet rows; pick(key, value) sets one facet.
+function hubFacets({ facets }, state, pick) {
+  return [
+    facets.kinds.length > 1 && facetGroup('Type', facets.kinds, state.type, (value) => pick('type', value), (v) => KIND_LABELS[v] || v),
+    facetGroup('Tag', facets.tags, state.tag, (value) => pick('tag', value), (v) => `#${v}`),
+    facetGroup('Stack', facets.stacks, state.stack, (value) => pick('stack', value)),
+    facetGroup('Preset', facets.presets, state.preset, (value) => pick('preset', value)),
+  ];
+}
+
+// Search results replace the card grid while there is a query.
+function hubPaintResults(model, ui, query, allowed, shownCount) {
+  if (query) {
+    const hits = searchEntries(model.index, query, allowed);
+    const groups = groupBySlug(hits);
+    ui.status.textContent = hits.length
+      ? `${plural(hits.length, 'result')} in ${plural(groups.size, 'explainer')}${hits.length === RESULT_LIMIT ? ', showing the best' : ''}.`
+      : `Nothing matches "${query}".`;
+    fill(ui.results, ...resultGroups(groups, model.titles, queryWords(query)));
+    ui.grid.hidden = true;
+    return;
   }
+  ui.status.textContent = model.explainers.length && shownCount !== model.explainers.length ? `${plural(shownCount, 'explainer')} match these filters.` : '';
+  fill(ui.results);
+  ui.grid.hidden = false;
+}
 
-  function renderAll() {
-    const allowed = allowedSlugs();
-    const query = input.value.trim();
-    fill(filters,
-      kinds.length > 1 && facetGroup('Type', kinds, state.type, (value) => { state = { ...state, type: value }; renderAll(); }, (v) => KIND_LABELS[v] || v),
-      facetGroup('Tag', tags, state.tag, (value) => { state = { ...state, tag: value }; renderAll(); }, (v) => `#${v}`),
-      facetGroup('Stack', stacks, state.stack, (value) => { state = { ...state, stack: value }; renderAll(); }),
-      facetGroup('Preset', presets, state.preset, (value) => { state = { ...state, preset: value }; renderAll(); }));
-    const shown = explainers.filter((e) => allowed.has(e.slug));
-    if (query) {
-      const hits = searchEntries(index, query, allowed);
-      const groups = groupBySlug(hits);
-      status.textContent = hits.length
-        ? `${plural(hits.length, 'result')} in ${plural(groups.size, 'explainer')}${hits.length === RESULT_LIMIT ? ', showing the best' : ''}.`
-        : `Nothing matches "${query}".`;
-      fill(results, ...resultGroups(groups, titles, queryWords(query)));
-      grid.hidden = true;
-    } else {
-      status.textContent = explainers.length && shown.length !== explainers.length ? `${plural(shown.length, 'explainer')} match these filters.` : '';
-      fill(results);
-      grid.hidden = false;
-    }
-    fill(grid, ...(shown.length ? shown.map((e) => h('li', { class: 'lib-item' }, explainerCard(e), pickBox(e))) : [h('li', { class: 'empty' }, 'No explainer matches these filters.')]));
-    paintPicks(shown);
-  }
-
-  // Pick explainers to export. The box sits beside the card link, not in it.
-  function pickBox(explainer) {
-    const box = h('input', {
-      type: 'checkbox', class: 'pick-input', checked: selected.has(explainer.slug), 'aria-label': `Pick ${text(explainer.title, explainer.slug)} to export`,
-      onchange: () => { if (box.checked) selected.add(explainer.slug); else selected.delete(explainer.slug); paintPicks(); },
-    });
-    return h('label', { class: 'card-pick' }, box);
-  }
-
-  function paintPicks(shown = explainers.filter((e) => shownSlugs().includes(e.slug))) {
-    fill(pickBar,
-      h('span', { class: 'pick-count' }, selected.size ? `${plural(selected.size, 'explainer')} picked` : 'Pick explainers to export them'),
-      h('button', { class: 'link', type: 'button', onclick: () => { shown.forEach((e) => selected.add(e.slug)); renderAll(); } }, `Pick all ${shown.length} shown`),
-      selected.size > 0 && h('button', { class: 'link', type: 'button', onclick: () => { selected.clear(); renderAll(); } }, 'Clear'),
-      h('a', { class: 'link', href: '#settings' }, selected.size ? 'Export them' : 'Export or import'));
-  }
-
-  function renderChanges() {
-    fill(authorBar, ...HUB_AUTHORS.map((a) => h('button', {
-      class: 'seg-option', type: 'button', 'aria-pressed': String(state.author === a.id),
-      onclick: () => { state = { ...state, author: a.id }; renderChanges(); },
-    }, a.label)));
-    const rows = changes.filter((c) => state.author === 'all' || c.authorType === state.author);
-    fill(changesList, ...(rows.length ? rows.map((c) => changeRow(c, titles)) : [h('li', { class: 'empty' }, 'Nothing matches this filter.')]));
-  }
-
-  function route({ initial = false } = {}) {
-    const { view, query } = readHubHash();
-    allView.hidden = view !== 'all';
-    changesView.hidden = view !== 'changes';
-    settings.section.hidden = view !== 'settings';
-    setNavCurrent(shell.links, view);
-    const viewName = { changes: 'Recent changes', settings: 'Settings' }[view] || 'All explainers';
-    shell.barView.textContent = viewName;
-    document.title = `${view === 'all' ? 'Explainer library' : viewName} · Concept Explainer`;
-    if (view === 'all' && input.value !== query) input.value = query;
-    if (view === 'all') renderAll(); else if (view === 'changes') renderChanges();
-    if (initial && !window.location.hash) return;
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    if (focusSearchNext) {
-      focusSearchNext = false;
-      input.focus();
-      input.select();
-    } else if (!(initial && query)) {
-      const heading = ({ changes: changesView, settings: settings.section }[view] || allView).querySelector('h1');
-      if (heading) heading.focus({ preventScroll: true });
-    }
-  }
-
-  input.addEventListener('input', () => {
-    const query = input.value.trim();
-    setDeepLink(query ? `search/${encodeURIComponent(query)}` : 'all');
-    renderAll();
+// Pick explainers to export. The box sits beside the card link, not in it.
+function hubPickBox(explainer, selected, onChange) {
+  const box = h('input', {
+    type: 'checkbox', class: 'pick-input', checked: selected.has(explainer.slug), 'aria-label': `Pick ${text(explainer.title, explainer.slug)} to export`,
+    onchange: () => { if (box.checked) selected.add(explainer.slug); else selected.delete(explainer.slug); onChange(); },
   });
+  return h('label', { class: 'card-pick' }, box);
+}
+
+function hubPickBar(selected, shown, renderAll) {
+  return [
+    h('span', { class: 'pick-count' }, selected.size ? `${plural(selected.size, 'explainer')} picked` : 'Pick explainers to export them'),
+    h('button', { class: 'link', type: 'button', onclick: () => { shown.forEach((e) => selected.add(e.slug)); renderAll(); } }, `Pick all ${shown.length} shown`),
+    selected.size > 0 && h('button', { class: 'link', type: 'button', onclick: () => { selected.clear(); renderAll(); } }, 'Clear'),
+    h('a', { class: 'link', href: '#settings' }, selected.size ? 'Export them' : 'Export or import'),
+  ];
+}
+
+function hubPaintChanges(model, ui, author, setAuthor) {
+  fill(ui.authorBar, ...HUB_AUTHORS.map((a) => h('button', {
+    class: 'seg-option', type: 'button', 'aria-pressed': String(author === a.id), onclick: () => setAuthor(a.id),
+  }, a.label)));
+  const rows = model.changes.filter((c) => author === 'all' || c.authorType === author);
+  fill(ui.changesList, ...(rows.length ? rows.map((c) => changeRow(c, model.titles)) : [h('li', { class: 'empty' }, 'Nothing matches this filter.')]));
+}
+
+// Show one view, name it in the bar and the title, and move focus to it.
+function hubShowView(view, { allView, changesView, settings, shell }) {
+  allView.hidden = view !== 'all';
+  changesView.hidden = view !== 'changes';
+  settings.section.hidden = view !== 'settings';
+  setNavCurrent(shell.links, view);
+  const viewName = { changes: 'Recent changes', settings: 'Settings' }[view] || 'All explainers';
+  shell.barView.textContent = viewName;
+  document.title = `${view === 'all' ? 'Explainer library' : viewName} · Concept Explainer`;
+  return ({ changes: changesView, settings: settings.section }[view] || allView).querySelector('h1');
+}
+
+// Export exactly what the hub shows: the picked cards, else every explainer
+// the search and filters leave on screen, else the whole library.
+function hubExportSelection({ explainers, index }, input, selected, getState) {
+  const shownSlugs = () => {
+    const allowed = hubAllowed(explainers, getState());
+    const query = input.value.trim();
+    return query ? [...groupBySlug(searchEntries(index, query, allowed)).keys()] : explainers.map((e) => e.slug).filter((slug) => allowed.has(slug));
+  };
+  const getSelection = () => {
+    const state = getState();
+    const filtered = Boolean(state.stack || state.preset || state.type || state.tag || input.value.trim());
+    const slugs = selected.size ? [...selected] : filtered ? shownSlugs() : [];
+    const label = selected.size ? plural(slugs.length, 'picked explainer') : filtered ? plural(slugs.length, 'explainer') : 'the whole library';
+    return { slugs, args: slugs.map(shellQuote).join(' '), label, none: (selected.size > 0 || filtered) && !slugs.length };
+  };
+  return { shownSlugs, getSelection };
+}
+
+// After a route: search when "/" asked for it, else the view's heading.
+function hubFocusAfterRoute(input, heading, { searchNext, skipHeading }) {
+  if (searchNext) {
+    input.focus();
+    input.select();
+  } else if (!skipHeading && heading) heading.focus({ preventScroll: true });
+}
+
+// ---------- Search keys ----------
+function wireHubSearch(ui, { onQuery, onClear }) {
+  const { input, results } = ui;
+  input.addEventListener('input', onQuery);
   input.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowDown' && moveFocus(results, 1)) event.preventDefault();
-    if (event.key === 'Escape' && input.value) {
-      input.value = '';
-      setDeepLink('all');
-      renderAll();
-    }
+    if (event.key === 'Escape' && input.value) onClear();
   });
   results.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowDown') { event.preventDefault(); moveFocus(results, 1); }
@@ -498,23 +378,60 @@ function bootLibrary() {
     }
     if (event.key === 'Escape') { event.preventDefault(); input.focus(); }
   });
+}
+
+// "/" or Cmd/Ctrl+K anywhere jumps to search, from any view.
+function wireSearchShortcut(ui, shell, hasExplainers, onOtherView) {
   document.addEventListener('keydown', (event) => {
     const typing = event.target.closest && event.target.closest('input, textarea, [contenteditable="true"]');
     const wantsSearch = (event.key === '/' && !typing) || (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey));
-    if (!wantsSearch || !explainers.length) return;
+    if (!wantsSearch || !hasExplainers) return;
     event.preventDefault();
     if (shell.sheet.open) shell.sheet.close();
-    if (readHubHash().view !== 'all') {
-      focusSearchNext = true;
-      window.location.hash = 'all';
-      return;
-    }
-    input.focus();
-    input.select();
+    if (readHubHash().view !== 'all') { onOtherView(); return; }
+    ui.input.focus();
+    ui.input.select();
   });
+}
 
+// Typing searches (and keeps the query in the address); Escape clears.
+function wireHubKeys(ui, shell, hasExplainers, renderAll, onOtherView) {
+  const { input } = ui;
+  wireHubSearch(ui, {
+    onQuery: () => { const query = input.value.trim(); setDeepLink(query ? `search/${encodeURIComponent(query)}` : 'all'); renderAll(); },
+    onClear: () => { input.value = ''; setDeepLink('all'); renderAll(); },
+  });
+  wireSearchShortcut(ui, shell, hasExplainers, onOtherView);
+}
+
+// ---------- Boot ----------
+// Parse the embedded data; on failure show why and return null.
+function loadHubData(app, pageContext) {
+  try {
+    return JSON.parse(document.getElementById('explainer-data').textContent);
+  } catch (error) {
+    withServe(pageContext);
+    fill(app, h('div', { class: 'fatal', role: 'alert' }, h('h1', null, 'The library could not load'),
+      h('p', null, 'Its data is not valid JSON. Run "concept-explainer library rebuild" to write it again.')));
+    return null;
+  }
+}
+
+// The hub's data may name the serve endpoints; the token comes from the URL.
+function hubContext(data, pageContext) {
+  const dataServe = data && data.serve && typeof data.serve === 'object' ? { serve: { ...data.serve, ...(pageContext.serve || {}) } } : {};
+  return withServe({ ...pageContext, ...dataServe });
+}
+
+function hubCards(shown, selected, onPick) {
+  return shown.length
+    ? shown.map((e) => h('li', { class: 'lib-item' }, explainerCard(e), hubPickBox(e, selected, onPick)))
+    : [h('li', { class: 'empty' }, 'No explainer matches these filters.')];
+}
+
+function mountHub(app, shell, registry, views) {
   const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, shell.top,
-    h('div', { class: 'wrap' }, allView, changesView, settings.section,
+    h('div', { class: 'wrap' }, ...views,
       h('footer', { class: 'site-footer' }, h('p', null, 'Built by concept-explainer. Rebuild every page with "concept-explainer library rebuild".'))));
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
@@ -522,6 +439,54 @@ function bootLibrary() {
   installThemeShortcut(registry);
   watchNavMore(shell.side.querySelector(':scope > .links'));
   wireSkipLink(main);
+}
+
+function bootLibrary() {
+  const pageContext = readContext();
+  applyLook(pageContext);
+  applyReading();
+  const app = document.getElementById('app');
+  const data = loadHubData(app, pageContext);
+  if (!data) return;
+  const context = hubContext(data, pageContext);
+  const model = hubModel(data, context);
+  const { explainers } = model;
+  const [registry, ui, selected] = [themeRegistry(), hubElements(), new Set()];
+  const shell = hubShell(model.views, explainers, displayDate(model.manifest.updatedAt, { year: false }), registry, safeHref(data && data.kitHref));
+  const { input } = ui;
+  let state = { stack: null, preset: null, type: null, tag: null, author: 'all' };
+  let focusSearchNext = false;
+  const { shownSlugs, getSelection } = hubExportSelection(model, input, selected, () => state);
+  const settings = settingsView(registry, {
+    context, config: context.config || (data && data.config) || null, extra: [hubShareGroup(context, getSelection)],
+  });
+  const [allView, changesView] = [hubAllView(model, ui), hubChangesView(model, ui)];
+  const paintPicks = (shown = explainers.filter((e) => shownSlugs().includes(e.slug))) => fill(ui.pickBar, ...hubPickBar(selected, shown, renderAll));
+
+  function renderAll() {
+    const allowed = hubAllowed(explainers, state);
+    fill(ui.filters, ...hubFacets(model, state, (key, value) => { state = { ...state, [key]: value }; renderAll(); }));
+    const shown = explainers.filter((e) => allowed.has(e.slug));
+    hubPaintResults(model, ui, input.value.trim(), allowed, shown.length);
+    fill(ui.grid, ...hubCards(shown, selected, () => paintPicks()));
+    paintPicks(shown);
+  }
+
+  const renderChanges = () => hubPaintChanges(model, ui, state.author, (author) => { state = { ...state, author }; renderChanges(); });
+
+  function route({ initial = false } = {}) {
+    const { view, query } = readHubHash();
+    const heading = hubShowView(view, { allView, changesView, settings, shell });
+    if (view === 'all' && input.value !== query) input.value = query;
+    if (view === 'all') renderAll(); else if (view === 'changes') renderChanges();
+    if (initial && !window.location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    hubFocusAfterRoute(input, heading, { searchNext: focusSearchNext, skipHeading: initial && query });
+    focusSearchNext = false;
+  }
+
+  wireHubKeys(ui, shell, explainers.length > 0, renderAll, () => { focusSearchNext = true; window.location.hash = 'all'; });
+  mountHub(app, shell, registry, [allView, changesView, settings.section]);
   window.addEventListener('hashchange', () => route());
   route({ initial: true });
   if (readHubHash().query) input.focus();

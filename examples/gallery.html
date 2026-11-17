@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-qpHsM8htMewfxKDnrCGm0dNimab3IQotRhnWRaKdbFc='; style-src 'sha256-BYcEVUAWEEGi+aR4KH0X7ntAjMAF7HzZU752sYWMc3k=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-5ke8vhPrGtmJYWUrzZv2Bf2V/YFCZPTDbjOZslZn1FU='; style-src 'sha256-BYcEVUAWEEGi+aR4KH0X7ntAjMAF7HzZU752sYWMc3k=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="generator" content="concept-explainer">
 <meta name="color-scheme" content="light dark">
@@ -1893,120 +1893,6 @@ function drawPath(path, marker) {
   };
 }
 
-// ---------- Look: theme (system, light, dark) and style (clean, playful) ----------
-// Shared by the explainer, the kit and the hub. Choices are per reader and
-// live in localStorage; the page works when storage is blocked.
-const THEME_KEY = 'concept-explainer:theme';
-const STYLE_KEY = 'concept-explainer:style';
-const THEME_CHOICES = [
-  { choice: 'system', label: 'System' },
-  { choice: 'light', label: 'Light' },
-  { choice: 'dark', label: 'Dark' },
-];
-const STYLE_CHOICES = [
-  { choice: 'clean', label: 'Clean' },
-  { choice: 'playful', label: 'Playful' },
-];
-let pageDefaultStyle = 'clean';
-
-function storedTheme() {
-  const value = readStore(THEME_KEY);
-  return THEME_CHOICES.some((t) => t.choice === value) ? value : 'system';
-}
-
-// "system" leaves data-theme off so the CSS media query decides.
-function applyTheme(choice) {
-  const root = document.documentElement;
-  if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
-  else delete root.dataset.theme;
-}
-
-// The page default comes from the build (context.style); a reader's own
-// choice wins over it.
-function setDefaultStyle(value) {
-  pageDefaultStyle = value === 'playful' ? 'playful' : 'clean';
-}
-
-function storedStyle() {
-  const value = readStore(STYLE_KEY);
-  return STYLE_CHOICES.some((t) => t.choice === value) ? value : pageDefaultStyle;
-}
-
-function applyStyle(choice) {
-  document.documentElement.dataset.style = choice === 'playful' ? 'playful' : 'clean';
-}
-
-function applyLook(context) {
-  setDefaultStyle(context && context.style);
-  applyTheme(storedTheme());
-  applyStyle(storedStyle());
-}
-
-// One registry per page repaints every switch (sidebar and menu copies).
-function themeRegistry() {
-  const switches = [];
-  const listeners = [];
-  return {
-    add: (entry) => switches.push(entry),
-    onChange: (fn) => listeners.push(fn),
-    paint: () => {
-      switches.forEach(({ buttons, choices, read }) => {
-        const picked = read();
-        buttons.forEach((button, i) => {
-          const on = choices[i].choice === picked;
-          button.setAttribute('aria-checked', String(on));
-          button.tabIndex = on ? 0 : -1;
-        });
-      });
-    },
-    changed: () => {
-      listeners.forEach((fn) => fn());
-      // A style switch changes fonts and paddings: re-measure cut text.
-      if (typeof recheckTruncation === 'function') window.requestAnimationFrame(recheckTruncation);
-    },
-  };
-}
-
-// A radio group of buttons; arrow keys move and choose, one tab stop.
-function choiceSwitch(registry, { choices, read, write, label, className, withIcons }) {
-  const choose = (choice) => {
-    write(choice);
-    registry.paint();
-    registry.changed();
-  };
-  const buttons = choices.map((option, index) => h('button', {
-    class: 'ts-option', type: 'button', role: 'radio', 'data-label': option.label,
-    'aria-label': withIcons ? `${option.label} ${label.toLowerCase()}` : null, title: withIcons ? `${option.label} ${label.toLowerCase()}` : null,
-    onclick: () => choose(option.choice),
-    onkeydown: (event) => {
-      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
-      if (!step) return;
-      event.preventDefault();
-      const next = (index + step + choices.length) % choices.length;
-      choose(choices[next].choice);
-      buttons[next].focus();
-    },
-  }, withIcons ? icon(option.choice) : option.label));
-  registry.add({ buttons, choices, read });
-  return h('div', { class: className, role: 'radiogroup', 'aria-label': label }, buttons);
-}
-
-function themeSwitch(registry) {
-  return choiceSwitch(registry, {
-    choices: THEME_CHOICES, read: storedTheme, label: 'Theme', className: 'theme-switch', withIcons: true,
-    write: (choice) => { writeStore(THEME_KEY, choice); applyTheme(choice); },
-  });
-}
-
-function styleSwitch(registry) {
-  return choiceSwitch(registry, {
-    choices: STYLE_CHOICES, read: storedStyle, label: 'Style', className: 'theme-switch style-switch', withIcons: false,
-    write: (choice) => { writeStore(STYLE_KEY, choice); applyStyle(choice); },
-  });
-}
-
-
-
 // ---------- Page context (library builds) ----------
 // The library context is optional: missing, broken or unfilled means standalone.
 function readContext() {
@@ -2051,6 +1937,49 @@ function wireSkipLink(main) {
 
 
 
+// ---------- Navigation state, shared by the explainer, the hub and the kit ----------
+// Mark the current item in every nav copy; in a visible sidebar, bring it
+// into view inside the nav (a reader action, never on scroll).
+function setNavCurrent(links, key) {
+  links.forEach((a) => {
+    if (a.dataset.nav === key) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  const current = links.find((a) => a.dataset.nav === key && a.closest('.side') && a.getClientRects().length);
+  if (!current) return;
+  current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // Web fonts can change row heights after the first paint: check again then.
+  if (document.fonts) document.fonts.ready.then(() => { if (current.getAttribute('aria-current') === 'page') current.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+}
+
+// data-more="below" while the nav has rows under its bottom edge.
+function watchNavMore(nav) {
+  if (!nav) return;
+  const paint = () => {
+    const more = nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2;
+    if (more) nav.dataset.more = 'below'; else delete nav.dataset.more;
+  };
+  nav.addEventListener('scroll', paint, { passive: true });
+  if ('ResizeObserver' in window) new ResizeObserver(paint).observe(nav);
+  paint();
+}
+
+// ---------- Dates ----------
+// A date-only value (2026-11-17) is a calendar day: show that day wherever
+// the reader is. A value with a time is a moment: show the reader's own day
+// for it, so 2026-11-17T20:00Z reads Nov 18 in Manila.
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+function displayDate(value, { year = true, fallback = '' } = {}) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const raw = String(value).trim();
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return fallback;
+  const options = { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}) };
+  return date.toLocaleDateString(undefined, DATE_ONLY.test(raw) ? { ...options, timeZone: 'UTC' } : options);
+}
+
+// ---- truncate.js ----
 // ---------- Long names: soft breaks, truncation and the "?" hint ----------
 const SOFT_BREAK_MIN = 12;
 // Tokens longer than this (in characters, so it is deterministic) are shown
@@ -2343,6 +2272,129 @@ function recheckTruncation() {
   });
 }
 
+// Break points only (no shortening), for text that wraps or is clamped.
+function wordBreaks(value) {
+  return String(value ?? '').split(/(\s+)/).flatMap((token) => (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token) ? [token] : breakToken(token)));
+}
+
+// ---- theme.js ----
+// The look: theme (system, light, dark), style (Clean, Playful), the
+// switches that change them, and the credit that follows the style.
+// ---------- Look: theme (system, light, dark) and style (clean, playful) ----------
+// Shared by the explainer, the kit and the hub. Choices are per reader and
+// live in localStorage; the page works when storage is blocked.
+const THEME_KEY = 'concept-explainer:theme';
+const STYLE_KEY = 'concept-explainer:style';
+const THEME_CHOICES = [
+  { choice: 'system', label: 'System' },
+  { choice: 'light', label: 'Light' },
+  { choice: 'dark', label: 'Dark' },
+];
+const STYLE_CHOICES = [
+  { choice: 'clean', label: 'Clean' },
+  { choice: 'playful', label: 'Playful' },
+];
+let pageDefaultStyle = 'clean';
+
+function storedTheme() {
+  const value = readStore(THEME_KEY);
+  return THEME_CHOICES.some((t) => t.choice === value) ? value : 'system';
+}
+
+// "system" leaves data-theme off so the CSS media query decides.
+function applyTheme(choice) {
+  const root = document.documentElement;
+  if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
+  else delete root.dataset.theme;
+}
+
+// The page default comes from the build (context.style); a reader's own
+// choice wins over it.
+function setDefaultStyle(value) {
+  pageDefaultStyle = value === 'playful' ? 'playful' : 'clean';
+}
+
+function storedStyle() {
+  const value = readStore(STYLE_KEY);
+  return STYLE_CHOICES.some((t) => t.choice === value) ? value : pageDefaultStyle;
+}
+
+function applyStyle(choice) {
+  document.documentElement.dataset.style = choice === 'playful' ? 'playful' : 'clean';
+}
+
+function applyLook(context) {
+  setDefaultStyle(context && context.style);
+  applyTheme(storedTheme());
+  applyStyle(storedStyle());
+}
+
+// One registry per page repaints every switch (sidebar and menu copies).
+function themeRegistry() {
+  const switches = [];
+  const listeners = [];
+  return {
+    add: (entry) => switches.push(entry),
+    onChange: (fn) => listeners.push(fn),
+    paint: () => {
+      switches.forEach(({ buttons, choices, read }) => {
+        const picked = read();
+        buttons.forEach((button, i) => {
+          const on = choices[i].choice === picked;
+          button.setAttribute('aria-checked', String(on));
+          button.tabIndex = on ? 0 : -1;
+        });
+      });
+    },
+    changed: () => {
+      listeners.forEach((fn) => fn());
+      // A style switch changes fonts and paddings: re-measure cut text.
+      if (typeof recheckTruncation === 'function') window.requestAnimationFrame(recheckTruncation);
+    },
+  };
+}
+
+// A radio group of buttons; arrow keys move and choose, one tab stop.
+function choiceSwitch(registry, { choices, read, write, label, className, withIcons }) {
+  const choose = (choice) => {
+    write(choice);
+    registry.paint();
+    registry.changed();
+  };
+  const buttons = choices.map((option, index) => h('button', {
+    class: 'ts-option', type: 'button', role: 'radio', 'data-label': option.label,
+    'aria-label': withIcons ? `${option.label} ${label.toLowerCase()}` : null, title: withIcons ? `${option.label} ${label.toLowerCase()}` : null,
+    onclick: () => choose(option.choice),
+    onkeydown: (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const next = (index + step + choices.length) % choices.length;
+      choose(choices[next].choice);
+      buttons[next].focus();
+    },
+  }, withIcons ? icon(option.choice) : option.label));
+  registry.add({ buttons, choices, read });
+  return h('div', { class: className, role: 'radiogroup', 'aria-label': label }, buttons);
+}
+
+function themeSwitch(registry) {
+  return choiceSwitch(registry, {
+    choices: THEME_CHOICES, read: storedTheme, label: 'Theme', className: 'theme-switch', withIcons: true,
+    write: (choice) => { writeStore(THEME_KEY, choice); applyTheme(choice); },
+  });
+}
+
+function styleSwitch(registry) {
+  return choiceSwitch(registry, {
+    choices: STYLE_CHOICES, read: storedStyle, label: 'Style', className: 'theme-switch style-switch', withIcons: false,
+    write: (choice) => { writeStore(STYLE_KEY, choice); applyStyle(choice); },
+  });
+}
+
+
+
+
 // The credit follows the style on screen: Clean owes its type and greys to
 // Geist, Playful its palette and rounded type to Duolingo's design language.
 const CREDIT_CLEAN = 'Lesson pacing inspired by Brilliant. Type and greys from Geist by Vercel. Not affiliated with either.';
@@ -2350,53 +2402,6 @@ const CREDIT_PLAYFUL = 'Lesson pacing inspired by Brilliant. Palette and rounded
 
 function designCredit() {
   return h('p', { class: 'credit' }, h('span', { class: 'credit-clean' }, CREDIT_CLEAN), h('span', { class: 'credit-playful' }, CREDIT_PLAYFUL));
-}
-
-// Break points only (no shortening), for text that wraps or is clamped.
-function wordBreaks(value) {
-  return String(value ?? '').split(/(\s+)/).flatMap((token) => (token.length < SOFT_BREAK_MIN || /^\s+$/.test(token) ? [token] : breakToken(token)));
-}
-
-// ---------- Navigation state, shared by the explainer, the hub and the kit ----------
-// Mark the current item in every nav copy; in a visible sidebar, bring it
-// into view inside the nav (a reader action, never on scroll).
-function setNavCurrent(links, key) {
-  links.forEach((a) => {
-    if (a.dataset.nav === key) a.setAttribute('aria-current', 'page');
-    else a.removeAttribute('aria-current');
-  });
-  const current = links.find((a) => a.dataset.nav === key && a.closest('.side') && a.getClientRects().length);
-  if (!current) return;
-  current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  // Web fonts can change row heights after the first paint: check again then.
-  if (document.fonts) document.fonts.ready.then(() => { if (current.getAttribute('aria-current') === 'page') current.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
-}
-
-// data-more="below" while the nav has rows under its bottom edge.
-function watchNavMore(nav) {
-  if (!nav) return;
-  const paint = () => {
-    const more = nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2;
-    if (more) nav.dataset.more = 'below'; else delete nav.dataset.more;
-  };
-  nav.addEventListener('scroll', paint, { passive: true });
-  if ('ResizeObserver' in window) new ResizeObserver(paint).observe(nav);
-  paint();
-}
-
-// ---------- Dates ----------
-// A date-only value (2026-11-17) is a calendar day: show that day wherever
-// the reader is. A value with a time is a moment: show the reader's own day
-// for it, so 2026-11-17T20:00Z reads Nov 18 in Manila.
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-
-function displayDate(value, { year = true, fallback = '' } = {}) {
-  if (value === undefined || value === null || value === '') return fallback;
-  const raw = String(value).trim();
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return fallback;
-  const options = { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}) };
-  return date.toLocaleDateString(undefined, DATE_ONLY.test(raw) ? { ...options, timeZone: 'UTC' } : options);
 }
 
 // ---- icons.js ----
@@ -2687,24 +2692,129 @@ function brandMark() {
 // ---- map.js ----
 // Chapter: architecture map. Layers are columns, nodes are pressable cards,
 // edges are an SVG overlay redrawn whenever the layout changes.
+function mapRelated(edges, id) {
+  return edges.filter((edge) => edge.from === id || edge.to === id);
+}
+
+// Selected node, its neighbours, and the lines between them.
+function mapPaintSelection(canvas, grid, svg, edges, selectedId) {
+  canvas.classList.toggle('has-selection', Boolean(selectedId));
+  canvas.classList.remove('is-changes');
+  const neighbours = new Set(selectedId ? mapRelated(edges, selectedId).flatMap((e) => [e.from, e.to]) : []);
+  grid.querySelectorAll('.node').forEach((el) => {
+    el.classList.toggle('is-selected', el.dataset.node === selectedId);
+    el.classList.toggle('is-related', neighbours.has(el.dataset.node));
+    el.setAttribute('aria-pressed', String(el.dataset.node === selectedId));
+  });
+  svg.querySelectorAll('[data-edge]').forEach((el) => {
+    const [from, to] = el.dataset.edge.split('→');
+    const active = from === selectedId || to === selectedId;
+    el.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
+    el.querySelector('path').setAttribute('marker-end', active ? 'url(#map-arrow-active)' : 'url(#map-arrow)');
+  });
+}
+
+function mapEmptyDetail() {
+  return [h('div', { class: 'detail-main' },
+    h('p', { class: 'eyebrow quiet' }, 'Tip'),
+    h('h3', null, 'Pick any box above'),
+    h('p', null, 'You will see what it does, which files hold it, and who it talks to. Pick it again to clear.'))];
+}
+
+function mapRelationItem(edge, selfId, nodeIndex, select) {
+  const otherId = edge.from === selfId ? edge.to : edge.from;
+  const other = nodeIndex.get(otherId);
+  const direction = edge.from === selfId ? '→' : '←';
+  return h('li', null, h('span', { class: 'arrow-glyph' }, direction),
+    h('button', { class: 'link', type: 'button', onclick: () => select(otherId) }, softBreaks(other ? other.label : otherId)),
+    edge.label && tag(edge.label));
+}
+
+function mapNodeDetail(data, node, nodeIndex, select) {
+  const layer = list(data.layers).find((l) => l.id === node.layer);
+  const links = mapRelated(list(data.edges), node.id);
+  const flows = list(data.flows).filter((flow) => list(flow.steps).some((st) => st.from === node.id || st.to === node.id));
+  return [h('div', { class: 'detail-main' },
+    h('div', { class: 'step-top' }, h('span', { class: 'detail-icon' }, icon(node.kind)), tag(text(layer && layer.label, node.layer), 'tag-layer'), node.kind && tag(node.kind)),
+    h('h3', null, softBreaks(node.label)),
+    h('p', null, softBreaks(text(node.summary, 'No summary yet.'))),
+    node.tech && h('p', { class: 'detail-tech' }, softBreaks(node.tech)),
+    list(node.files).length > 0 && [h('div', { class: 'detail-label' }, 'Lives in'), h('div', { class: 'files' }, list(node.files).map(fileChip))]),
+  h('div', { class: 'detail-side' },
+    links.length > 0 && [h('div', { class: 'detail-label' }, 'Talks to'), h('ul', { class: 'rel' }, links.map((edge) => mapRelationItem(edge, node.id, nodeIndex, select)))],
+    flows.length > 0 && [h('div', { class: 'detail-label' }, 'Shows up in'), h('ul', { class: 'rel' }, flows.map((flow) => h('li', null,
+      h('a', { class: 'link', href: `#flows/${linkPart(flow.id)}` }, softBreaks(flow.title)))))]),
+  ];
+}
+
+function mapEdgeShape(edge, grid, box) {
+  const fromEl = grid.querySelector(`[data-node="${CSS.escape(edge.from)}"]`);
+  const toEl = grid.querySelector(`[data-node="${CSS.escape(edge.to)}"]`);
+  if (!fromEl || !toEl) return null;
+  const a = relativeRect(fromEl, box);
+  const b = relativeRect(toEl, box);
+  const d = connectorPath(a, b);
+  const key = `${edge.from}→${edge.to}`;
+  const mid = { x: (a.cx + b.cx) / 2, y: (a.cy + b.cy) / 2 };
+  // No label when the boxes almost touch: it would sit on top of them.
+  const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
+  return s('g', { 'data-edge': key },
+    s('path', { class: `edge${edge.kind === 'async' ? ' is-async' : ''}`, d, 'marker-end': 'url(#map-arrow)' }),
+    edge.label && gap > 36 && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
+}
+
+function mapLegend(nodes, changedIds) {
+  return h('div', { class: 'map-legend' },
+    h('span', null, h('i'), 'Calls / reads'),
+    h('span', null, h('i', { class: 'dash' }), 'Async / events'),
+    chStatusLegend(nodes),
+    changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently'));
+}
+
+// As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto the
+// next row, so the map never scrolls sideways.
+function mapFitColumns(canvas, layerCount) {
+  const width = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+  const fit = Math.max(1, Math.min(layerCount, Math.floor((width + MAP_GAP) / (MAP_MIN_COL + MAP_GAP))));
+  if (canvas.style.getPropertyValue('--fit-cols') !== String(fit)) canvas.style.setProperty('--fit-cols', String(fit));
+}
+
+function mapParts(layers, nodes, changedIds, onSelect) {
+  const cols = `--cols:${Math.max(layers.length, 1)}`;
+  const svg = s('svg', { class: 'map-edges', 'aria-hidden': 'true' });
+  const grid = h('div', { class: 'map-grid', style: cols }, layers.map((layer) => mapColumn(layer, nodes, changedIds, onSelect)));
+  const canvas = h('div', { class: 'map-canvas', style: cols }, svg, grid);
+  const detail = h('aside', { class: 'map-detail panel', 'aria-live': 'polite' });
+  return { svg, grid, canvas, detail };
+}
+
+function mapShowChanges(canvas, grid, changedIds) {
+  canvas.classList.remove('has-selection');
+  canvas.classList.add('is-changes');
+  grid.querySelectorAll('.node').forEach((el) => el.classList.toggle('is-changed', changedIds.has(el.dataset.node)));
+}
+
+function mapDrawEdges(canvas, svg, grid, edges) {
+  const box = canvas.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+  const defs = s('defs', null, arrowMarker('map-arrow', 'is-rest'), arrowMarker('map-arrow-active', 'is-active'));
+  fill(svg, defs, ...edges.map((edge) => mapEdgeShape(edge, grid, box)).filter(Boolean));
+}
+
 function renderMap(data, mount) {
-  const layers = list(data.layers);
-  const nodes = list(data.nodes);
-  const edges = list(data.edges);
+  const [layers, nodes, edges] = [list(data.layers), list(data.nodes), list(data.edges)];
   const nodeIndex = byId(nodes);
   const changedIds = new Set(list(data.changes).flatMap((change) => list(change.nodes)));
-
-  const svg = s('svg', { class: 'map-edges', 'aria-hidden': 'true' });
-  const grid = h('div', { class: 'map-grid', style: `--cols:${Math.max(layers.length, 1)}` },
-    layers.map((layer) => mapColumn(layer, nodes, changedIds, (id) => select(id))));
-  const canvas = h('div', { class: 'map-canvas', style: `--cols:${Math.max(layers.length, 1)}` }, svg, grid);
-  const detail = h('aside', { class: 'map-detail panel', 'aria-live': 'polite' });
+  const { svg, grid, canvas, detail } = mapParts(layers, nodes, changedIds, (id) => select(id));
   let selectedId = null;
 
   function select(id) {
     setSelected(selectedId === id ? null : id);
     setDeepLink(selectedId ? `map/${linkPart(selectedId)}` : 'map');
   }
+
+  const paintSelection = () => mapPaintSelection(canvas, grid, svg, edges, selectedId);
+  const renderDetail = () => fill(detail, ...(selectedId ? mapNodeDetail(data, nodeIndex.get(selectedId), nodeIndex, select) : mapEmptyDetail()));
 
   function setSelected(id) {
     selectedId = id;
@@ -2713,94 +2823,11 @@ function renderMap(data, mount) {
     renderDetail();
   }
 
-  function related(id) {
-    return edges.filter((edge) => edge.from === id || edge.to === id);
-  }
-
-  function paintSelection() {
-    canvas.classList.toggle('has-selection', Boolean(selectedId));
-    canvas.classList.remove('is-changes');
-    const neighbours = new Set(selectedId ? related(selectedId).flatMap((e) => [e.from, e.to]) : []);
-    grid.querySelectorAll('.node').forEach((el) => {
-      el.classList.toggle('is-selected', el.dataset.node === selectedId);
-      el.classList.toggle('is-related', neighbours.has(el.dataset.node));
-      el.setAttribute('aria-pressed', String(el.dataset.node === selectedId));
-    });
-    svg.querySelectorAll('[data-edge]').forEach((el) => {
-      const [from, to] = el.dataset.edge.split('→');
-      const active = from === selectedId || to === selectedId;
-      el.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
-      el.querySelector('path').setAttribute('marker-end', active ? 'url(#map-arrow-active)' : 'url(#map-arrow)');
-    });
-  }
-
-  function renderDetail() {
-    fill(detail, ...(selectedId ? nodeDetail(nodeIndex.get(selectedId)) : emptyDetail()));
-  }
-
-  function emptyDetail() {
-    return [h('div', { class: 'detail-main' },
-      h('p', { class: 'eyebrow quiet' }, 'Tip'),
-      h('h3', null, 'Pick any box above'),
-      h('p', null, 'You will see what it does, which files hold it, and who it talks to. Pick it again to clear.'))];
-  }
-
-  function nodeDetail(node) {
-    const layer = layers.find((l) => l.id === node.layer);
-    const links = related(node.id);
-    const flows = list(data.flows).filter((flow) => list(flow.steps).some((st) => st.from === node.id || st.to === node.id));
-    return [h('div', { class: 'detail-main' },
-      h('div', { class: 'step-top' }, h('span', { class: 'detail-icon' }, icon(node.kind)), tag(text(layer && layer.label, node.layer), 'tag-layer'), node.kind && tag(node.kind)),
-      h('h3', null, softBreaks(node.label)),
-      h('p', null, softBreaks(text(node.summary, 'No summary yet.'))),
-      node.tech && h('p', { class: 'detail-tech' }, softBreaks(node.tech)),
-      list(node.files).length > 0 && [h('div', { class: 'detail-label' }, 'Lives in'), h('div', { class: 'files' }, list(node.files).map(fileChip))]),
-    h('div', { class: 'detail-side' },
-      links.length > 0 && [h('div', { class: 'detail-label' }, 'Talks to'), h('ul', { class: 'rel' }, links.map((edge) => relationItem(edge, node.id)))],
-      flows.length > 0 && [h('div', { class: 'detail-label' }, 'Shows up in'), h('ul', { class: 'rel' }, flows.map((flow) => h('li', null,
-        h('a', { class: 'link', href: `#flows/${linkPart(flow.id)}` }, softBreaks(flow.title)))))]),
-    ];
-  }
-
-  function relationItem(edge, selfId) {
-    const otherId = edge.from === selfId ? edge.to : edge.from;
-    const other = nodeIndex.get(otherId);
-    const direction = edge.from === selfId ? '→' : '←';
-    return h('li', null, h('span', { class: 'arrow-glyph' }, direction),
-      h('button', { class: 'link', type: 'button', onclick: () => select(otherId) }, softBreaks(other ? other.label : otherId)),
-      edge.label && tag(edge.label));
-  }
-
+  const showChanges = () => mapShowChanges(canvas, grid, changedIds);
   function drawEdges() {
-    const box = canvas.getBoundingClientRect();
-    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
-    const defs = s('defs', null, arrowMarker('map-arrow', 'is-rest'), arrowMarker('map-arrow-active', 'is-active'));
-    const paths = edges.map((edge) => edgeShape(edge, box)).filter(Boolean);
-    fill(svg, defs, ...paths);
+    mapDrawEdges(canvas, svg, grid, edges);
     paintSelection();
     if (canvas.dataset.changes === 'on') showChanges();
-  }
-
-  function edgeShape(edge, box) {
-    const fromEl = grid.querySelector(`[data-node="${CSS.escape(edge.from)}"]`);
-    const toEl = grid.querySelector(`[data-node="${CSS.escape(edge.to)}"]`);
-    if (!fromEl || !toEl) return null;
-    const a = relativeRect(fromEl, box);
-    const b = relativeRect(toEl, box);
-    const d = connectorPath(a, b);
-    const key = `${edge.from}→${edge.to}`;
-    const mid = { x: (a.cx + b.cx) / 2, y: (a.cy + b.cy) / 2 };
-    // No label when the boxes almost touch: it would sit on top of them.
-    const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
-    return s('g', { 'data-edge': key },
-      s('path', { class: `edge${edge.kind === 'async' ? ' is-async' : ''}`, d, 'marker-end': 'url(#map-arrow)' }),
-      edge.label && gap > 36 && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
-  }
-
-  function showChanges() {
-    canvas.classList.remove('has-selection');
-    canvas.classList.add('is-changes');
-    grid.querySelectorAll('.node').forEach((el) => el.classList.toggle('is-changed', changedIds.has(el.dataset.node)));
   }
 
   on('highlight-changes', ({ enabled }) => {
@@ -2811,22 +2838,8 @@ function renderMap(data, mount) {
   });
 
   renderDetail();
-  mount.append(
-    h('div', { class: 'map-shell' }, h('div', { class: 'panel map-panel' }, h('div', { class: 'map-scroll' }, canvas)), detail),
-    h('div', { class: 'map-legend' },
-      h('span', null, h('i'), 'Calls / reads'),
-      h('span', null, h('i', { class: 'dash' }), 'Async / events'),
-      chStatusLegend(nodes),
-      changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently')),
-  );
-  // As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto
-  // the next row, so the map never scrolls sideways.
-  const fitColumns = () => {
-    const width = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
-    const fit = Math.max(1, Math.min(layers.length, Math.floor((width + MAP_GAP) / (MAP_MIN_COL + MAP_GAP))));
-    if (canvas.style.getPropertyValue('--fit-cols') !== String(fit)) canvas.style.setProperty('--fit-cols', String(fit));
-  };
-  const redraw = () => window.requestAnimationFrame(() => { fitColumns(); drawEdges(); });
+  mount.append(h('div', { class: 'map-shell' }, h('div', { class: 'panel map-panel' }, h('div', { class: 'map-scroll' }, canvas)), detail), mapLegend(nodes, changedIds));
+  const redraw = () => window.requestAnimationFrame(() => { mapFitColumns(canvas, layers.length); drawEdges(); });
   new ResizeObserver(redraw).observe(canvas.parentElement || canvas);
   if (document.fonts) document.fonts.ready.then(redraw);
   return {
@@ -2966,44 +2979,8 @@ function renderModels(data, mount) {
     setDeepLink(`data/${linkPart(name)}`);
   }
 
-  function paint() {
-    const related = new Set(edges.filter((e) => e.from === selected || e.to === selected).flatMap((e) => [e.from, e.to]));
-    canvas.classList.add('has-selection');
-    grid.querySelectorAll('.entity').forEach((el) => {
-      el.classList.toggle('is-selected', el.dataset.entity === selected);
-      el.classList.toggle('is-related', related.has(el.dataset.entity));
-      el.setAttribute('aria-pressed', String(el.dataset.entity === selected));
-    });
-    svg.querySelectorAll('[data-edge]').forEach((g) => {
-      const [from, to] = g.dataset.edge.split('→');
-      const active = from === selected || to === selected;
-      g.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
-    });
-  }
-
-  function modelDetail(model) {
-    if (!model) return [];
-    const rels = edges.filter((e) => e.from === model.name || e.to === model.name);
-    return [
-      h('div', { class: 'er-detail-head' },
-        h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
-        model.summary && h('p', null, softBreaks(model.summary))),
-      h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
-        h('div', { class: 'er-row er-row-head', role: 'row' },
-          h('span', { role: 'columnheader' }, 'Field'), h('span', { role: 'columnheader' }, 'Type'), h('span', { role: 'columnheader' }, 'Meaning')),
-        list(model.fields).map((field) => fieldRow(field, modelNames, pick))),
-      rels.length > 0 && h('div', { class: 'er-rels' },
-        h('p', { class: 'eyebrow quiet' }, 'Relationships'),
-        h('ul', { class: 'rel' }, rels.map((edge) => {
-          const other = edge.from === model.name ? edge.to : edge.from;
-          const [a, b] = edge.from === model.name ? edge.ends : [...edge.ends].reverse();
-          return h('li', null,
-            tag(`${a || '?'} : ${b || '?'}`),
-            h('span', null, softBreaks(`${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `)),
-            h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, softBreaks(other)));
-        }))),
-    ];
-  }
+  const paint = () => paintEntities(canvas, grid, svg, edges, selected);
+  const modelDetail = (model) => entityDetail(model, edges, modelNames, pick);
 
   function drawEdges() {
     const box = canvas.getBoundingClientRect();
@@ -3025,6 +3002,49 @@ function renderModels(data, mount) {
       return grid.querySelector(`[data-entity="${CSS.escape(name)}"]`);
     },
   };
+}
+
+// Highlight the selected entity, its neighbours and their relation lines.
+function paintEntities(canvas, grid, svg, edges, selected) {
+  const related = new Set(edges.filter((e) => e.from === selected || e.to === selected).flatMap((e) => [e.from, e.to]));
+  canvas.classList.add('has-selection');
+  grid.querySelectorAll('.entity').forEach((el) => {
+    el.classList.toggle('is-selected', el.dataset.entity === selected);
+    el.classList.toggle('is-related', related.has(el.dataset.entity));
+    el.setAttribute('aria-pressed', String(el.dataset.entity === selected));
+  });
+  svg.querySelectorAll('[data-edge]').forEach((g) => {
+    const [from, to] = g.dataset.edge.split('→');
+    const active = from === selected || to === selected;
+    g.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
+  });
+}
+
+function entityRelation(model, edge, pick) {
+  const other = edge.from === model.name ? edge.to : edge.from;
+  const [a, b] = edge.from === model.name ? edge.ends : [...edge.ends].reverse();
+  return h('li', null,
+    tag(`${a || '?'} : ${b || '?'}`),
+    h('span', null, softBreaks(`${model.name} ${edge.from === model.name ? edge.kind : 'is linked from'} `)),
+    h('button', { class: 'link', type: 'button', onclick: () => pick(other) }, softBreaks(other)));
+}
+
+// The detail panel: fields as a table, then the relationships.
+function entityDetail(model, edges, modelNames, pick) {
+  if (!model) return [];
+  const rels = edges.filter((e) => e.from === model.name || e.to === model.name);
+  return [
+    h('div', { class: 'er-detail-head' },
+      h('h3', null, h('span', { class: 'detail-icon' }, icon('db')), h('span', null, softBreaks(model.name))),
+      model.summary && h('p', null, softBreaks(model.summary))),
+    h('div', { class: 'er-fields', role: 'table', 'aria-label': `${model.name} fields` },
+      h('div', { class: 'er-row er-row-head', role: 'row' },
+        h('span', { role: 'columnheader' }, 'Field'), h('span', { role: 'columnheader' }, 'Type'), h('span', { role: 'columnheader' }, 'Meaning')),
+      list(model.fields).map((field) => fieldRow(field, modelNames, pick))),
+    rels.length > 0 && h('div', { class: 'er-rels' },
+      h('p', { class: 'eyebrow quiet' }, 'Relationships'),
+      h('ul', { class: 'rel' }, rels.map((edge) => entityRelation(model, edge, pick)))),
+  ];
 }
 
 function entityBox(model, index, modelNames, onSelect) {
@@ -3090,30 +3110,10 @@ const FLOW_SIDE_BY_SIDE = '(min-width: 1180px)';
 const FLOW_CARD_WIDTH = 380;
 const LABEL_CHAR = 6.6;
 
-function renderFlows(data, mount) {
-  const flows = list(data.flows);
-  if (!flows.length) {
-    mount.append(h('p', { class: 'empty' }, 'No flows traced yet.'));
-    return null;
-  }
-  const nodeIndex = byId(data.nodes);
-  let state = { flowIndex: 0, stepIndex: 0, finished: false, direction: 1 };
-
-  const picker = h('ul', { class: 'flow-list', 'aria-label': 'Flows' });
-  const meta = h('div', { class: 'flow-meta' });
-  const headsWrap = h('div', { class: 'seq-heads-wrap' });
-  const bodyWrap = h('div', { class: 'seq-body' });
-  const seqWrap = h('div', { class: 'panel seq-wrap seq', 'aria-label': 'Sequence diagram' }, headsWrap, bodyWrap);
-  // The body scrolls sideways only; the sticky header strip follows it.
-  bodyWrap.addEventListener('scroll', () => {
-    if (headsWrap.firstElementChild) headsWrap.firstElementChild.style.transform = `translateX(${-bodyWrap.scrollLeft}px)`;
-  }, { passive: true });
-  const panel = h('div', { class: 'panel step-card', 'aria-live': 'polite' });
-  const layout = h('div', { class: 'flow-layout' }, seqWrap, panel);
-  const root = h('div', { class: 'flow-player' }, picker, meta, layout);
-  // Side by side only when the widest flow fits beside the step card without
-  // sideways scrolling; otherwise the card comes first and the diagram gets
-  // the full width. Decided for the whole page, so flows do not jump around.
+// Side by side only when the widest flow fits beside the step card without
+// sideways scrolling; otherwise the card comes first and the diagram gets the
+// full width. Decided for the whole page, so flows do not jump around.
+function watchFlowLayout(flows, { root, layout, panel }, render) {
   const widest = Math.max(...flows.map((f) => flowActors(list(f.steps)).length), 1);
   const fitsBeside = () => window.matchMedia(FLOW_SIDE_BY_SIDE).matches
     && root.clientWidth - FLOW_CARD_WIDTH - 16 >= widest * SEQ.minCol + SEQ.pad * 2;
@@ -3128,109 +3128,180 @@ function renderFlows(data, mount) {
   new ResizeObserver(() => {
     panel.classList.toggle('is-static', panel.offsetHeight > window.innerHeight - 96);
   }).observe(panel);
+}
+
+function flowPicks(flows, current, onPick) {
+  return flows.map((f, i) => h('li', null, h('button', {
+    class: 'flow-pick', type: 'button', 'aria-pressed': String(i === current), onclick: () => onPick(i),
+  },
+  h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
+  h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title)))));
+}
+
+// onJump(flowId, stepIndex) switches to a paired flow.
+function flowMeta(flows, flow, nodeIndex, onJump) {
+  const pair = chFlowPair(flows, flow);
+  return [
+    flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
+    flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)),
+    chPairSwitch(pair, flow.id, (id) => onJump(id, 0)),
+    chPairCompare(pair, nodeIndex, (id, n) => onJump(id, n - 1)),
+  ];
+}
+
+function flowStepRoute(step, nodeIndex) {
+  const from = nodeIndex.get(step.from);
+  const to = nodeIndex.get(step.to);
+  return h('div', { class: 'step-route' },
+    h('span', { class: 'route-part' }, from && icon(from.kind), softBreaks(text(from && from.label, step.from))),
+    h('span', { class: 'arrow-glyph', 'aria-hidden': 'true' }, step.from === step.to ? '↺' : '→'),
+    step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), softBreaks(text(to && to.label, step.to))));
+}
+
+function flowStepPanel(data, flow, stepIndex, nodeIndex, go) {
+  const steps = list(flow.steps);
+  const step = steps[stepIndex];
+  const last = stepIndex === steps.length - 1;
+  return [h('div', { class: 'step-body' }, h('div', { class: 'step-text' },
+    h('div', { class: 'step-top' },
+      h('span', { class: 'step-count' }, `Step ${stepIndex + 1} of ${steps.length}`),
+      step.kind && tag(step.kind, `tag-${step.kind}`)),
+    flowStepRoute(step, nodeIndex),
+    h('h3', null, softBreaks(step.label)),
+    step.detail && h('p', null, softBreaks(step.detail)),
+    step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
+    (step.file || step.code) && h('div', { class: 'step-code' },
+      step.file && h('div', { class: 'code-head' }, fileChip(step.file), chWalkthroughLink(data, step.file)),
+      step.code && codeBlock(step.code, step.lang))),
+    h('div', { class: 'step-controls' },
+      stepDots(steps.length, stepIndex, go),
+      h('button', { class: 'btn', type: 'button', disabled: stepIndex === 0, onclick: () => go(stepIndex - 1) }, 'Back'),
+      h('button', { class: 'btn primary', type: 'button', onclick: () => go(stepIndex + 1) }, last ? 'Finish' : 'Continue')),
+    h('p', { class: 'kbd-hint' }, 'Tip: use ', h('kbd', null, '←'), ' ', h('kbd', null, '→'), ' to step through.'),
+  ];
+}
+
+// onNext is null on the last flow.
+function flowDonePanel(flow, go, onNext) {
+  const steps = list(flow.steps);
+  const actors = new Set(steps.flatMap((st) => [st.from, st.to]));
+  return [h('div', { class: 'flow-done' },
+    h('span', { class: 'trophy' }, icon('trophy')),
+    h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
+    h('h3', null, softBreaks(flow.title)),
+    h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
+    h('div', { class: 'btn-row' },
+      h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
+      onNext && h('button', { class: 'btn primary', type: 'button', onclick: onNext }, 'Next flow')))];
+}
+
+// Draw the current arrow, slide the card in, keep the step in view.
+function animateFlowStep(diagram, panel, layout, state, animate) {
+  const current = diagram.body.querySelector('.seq-step.is-current .arrow');
+  if (current) {
+    const marker = current.dataset.marker;
+    if (animate) drawPath(current, marker); else current.setAttribute('marker-end', marker);
+  }
+  if (!animate) return;
+  slideIn(panel.firstElementChild, state.direction);
+  // Stacked layouts keep the reader at the Continue button instead.
+  if (!state.finished && !layout.classList.contains('is-stacked')) revealCurrentStep(diagram.body);
+  if (state.finished) pop(panel.querySelector('.trophy'));
+}
+
+function flowPlayerParts() {
+  const headsWrap = h('div', { class: 'seq-heads-wrap' });
+  const bodyWrap = h('div', { class: 'seq-body' });
+  // The body scrolls sideways only; the sticky header strip follows it.
+  bodyWrap.addEventListener('scroll', () => {
+    if (headsWrap.firstElementChild) headsWrap.firstElementChild.style.transform = `translateX(${-bodyWrap.scrollLeft}px)`;
+  }, { passive: true });
+  const seqWrap = h('div', { class: 'panel seq-wrap seq', 'aria-label': 'Sequence diagram' }, headsWrap, bodyWrap);
+  const picker = h('ul', { class: 'flow-list', 'aria-label': 'Flows' });
+  const meta = h('div', { class: 'flow-meta' });
+  const panel = h('div', { class: 'panel step-card', 'aria-live': 'polite' });
+  const layout = h('div', { class: 'flow-layout' }, seqWrap, panel);
+  const root = h('div', { class: 'flow-player' }, picker, meta, layout);
+  return { headsWrap, bodyWrap, picker, meta, panel, layout, root };
+}
+
+// #flows/<id>/<n>, with n = the step count once finished.
+function flowLink(flows, state) {
+  const flow = flows[state.flowIndex];
+  return `flows/${linkPart(flow.id)}/${state.finished ? list(flow.steps).length : state.stepIndex + 1}`;
+}
+
+// Going past the last step finishes the flow.
+function flowStepState(flows, state, stepIndex) {
+  if (stepIndex >= list(flows[state.flowIndex].steps).length) return { finished: true, direction: 1 };
+  return { stepIndex: Math.max(0, stepIndex), finished: false, direction: stepIndex >= state.stepIndex ? 1 : -1 };
+}
+
+// Left and right arrows step through, except while typing.
+function wireFlowKeys(root, getState, go) {
+  root.addEventListener('keydown', (event) => {
+    if (event.target.closest('input, textarea')) return;
+    const state = getState();
+    if (event.key === 'ArrowRight') { event.preventDefault(); go(state.stepIndex + 1); }
+    if (event.key === 'ArrowLeft') { event.preventDefault(); go(state.finished ? state.stepIndex : state.stepIndex - 1); }
+  });
+}
+
+// #flows/<id>/<n>: the state to open, or null when the flow is unknown.
+function flowOpenState(flows, flowId, n) {
+  if (flowId === undefined) return null;
+  const index = flows.findIndex((f) => f.id === flowId);
+  if (index < 0) return null;
+  const count = list(flows[index].steps).length;
+  const wanted = Number.parseInt(n, 10);
+  const stepIndex = Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0;
+  return { flowIndex: index, stepIndex, finished: false, direction: 1 };
+}
+
+function renderFlows(data, mount) {
+  const flows = list(data.flows);
+  if (!flows.length) {
+    mount.append(h('p', { class: 'empty' }, 'No flows traced yet.'));
+    return null;
+  }
+  const nodeIndex = byId(data.nodes);
+  const parts = flowPlayerParts();
+  const { headsWrap, bodyWrap, picker, meta, panel, layout, root } = parts;
+  let state = { flowIndex: 0, stepIndex: 0, finished: false, direction: 1 };
 
   function setState(next) {
     state = { ...state, ...next };
-    const flow = flows[state.flowIndex];
-    const step = state.finished ? list(flow.steps).length : state.stepIndex + 1;
-    setDeepLink(`flows/${linkPart(flow.id)}/${step}`);
+    setDeepLink(flowLink(flows, state));
     render({ animate: true });
   }
 
-  function go(stepIndex) {
-    const steps = list(flows[state.flowIndex].steps);
-    if (stepIndex >= steps.length) return setState({ finished: true, direction: 1 });
-    return setState({ stepIndex: Math.max(0, stepIndex), finished: false, direction: stepIndex >= state.stepIndex ? 1 : -1 });
-  }
+  const go = (stepIndex) => setState(flowStepState(flows, state, stepIndex));
+
+  const jump = (id, stepIndex) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex, finished: false });
+  const nextFlow = () => (state.flowIndex + 1 < flows.length ? () => setState({ flowIndex: state.flowIndex + 1, stepIndex: 0, finished: false }) : null);
 
   function render({ animate = false } = {}) {
     const flow = flows[state.flowIndex];
-    fill(picker, ...flows.map((f, i) => h('li', null, h('button', {
-      class: 'flow-pick', type: 'button', 'aria-pressed': String(i === state.flowIndex),
-      onclick: () => setState({ flowIndex: i, stepIndex: 0, finished: false }),
-    },
-    h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
-    h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title))))));
-    fill(meta,
-      flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
-      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)),
-      chPairSwitch(chFlowPair(flows, flow), flow.id, (id) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: 0, finished: false })),
-      chPairCompare(chFlowPair(flows, flow), nodeIndex, (id, n) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: n - 1, finished: false })));
+    fill(picker, ...flowPicks(flows, state.flowIndex, (i) => setState({ flowIndex: i, stepIndex: 0, finished: false })));
+    fill(meta, ...flowMeta(flows, flow, nodeIndex, jump));
     const diagram = sequenceDiagram(flow, nodeIndex, state.finished ? list(flow.steps).length : state.stepIndex, go, bodyWrap.clientWidth);
     fill(headsWrap, diagram.heads);
     fill(bodyWrap, diagram.body);
     centerCurrentStep(bodyWrap, animate);
-    fill(panel, ...(state.finished ? finishedPanel(flow) : stepPanel(flow)));
-    const current = diagram.body.querySelector('.seq-step.is-current .arrow');
-    if (current) {
-      const marker = current.dataset.marker;
-      if (animate) drawPath(current, marker); else current.setAttribute('marker-end', marker);
-    }
-    if (animate) slideIn(panel.firstElementChild, state.direction);
-    // Stacked layouts keep the reader at the Continue button instead.
-    if (animate && !state.finished && !layout.classList.contains('is-stacked')) revealCurrentStep(diagram.body);
-    if (animate && state.finished) pop(panel.querySelector('.trophy'));
+    fill(panel, ...(state.finished ? flowDonePanel(flow, go, nextFlow()) : flowStepPanel(data, flow, state.stepIndex, nodeIndex, go)));
+    animateFlowStep(diagram, panel, layout, state, animate);
   }
 
-  function stepPanel(flow) {
-    const steps = list(flow.steps);
-    const step = steps[state.stepIndex];
-    const from = nodeIndex.get(step.from);
-    const to = nodeIndex.get(step.to);
-    const last = state.stepIndex === steps.length - 1;
-    return [h('div', { class: 'step-body' }, h('div', { class: 'step-text' },
-      h('div', { class: 'step-top' },
-        h('span', { class: 'step-count' }, `Step ${state.stepIndex + 1} of ${steps.length}`),
-        step.kind && tag(step.kind, `tag-${step.kind}`)),
-      h('div', { class: 'step-route' },
-        h('span', { class: 'route-part' }, from && icon(from.kind), softBreaks(text(from && from.label, step.from))),
-        h('span', { class: 'arrow-glyph', 'aria-hidden': 'true' }, step.from === step.to ? '↺' : '→'),
-        step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), softBreaks(text(to && to.label, step.to)))),
-      h('h3', null, softBreaks(step.label)),
-      step.detail && h('p', null, softBreaks(step.detail)),
-      step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
-      (step.file || step.code) && h('div', { class: 'step-code' },
-        step.file && h('div', { class: 'code-head' }, fileChip(step.file), chWalkthroughLink(data, step.file)),
-        step.code && codeBlock(step.code, step.lang))),
-      h('div', { class: 'step-controls' },
-        stepDots(steps.length, state.stepIndex, go),
-        h('button', { class: 'btn', type: 'button', disabled: state.stepIndex === 0, onclick: () => go(state.stepIndex - 1) }, 'Back'),
-        h('button', { class: 'btn primary', type: 'button', onclick: () => go(state.stepIndex + 1) }, last ? 'Finish' : 'Continue')),
-      h('p', { class: 'kbd-hint' }, 'Tip: use ', h('kbd', null, '←'), ' ', h('kbd', null, '→'), ' to step through.'),
-    ];
-  }
-
-  function finishedPanel(flow) {
-    const steps = list(flow.steps);
-    const actors = new Set(steps.flatMap((st) => [st.from, st.to]));
-    const nextIndex = state.flowIndex + 1;
-    return [h('div', { class: 'flow-done' },
-      h('span', { class: 'trophy' }, icon('trophy')),
-      h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
-      h('h3', null, softBreaks(flow.title)),
-      h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
-      h('div', { class: 'btn-row' },
-        h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
-        nextIndex < flows.length && h('button', { class: 'btn primary', type: 'button', onclick: () => setState({ flowIndex: nextIndex, stepIndex: 0, finished: false }) }, 'Next flow')))];
-  }
-
-  root.addEventListener('keydown', (event) => {
-    if (event.target.closest('input, textarea')) return;
-    if (event.key === 'ArrowRight') { event.preventDefault(); go(state.stepIndex + 1); }
-    if (event.key === 'ArrowLeft') { event.preventDefault(); go(state.finished ? state.stepIndex : state.stepIndex - 1); }
-  });
+  watchFlowLayout(flows, parts, render);
+  wireFlowKeys(root, () => state, go);
 
   render();
   mount.append(root);
   return {
     open([flowId, n] = []) {
-      if (flowId === undefined) return null;
-      const index = flows.findIndex((f) => f.id === flowId);
-      if (index < 0) return null;
-      const count = list(flows[index].steps).length;
-      const wanted = Number.parseInt(n, 10);
-      const stepIndex = Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0;
-      state = { flowIndex: index, stepIndex, finished: false, direction: 1 };
+      const opened = flowOpenState(flows, flowId, n);
+      if (!opened) return null;
+      state = opened;
       render();
       return panel;
     },
@@ -3358,20 +3429,42 @@ function changeKey(change, index) {
   return text(change && change.id, String(index));
 }
 
-function renderChanges(data, mount) {
-  const changes = list(data.changes)
+// Newest first, each with its deep-link key.
+function sortedChanges(data) {
+  return list(data.changes)
     .map((change, i) => ({ ...change, key: changeKey(change, i) }))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
+function visibleChanges(changes, state) {
+  return changes.filter((c) => (state.author === 'all' || c.authorType === state.author)
+    && (state.kind === 'all' || c.kind === state.kind));
+}
+
+function changesToolbar(state, kinds, setState) {
+  return [
+    h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' },
+      AUTHOR_FILTERS.map((f) => filterChip(f.label, state.author === f.id, () => setState({ author: f.id })))),
+    kinds.length > 2 && h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by type' },
+      kinds.map((k) => filterChip(k === 'all' ? 'All types' : k, state.kind === k, () => setState({ kind: k })))),
+    h('button', {
+      class: 'btn small changes-map', type: 'button',
+      onclick: () => { emit('highlight-changes', { enabled: true }); window.location.hash = 'map'; },
+    }, 'Show on map'),
+  ];
+}
+
+function renderChanges(data, mount) {
+  const changes = sortedChanges(data);
   if (!changes.length) {
     mount.append(h('p', { class: 'empty' }, 'No recent changes recorded.'));
     return null;
   }
   const nodeIndex = byId(data.nodes);
-  let state = { author: 'all', kind: 'all', target: null };
-
   const kinds = ['all', ...new Set(changes.map((c) => c.kind).filter(Boolean))];
   const toolbar = h('div', { class: 'changes-toolbar' });
   const timeline = h('ol', { class: 'timeline' });
+  let state = { author: 'all', kind: 'all', target: null };
 
   function setState(next, { animate = true } = {}) {
     state = { ...state, ...next };
@@ -3379,23 +3472,9 @@ function renderChanges(data, mount) {
     if (animate) [...timeline.children].slice(0, 8).forEach((item, i) => riseIn(item, i * 35));
   }
 
-  function visible() {
-    return changes.filter((c) => (state.author === 'all' || c.authorType === state.author)
-      && (state.kind === 'all' || c.kind === state.kind));
-  }
-
   function render() {
-    fill(toolbar,
-      h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' },
-        AUTHOR_FILTERS.map((f) => filterChip(f.label, state.author === f.id, () => setState({ author: f.id })))),
-      kinds.length > 2 && h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by type' },
-        kinds.map((k) => filterChip(k === 'all' ? 'All types' : k, state.kind === k, () => setState({ kind: k })))),
-      h('button', {
-        class: 'btn small changes-map', type: 'button',
-        onclick: () => { emit('highlight-changes', { enabled: true }); window.location.hash = 'map'; },
-      }, 'Show on map'),
-    );
-    const items = visible();
+    fill(toolbar, ...changesToolbar(state, kinds, setState));
+    const items = visibleChanges(changes, state);
     fill(timeline, ...(items.length
       ? items.map((change) => changeItem(change, nodeIndex, change.key === state.target))
       : [h('li', { class: 'empty' }, 'Nothing matches these filters.')]));
@@ -3546,23 +3625,174 @@ function optionLabel(option) {
   return h('span', { class: 'option-text' }, softBreaks(value));
 }
 
+// ---------- Quiz state (pure) ----------
+const QUIZ_OPEN = Object.freeze({ tries: [], status: 'open', picked: null });
+
+function quizAnswerOf(state, i) {
+  return state.answers[i] || QUIZ_OPEN;
+}
+
+// The answer after pressing Check: right first time, right late (counts as
+// missed), another try, or out of tries.
+function quizChecked(answer, question) {
+  const right = answer.picked === question.answer;
+  const tries = [...answer.tries, answer.picked];
+  const status = right ? (tries.length === 1 ? 'right' : 'right-late') : tries.length >= QUIZ_TRIES ? 'missed' : 'retry';
+  return { ...answer, tries, status: status === 'right-late' ? 'missed' : status, firstTry: right && tries.length === 1, picked: right ? answer.picked : null, late: status === 'right-late' };
+}
+
+function quizWithAnswer(state, i, next) {
+  const answers = [...state.answers];
+  answers[i] = { ...quizAnswerOf(state, i), ...next };
+  return { ...state, answers };
+}
+
+const quizPicked = (answer) => answer.picked !== null && answer.picked !== undefined;
+
+// ---------- Quiz screens ----------
+function quizProgress(questions, state, current, go) {
+  return h('div', { class: 'step-dots quiz-dots' }, questions.map((_, i) => {
+    const status = quizAnswerOf(state, i).status;
+    return h('button', {
+      type: 'button', class: [i === current ? 'is-current' : '', status !== 'open' ? 'is-done' : ''].join(' ').trim(),
+      'aria-label': `Question ${i + 1}${status === 'right' ? ', right' : status === 'missed' ? ', missed' : ''}`,
+      'aria-current': i === current ? 'step' : null, onclick: () => go(i),
+    });
+  }));
+}
+
+function quizFeedback(question, answer) {
+  const live = h('div', { class: 'quiz-live', 'aria-live': 'polite' });
+  if (answer.status === 'open') return live;
+  const correctText = list(question.options)[question.answer];
+  const explain = text(question.explain, `The answer is “${correctText}”.`);
+  const states = {
+    retry: { cls: 'is-retry', head: 'Not yet. Try again.', body: 'Pick another answer, or show the answer.' },
+    right: { cls: 'is-right', head: 'Right', body: explain },
+    missed: { cls: 'is-missed', head: answer.late ? 'Right on the second try' : 'Why', body: explain },
+  };
+  const view = states[answer.status] || states.missed;
+  live.append(h('div', { class: `feedback ${view.cls}` },
+    h('p', { class: 'feedback-head', tabindex: '-1', 'data-focus': '' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), view.head),
+    h('p', null, softBreaks(view.body))));
+  return live;
+}
+
+function quizOptions(question, answer, resolved, pick) {
+  const optionEls = list(question.options).map((option, j) => {
+    const tried = answer.tries.includes(j);
+    const isAnswer = resolved && j === question.answer;
+    return h('button', {
+      class: ['option', tried && !isAnswer ? 'is-tried' : '', isAnswer ? 'is-answer' : ''].join(' ').trim(),
+      type: 'button', role: 'radio', 'aria-checked': String(answer.picked === j), tabindex: '-1', disabled: resolved,
+      onclick: () => pick(j),
+    },
+    h('span', { class: 'key' }, String(j + 1)), optionLabel(option),
+    isAnswer && h('span', { class: 'tag tag-answer' }, 'Correct answer'),
+    tried && !isAnswer && h('span', { class: 'option-note' }, 'Your try'));
+  });
+  const focusable = optionEls[answer.picked ?? 0] || optionEls[0];
+  if (focusable && !resolved) focusable.tabIndex = 0;
+  return optionEls;
+}
+
+// Arrows move the pick, 1 to n pick directly, Enter checks.
+function quizKeys(event, answer, count, { pick, check }) {
+  const move = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+  const number = Number.parseInt(event.key, 10);
+  if (move) {
+    event.preventDefault();
+    pick(((answer.picked ?? -1) + move + count) % count);
+  } else if (number >= 1 && number <= count) {
+    event.preventDefault();
+    pick(number - 1);
+  } else if (event.key === 'Enter' && quizPicked(answer)) {
+    event.preventDefault();
+    check();
+  }
+}
+
+function quizControls(i, count, answer, resolved, actions) {
+  const checkButton = !resolved && h('button', {
+    class: 'btn primary', type: 'button', disabled: !quizPicked(answer), onclick: actions.check,
+  }, answer.status === 'retry' ? 'Check again' : 'Check');
+  const showAnswer = answer.status === 'retry' && h('button', { class: 'link quiz-reveal', type: 'button', onclick: actions.reveal }, 'Show answer');
+  return h('div', { class: 'step-controls quiz-controls' },
+    h('button', { class: 'btn', type: 'button', disabled: i === 0, onclick: () => actions.go(i - 1) }, 'Back'),
+    showAnswer,
+    resolved
+      ? h('button', { class: 'btn primary', type: 'button', onclick: () => actions.go(i + 1) }, i === count - 1 ? 'See your score' : 'Continue')
+      : checkButton);
+}
+
+// actions: { pick(j), check(), reveal(), go(i), reset() }
+function quizQuestionScreen(questions, state, i, actions) {
+  const question = questions[i];
+  const count = list(question.options).length;
+  const answer = quizAnswerOf(state, i);
+  const resolved = answer.status === 'right' || answer.status === 'missed';
+  const group = h('div', {
+    class: 'options', role: 'radiogroup', 'aria-label': question.question,
+    onkeydown: (event) => { if (!resolved) quizKeys(event, answer, count, actions); },
+  }, quizOptions(question, answer, resolved, actions.pick));
+  return [
+    h('div', { class: 'quiz-top' },
+      h('span', { class: 'step-count' }, `Question ${i + 1} of ${questions.length}`),
+      h('button', { class: 'link quiz-reset', type: 'button', onclick: actions.reset }, 'Reset')),
+    quizProgress(questions, state, i, actions.go),
+    h('h3', { class: 'quiz-q', tabindex: '-1', 'data-focus': answer.status === 'open' ? '' : null }, softBreaks(question.question)),
+    group,
+    quizFeedback(question, answer),
+    quizControls(i, questions.length, answer, resolved, actions),
+    h('p', { class: 'kbd-hint' }, 'Tip: press ', h('kbd', null, '1'), ' to ', h('kbd', null, String(count)), ' to pick, ', h('kbd', null, 'Enter'), ' to check.'),
+  ];
+}
+
+function quizMissedList(data, missed, go) {
+  return h('div', { class: 'quiz-missed' },
+    h('p', { class: 'eyebrow quiet' }, 'To revisit'),
+    h('ul', { class: 'rows' }, missed.map(({ q, i }) => {
+      const lesson = quizLesson(q, data);
+      return h('li', { class: 'quiz-missed-row' },
+        h('button', { class: 'link', type: 'button', onclick: () => go(i) }, softBreaks(`${i + 1}. ${q.question}`)),
+        lesson && h('a', { class: 'quiz-lesson', href: lesson.href }, softBreaks(`Read: ${lesson.label}`)));
+    })));
+}
+
+function quizEndScreen(data, questions, state, { go, reset }) {
+  const firstTry = questions.filter((_, i) => quizAnswerOf(state, i).status === 'right').length;
+  const missed = questions.map((q, i) => ({ q, i, a: quizAnswerOf(state, i) })).filter(({ a }) => a.status !== 'right');
+  return [
+    h('div', { class: 'quiz-top' }, h('span', { class: 'step-count' }, 'Your score'),
+      h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
+    quizProgress(questions, state, -1, go),
+    h('h3', { class: 'quiz-score', tabindex: '-1', 'data-focus': '' }, `${firstTry} of ${questions.length} on the first try`),
+    h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${firstTry / questions.length}` })),
+    missed.length
+      ? quizMissedList(data, missed, go)
+      : h('p', { class: 'quiz-perfect' }, 'Every answer right on the first try. This chapter is done.'),
+    h('div', { class: 'step-controls quiz-controls' },
+      h('button', { class: 'btn', type: 'button', onclick: () => go(questions.length - 1) }, 'Back'),
+      h('button', { class: 'btn primary', type: 'button', onclick: reset }, 'Try again')),
+  ];
+}
+
+// A right answer keeps its pick and pops; a wrong one shakes.
+function quizCelebrate(card, answer) {
+  const chosen = card.querySelectorAll('.option')[answer.tries[answer.tries.length - 1]];
+  if (!chosen) return;
+  if (answer.picked !== null) pop(chosen); else shake(chosen);
+}
+
 function renderQuiz(data, mount) {
   const questions = list(data.quiz);
   if (!questions.length) return null;
   const key = quizStoreKey(data.meta);
-  const saved = loadQuiz(key, questions.length);
-  let state = saved || { index: 0, answers: [] };
+  let state = loadQuiz(key, questions.length) || { index: 0, answers: [] };
   const card = h('article', { class: 'panel quiz-card' });
-
-  const answerOf = (i) => state.answers[i] || { tries: [], status: 'open', picked: null };
   const persist = () => writeStore(key, JSON.stringify({ index: state.index, answers: state.answers }));
-
-  function setAnswer(i, next) {
-    const answers = [...state.answers];
-    answers[i] = { ...answerOf(i), ...next };
-    state = { ...state, answers };
-    persist();
-  }
+  const update = (i, next) => { state = quizWithAnswer(state, i, next); persist(); };
+  const focusOption = (j) => { const el = card.querySelectorAll('.option')[j]; if (el) el.focus(); return el; };
 
   function go(index, { focus = true, link = true } = {}) {
     state = { ...state, index: Math.min(Math.max(index, 0), questions.length) };
@@ -3571,158 +3801,24 @@ function renderQuiz(data, mount) {
     render({ focus });
   }
 
-  function reset() {
-    state = { index: 0, answers: [] };
-    persist();
-    go(0);
-  }
+  const actions = {
+    go,
+    reset: () => { state = { index: 0, answers: [] }; persist(); go(0); },
+    pick: (j) => { update(state.index, { picked: j }); render(); focusOption(j); },
+    reveal: () => { update(state.index, { status: 'missed', picked: null }); render({ focus: true }); },
+    check: () => {
+      const i = state.index;
+      if (!quizPicked(quizAnswerOf(state, i))) return;
+      update(i, quizChecked(quizAnswerOf(state, i), questions[i]));
+      render({ focus: true });
+      quizCelebrate(card, quizAnswerOf(state, i));
+    },
+  };
 
   function render({ focus = false } = {}) {
-    fill(card, ...(state.index >= questions.length ? endScreen() : questionScreen(state.index)));
-    if (focus) {
-      const head = card.querySelector('[data-focus]');
-      if (head) head.focus({ preventScroll: true });
-    }
-  }
-
-  function progress(current) {
-    return h('div', { class: 'step-dots quiz-dots' }, questions.map((_, i) => {
-      const status = answerOf(i).status;
-      return h('button', {
-        type: 'button', class: [i === current ? 'is-current' : '', status !== 'open' ? 'is-done' : ''].join(' ').trim(),
-        'aria-label': `Question ${i + 1}${status === 'right' ? ', right' : status === 'missed' ? ', missed' : ''}`,
-        'aria-current': i === current ? 'step' : null, onclick: () => go(i),
-      });
-    }));
-  }
-
-  function questionScreen(i) {
-    const question = questions[i];
-    const options = list(question.options);
-    const answer = answerOf(i);
-    const resolved = answer.status === 'right' || answer.status === 'missed';
-    const optionEls = options.map((option, j) => {
-      const tried = answer.tries.includes(j);
-      const isAnswer = resolved && j === question.answer;
-      const el = h('button', {
-        class: ['option', tried && !isAnswer ? 'is-tried' : '', isAnswer ? 'is-answer' : ''].join(' ').trim(),
-        type: 'button', role: 'radio', 'aria-checked': String(answer.picked === j), tabindex: '-1', disabled: resolved,
-        onclick: () => pick(j),
-      },
-      h('span', { class: 'key' }, String(j + 1)), optionLabel(option),
-      isAnswer && h('span', { class: 'tag tag-answer' }, 'Correct answer'),
-      tried && !isAnswer && h('span', { class: 'option-note' }, 'Your try'));
-      return el;
-    });
-    const focusable = optionEls[answer.picked ?? 0] || optionEls[0];
-    if (focusable && !resolved) focusable.tabIndex = 0;
-
-    function pick(j) {
-      setAnswer(i, { picked: j });
-      render();
-      const el = card.querySelectorAll('.option')[j];
-      if (el) el.focus();
-    }
-
-    function check() {
-      const current = answerOf(i);
-      if (current.picked === null || current.picked === undefined) return;
-      const right = current.picked === question.answer;
-      const tries = [...current.tries, current.picked];
-      const status = right ? (tries.length === 1 ? 'right' : 'right-late') : tries.length >= QUIZ_TRIES ? 'missed' : 'retry';
-      setAnswer(i, { tries, status: status === 'right-late' ? 'missed' : status, firstTry: right && tries.length === 1, picked: right ? current.picked : null, late: status === 'right-late' });
-      render({ focus: true });
-      const chosen = card.querySelectorAll('.option')[tries[tries.length - 1]];
-      if (chosen) { if (right) pop(chosen); else shake(chosen); }
-    }
-
-    const group = h('div', {
-      class: 'options', role: 'radiogroup', 'aria-label': question.question,
-      onkeydown: (event) => {
-        if (resolved) return;
-        const move = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
-        const number = Number.parseInt(event.key, 10);
-        if (move) {
-          event.preventDefault();
-          const from = answerOf(i).picked ?? -1;
-          pick((from + move + options.length) % options.length);
-        } else if (number >= 1 && number <= options.length) {
-          event.preventDefault();
-          pick(number - 1);
-        } else if (event.key === 'Enter' && answerOf(i).picked !== null && answerOf(i).picked !== undefined) {
-          event.preventDefault();
-          check();
-        }
-      },
-    }, optionEls);
-
-    const feedback = feedbackPanel(question, answer);
-    const checkButton = !resolved && h('button', {
-      class: 'btn primary', type: 'button', disabled: answer.picked === null || answer.picked === undefined, onclick: check,
-    }, answer.status === 'retry' ? 'Check again' : 'Check');
-    const showAnswer = answer.status === 'retry' && h('button', {
-      class: 'link quiz-reveal', type: 'button',
-      onclick: () => { setAnswer(i, { status: 'missed', picked: null }); render({ focus: true }); },
-    }, 'Show answer');
-    const last = i === questions.length - 1;
-    return [
-      h('div', { class: 'quiz-top' },
-        h('span', { class: 'step-count' }, `Question ${i + 1} of ${questions.length}`),
-        h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
-      progress(i),
-      h('h3', { class: 'quiz-q', tabindex: '-1', 'data-focus': answer.status === 'open' ? '' : null }, softBreaks(question.question)),
-      group,
-      feedback,
-      h('div', { class: 'step-controls quiz-controls' },
-        h('button', { class: 'btn', type: 'button', disabled: i === 0, onclick: () => go(i - 1) }, 'Back'),
-        showAnswer,
-        resolved
-          ? h('button', { class: 'btn primary', type: 'button', onclick: () => go(i + 1) }, last ? 'See your score' : 'Continue')
-          : checkButton),
-      h('p', { class: 'kbd-hint' }, 'Tip: press ', h('kbd', null, '1'), ' to ', h('kbd', null, String(options.length)), ' to pick, ', h('kbd', null, 'Enter'), ' to check.'),
-    ];
-  }
-
-  function feedbackPanel(question, answer) {
-    const live = h('div', { class: 'quiz-live', 'aria-live': 'polite' });
-    if (answer.status === 'open') return live;
-    const correctText = list(question.options)[question.answer];
-    const explain = text(question.explain, `The answer is “${correctText}”.`);
-    const states = {
-      retry: { cls: 'is-retry', head: 'Not yet. Try again.', body: 'Pick another answer, or show the answer.' },
-      right: { cls: 'is-right', head: 'Right', body: explain },
-      missed: { cls: 'is-missed', head: answer.late ? 'Right on the second try' : 'Why', body: explain },
-    };
-    const view = states[answer.status] || states.missed;
-    live.append(h('div', { class: `feedback ${view.cls}` },
-      h('p', { class: 'feedback-head', tabindex: '-1', 'data-focus': '' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), view.head),
-      h('p', null, softBreaks(view.body))));
-    return live;
-  }
-
-  function endScreen() {
-    const firstTry = questions.filter((_, i) => answerOf(i).status === 'right').length;
-    const missed = questions.map((q, i) => ({ q, i, a: answerOf(i) })).filter(({ a }) => a.status !== 'right');
-    return [
-      h('div', { class: 'quiz-top' }, h('span', { class: 'step-count' }, 'Your score'),
-        h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
-      progress(-1),
-      h('h3', { class: 'quiz-score', tabindex: '-1', 'data-focus': '' }, `${firstTry} of ${questions.length} on the first try`),
-      h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${firstTry / questions.length}` })),
-      missed.length
-        ? h('div', { class: 'quiz-missed' },
-          h('p', { class: 'eyebrow quiet' }, 'To revisit'),
-          h('ul', { class: 'rows' }, missed.map(({ q, i }) => {
-            const lesson = quizLesson(q, data);
-            return h('li', { class: 'quiz-missed-row' },
-              h('button', { class: 'link', type: 'button', onclick: () => go(i) }, softBreaks(`${i + 1}. ${q.question}`)),
-              lesson && h('a', { class: 'quiz-lesson', href: lesson.href }, softBreaks(`Read: ${lesson.label}`)));
-          })))
-        : h('p', { class: 'quiz-perfect' }, 'Every answer right on the first try. This chapter is done.'),
-      h('div', { class: 'step-controls quiz-controls' },
-        h('button', { class: 'btn', type: 'button', onclick: () => go(questions.length - 1) }, 'Back'),
-        h('button', { class: 'btn primary', type: 'button', onclick: reset }, 'Try again')),
-    ];
+    fill(card, ...(state.index >= questions.length ? quizEndScreen(data, questions, state, actions) : quizQuestionScreen(questions, state, state.index, actions)));
+    const head = focus && card.querySelector('[data-focus]');
+    if (head) head.focus({ preventScroll: true });
   }
 
   mount.append(h('div', { class: 'lesson quiz' }, card));
@@ -6111,20 +6207,11 @@ function optionRow(option, id, selected) {
       option.desc && h('span', { class: 'picker-desc' }, option.desc)));
 }
 
-/**
- * A button that opens a listbox popover. Up/Down, Home/End, typeahead,
- * Enter/Space choose, Escape closes and returns focus to the button.
- * @param {{ options: object[], value: string, labelledBy: string, describedBy?: string, onChange?: Function }} spec
- */
-function listboxPicker({ options, value, labelledBy, describedBy, onChange, ariaLabel, buttonContent }) {
+// The button, the popover and its rows. Compact pickers (an icon button)
+// name themselves with aria-label.
+function listboxParts({ options, current, labelOf, labelledBy, describedBy, ariaLabel, buttonContent }) {
   const buttonId = pickerId('picker-button');
   const listId = pickerId('picker-list');
-  let current = options.some((o) => o.value === value) ? value : options[0].value;
-  let active = 0;
-  let typed = '';
-  let typedAt = 0;
-  const labelOf = (v) => (options.find((o) => o.value === v) || options[0]).label;
-  // Compact pickers (an icon button) name themselves with aria-label.
   const valueText = h('span', { class: 'picker-value' }, buttonContent ? buttonContent(current) : labelOf(current));
   const naming = ariaLabel ? { 'aria-label': `${ariaLabel}: ${labelOf(current)}` } : { 'aria-labelledby': `${labelledBy} ${buttonId}` };
   const button = h('button', {
@@ -6136,39 +6223,98 @@ function listboxPicker({ options, value, labelledBy, describedBy, onChange, aria
     class: 'picker-panel', role: 'listbox', id: listId, tabindex: '-1', hidden: true,
     ...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-labelledby': labelledBy }),
   }, rows);
-  const root = h('div', { class: 'picker' }, button, panel);
-  const api = { root, close };
+  return { valueText, button, rows, panel, root: h('div', { class: 'picker' }, button, panel) };
+}
 
-  function paintActive() {
-    rows.forEach((row, i) => row.classList.toggle('is-active', i === active));
-    panel.setAttribute('aria-activedescendant', rows[active].id);
+const TYPEAHEAD_PAUSE_MS = 600;
+
+// Typing letters jumps to the first label that starts with them; a pause
+// starts a new search. Returns the matching index, or -1.
+function typeaheadFind(options, typeahead, key) {
+  const now = Date.now();
+  typeahead.typed = now - typeahead.at > TYPEAHEAD_PAUSE_MS ? key.toLowerCase() : typeahead.typed + key.toLowerCase();
+  typeahead.at = now;
+  return options.findIndex((o) => o.label.toLowerCase().startsWith(typeahead.typed));
+}
+
+// Keys inside the open listbox. nav: { active, count, move(i), choose(i), close(focus) }.
+function listboxKeys(event, options, typeahead, nav) {
+  const moves = { ArrowDown: nav.active + 1, ArrowUp: nav.active - 1, Home: 0, End: nav.count - 1 };
+  if (event.key in moves) {
+    event.preventDefault();
+    nav.move(Math.min(Math.max(moves[event.key], 0), nav.count - 1));
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    nav.choose(nav.active);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    nav.close(true);
+  } else if (event.key === 'Tab') {
+    nav.close(false);
+  } else if (event.key.length === 1 && /\S/.test(event.key)) {
+    const found = typeaheadFind(options, typeahead, event.key);
+    if (found >= 0) nav.move(found);
   }
+}
+
+const LISTBOX_OPEN_KEYS = ['ArrowDown', 'ArrowUp', 'Enter', ' '];
+
+// One popover open at a time on the page.
+function showPopover(api, trigger, panel) {
+  if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
+  panel.hidden = false;
+  trigger.setAttribute('aria-expanded', 'true');
+  placePanel(trigger, panel);
+  PICKER.open = api;
+}
+
+function hidePopover(api, trigger, panel) {
+  panel.hidden = true;
+  trigger.setAttribute('aria-expanded', 'false');
+  if (PICKER.open === api) PICKER.open = null;
+}
+
+function paintListboxActive(rows, panel, active) {
+  rows.forEach((row, i) => row.classList.toggle('is-active', i === active));
+  panel.setAttribute('aria-activedescendant', rows[active].id);
+}
+
+// The button shows the chosen label (or icon); the rows mark the choice.
+function showListboxValue({ valueText, button, rows }, options, current, { labelOf, ariaLabel, buttonContent }) {
+  fill(valueText, buttonContent ? buttonContent(current) : labelOf(current));
+  if (ariaLabel) button.setAttribute('aria-label', `${ariaLabel}: ${labelOf(current)}`);
+  rows.forEach((row, j) => row.setAttribute('aria-selected', String(options[j].value === current)));
+}
+
+/**
+ * A button that opens a listbox popover. Up/Down, Home/End, typeahead,
+ * Enter/Space choose, Escape closes and returns focus to the button.
+ * @param {{ options: object[], value: string, labelledBy: string, describedBy?: string, onChange?: Function }} spec
+ */
+function listboxPicker({ options, value, labelledBy, describedBy, onChange, ariaLabel, buttonContent }) {
+  let current = options.some((o) => o.value === value) ? value : options[0].value;
+  let active = 0;
+  const typeahead = { typed: '', at: 0 };
+  const labelOf = (v) => (options.find((o) => o.value === v) || options[0]).label;
+  const { valueText, button, rows, panel, root } = listboxParts({ options, current, labelOf, labelledBy, describedBy, ariaLabel, buttonContent });
+  const api = { root, close };
+  const paintActive = () => paintListboxActive(rows, panel, active);
 
   function open() {
-    if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
     active = Math.max(0, options.findIndex((o) => o.value === current));
-    panel.hidden = false;
-    button.setAttribute('aria-expanded', 'true');
-    placePanel(button, panel);
+    showPopover(api, button, panel);
     paintActive();
     panel.focus({ preventScroll: true });
-    PICKER.open = api;
   }
 
   function close(returnFocus = true) {
     if (panel.hidden) return;
-    panel.hidden = true;
-    button.setAttribute('aria-expanded', 'false');
-    if (PICKER.open === api) PICKER.open = null;
+    hidePopover(api, button, panel);
     if (returnFocus) button.focus();
   }
 
-  function show(next) {
-    current = next;
-    fill(valueText, buttonContent ? buttonContent(current) : labelOf(current));
-    if (ariaLabel) button.setAttribute('aria-label', `${ariaLabel}: ${labelOf(current)}`);
-    rows.forEach((row, j) => row.setAttribute('aria-selected', String(options[j].value === current)));
-  }
+  const show = (next) => { current = next; showListboxValue({ valueText, button, rows }, options, current, { labelOf, ariaLabel, buttonContent }); };
 
   function choose(i) {
     show(options[i].value);
@@ -6178,46 +6324,61 @@ function listboxPicker({ options, value, labelledBy, describedBy, onChange, aria
 
   button.addEventListener('click', () => (panel.hidden ? open() : close()));
   button.addEventListener('keydown', (event) => {
-    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
-      event.preventDefault();
-      open();
-    }
+    if (!LISTBOX_OPEN_KEYS.includes(event.key)) return;
+    event.preventDefault();
+    open();
   });
-  panel.addEventListener('keydown', (event) => {
-    const moves = { ArrowDown: active + 1, ArrowUp: active - 1, Home: 0, End: options.length - 1 };
-    if (event.key in moves) {
-      event.preventDefault();
-      active = Math.min(Math.max(moves[event.key], 0), options.length - 1);
-      paintActive();
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      choose(active);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      close(true);
-    } else if (event.key === 'Tab') {
-      close(false);
-    } else if (event.key.length === 1 && /\S/.test(event.key)) {
-      const now = Date.now();
-      typed = now - typedAt > 600 ? event.key.toLowerCase() : typed + event.key.toLowerCase();
-      typedAt = now;
-      const found = options.findIndex((o) => o.label.toLowerCase().startsWith(typed));
-      if (found >= 0) { active = found; paintActive(); }
-    }
-  });
+  const move = (i) => { active = i; paintActive(); };
+  panel.addEventListener('keydown', (event) => listboxKeys(event, options, typeahead, { active, count: options.length, move, choose, close }));
   rows.forEach((row, i) => {
     row.addEventListener('click', () => choose(i));
-    row.addEventListener('pointermove', () => { if (active !== i) { active = i; paintActive(); } });
+    row.addEventListener('pointermove', () => { if (active !== i) move(i); });
   });
 
-  return {
-    el: root,
-    read: () => current,
-    focus: () => button.focus(),
-    set: (next) => { if (options.some((o) => o.value === next) && next !== current) show(next); },
-  };
+  const set = (next) => { if (options.some((o) => o.value === next) && next !== current) show(next); };
+  return { el: root, read: () => current, focus: () => button.focus(), set };
 }
+
+const COMBO_SHOWN = 8;
+
+// Suggestions: values that start with the text, or labels that contain it.
+function comboMatches(options, typed) {
+  const q = String(typed).trim().toLowerCase();
+  return options.filter((o) => !q || o.value.toLowerCase().startsWith(q) || o.label.toLowerCase().includes(q)).slice(0, COMBO_SHOWN);
+}
+
+// Keys in the combobox. nav: { open, step(by), take() -> taken, close() }.
+function comboKeys(event, nav) {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    nav.step(event.key === 'ArrowDown' ? 1 : -1);
+  } else if (event.key === 'Enter' && nav.open) {
+    if (nav.take()) event.preventDefault();
+  } else if (event.key === 'Escape' && nav.open) {
+    event.preventDefault();
+    event.stopPropagation();
+    nav.close();
+  }
+}
+
+function comboParts(id, value, describedBy) {
+  const listId = pickerId('combo-list');
+  const input = h('input', {
+    class: 'field picker-input', type: 'text', id, value: String(value ?? ''), role: 'combobox', autocomplete: 'off', spellcheck: 'false',
+    'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': listId, 'aria-describedby': describedBy,
+  });
+  const panel = h('div', { class: 'picker-panel', role: 'listbox', id: listId, hidden: true });
+  return { listId, input, panel, root: h('div', { class: 'picker' }, input, panel) };
+}
+
+function paintComboActive(panel, input, active) {
+  [...panel.children].forEach((row, i) => row.classList.toggle('is-active', i === active));
+  if (active >= 0 && panel.children[active]) input.setAttribute('aria-activedescendant', panel.children[active].id);
+  else input.removeAttribute('aria-activedescendant');
+}
+
+// A click on a suggestion lands before the blur closes the list.
+const COMBO_BLUR_CLOSE_MS = 120;
 
 /**
  * A text field with suggestions (combobox). Free entry is allowed; the
@@ -6225,20 +6386,14 @@ function listboxPicker({ options, value, labelledBy, describedBy, onChange, aria
  * @param {{ options: object[], value: string, id: string, describedBy?: string }} spec
  */
 function comboPicker({ options, value, id, describedBy }) {
-  const listId = pickerId('combo-list');
+  const { listId, input, panel, root } = comboParts(id, value, describedBy);
   let active = -1;
   let shown = [];
-  const input = h('input', {
-    class: 'field picker-input', type: 'text', id, value: String(value ?? ''), role: 'combobox', autocomplete: 'off', spellcheck: 'false',
-    'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': listId, 'aria-describedby': describedBy,
-  });
-  const panel = h('div', { class: 'picker-panel', role: 'listbox', id: listId, hidden: true });
-  const root = h('div', { class: 'picker' }, input, panel);
   const api = { root, close: () => close() };
+  const paintActive = () => paintComboActive(panel, input, active);
 
   function render() {
-    const q = input.value.trim().toLowerCase();
-    shown = options.filter((o) => !q || o.value.toLowerCase().startsWith(q) || o.label.toLowerCase().includes(q)).slice(0, 8);
+    shown = comboMatches(options, input.value);
     fill(panel, ...shown.map((option, i) => optionRow(option, `${listId}-${i}`, option.value === input.value.trim())));
     [...panel.children].forEach((row, i) => row.addEventListener('pointerdown', (event) => { event.preventDefault(); take(i); }));
     if (!shown.length) { close(); return; }
@@ -6246,28 +6401,15 @@ function comboPicker({ options, value, id, describedBy }) {
     paintActive();
   }
 
-  function paintActive() {
-    [...panel.children].forEach((row, i) => row.classList.toggle('is-active', i === active));
-    if (active >= 0 && panel.children[active]) input.setAttribute('aria-activedescendant', panel.children[active].id);
-    else input.removeAttribute('aria-activedescendant');
-  }
-
   function open() {
-    if (PICKER.open && PICKER.open !== api) PICKER.open.close(false);
     render();
-    if (!shown.length) return;
-    panel.hidden = false;
-    input.setAttribute('aria-expanded', 'true');
-    placePanel(input, panel);
-    PICKER.open = api;
+    if (shown.length) showPopover(api, input, panel);
   }
 
   function close() {
-    panel.hidden = true;
-    input.setAttribute('aria-expanded', 'false');
+    hidePopover(api, input, panel);
     input.removeAttribute('aria-activedescendant');
     active = -1;
-    if (PICKER.open === api) PICKER.open = null;
   }
 
   function take(i) {
@@ -6278,22 +6420,17 @@ function comboPicker({ options, value, id, describedBy }) {
 
   input.addEventListener('input', () => { active = -1; open(); });
   input.addEventListener('focus', () => open());
-  input.addEventListener('blur', () => window.setTimeout(close, 120));
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
+  input.addEventListener('blur', () => window.setTimeout(close, COMBO_BLUR_CLOSE_MS));
+  input.addEventListener('keydown', (event) => comboKeys(event, {
+    open: panel.hidden === false,
+    step: (by) => {
       if (panel.hidden) open();
-      active = Math.min(Math.max(active + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1);
+      active = Math.min(Math.max(active + by, 0), shown.length - 1);
       paintActive();
-    } else if (event.key === 'Enter' && !panel.hidden && active >= 0) {
-      event.preventDefault();
-      take(active);
-    } else if (event.key === 'Escape' && !panel.hidden) {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-    }
-  });
+    },
+    take: () => { if (active >= 0) take(active); else return false; return true; },
+    close,
+  }));
 
   return { el: root, read: () => input.value.trim(), focus: () => input.focus() };
 }
@@ -6320,89 +6457,6 @@ const READING_PREFS = [
     choices: [{ choice: 'comfortable', label: 'Comfortable' }, { choice: 'compact', label: 'Compact' }],
   },
 ];
-
-// The valid values come from the build (context.enums, scripts/lib/page-enums.mjs),
-// so the form never keeps its own list that can drift. The lists below are
-// labels for people, and the values for a page built before enums existed.
-// The CLI and the server check every value again.
-const PAGE_ENUMS = (() => {
-  const enums = readContext().enums;
-  return enums && typeof enums === 'object' && !Array.isArray(enums) ? enums : {};
-})();
-
-function enumList(name, fallback) {
-  const values = PAGE_ENUMS[name];
-  return Array.isArray(values) && values.length && values.every((v) => typeof v === 'string') ? values : fallback;
-}
-
-function enumNumber(name, fallback) {
-  const value = PAGE_ENUMS[name];
-  return Number.isInteger(value) && value > 0 ? value : fallback;
-}
-
-// Every value the build allows, labelled when the page has a label for it.
-function enumOptions(name, labelled, lead = []) {
-  const values = [...new Set([...lead, ...enumList(name, labelled.map((o) => o.value))])];
-  return values.map((value) => labelled.find((o) => o.value === value) || opt(value, value));
-}
-
-const LANGUAGE_PATTERN = (() => {
-  try {
-    return typeof PAGE_ENUMS.languagePattern === 'string' ? new RegExp(PAGE_ENUMS.languagePattern) : null;
-  } catch (error) {
-    return null;
-  }
-})() || /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
-
-function opt(value, label, desc) {
-  return { value, label, desc };
-}
-const ON_OFF = [opt('on', 'On'), opt('off', 'Off')];
-const CONFIG_FIELDS = {
-  style: { label: 'Style', kind: 'style', help: 'The look new explainers open in. Readers can still switch.',
-    options: enumOptions('styles', [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')]) },
-  defaultType: { label: 'Explainer type', kind: 'list', help: 'What the skill makes when you do not say.',
-    options: enumOptions('types', [
-      opt('auto', 'Auto detect', 'The skill picks from what you point it at'),
-      opt('repo', 'Repo', 'A whole codebase: parts, flows, data'),
-      opt('pr', 'Pull request', 'One PR or MR, its diff and risks'),
-      opt('change', 'Change', 'A commit range or a release'),
-      opt('proposal', 'Proposal', 'An RFC or design doc and its options'),
-      opt('migration', 'Migration', 'Moving from one system to another'),
-      opt('incident', 'Incident', 'What broke, why, and the fix'),
-      opt('concept', 'Concept', 'An idea or technique, no code needed'),
-    ], ['auto']) },
-  audience: { label: 'Audience', kind: 'cards', help: 'Sets tone, depth and how many terms get explained.',
-    options: enumOptions('audience', [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')]) },
-  depth: { label: 'Depth', kind: 'cards', help: 'How many parts, flows and steps to trace.',
-    options: enumOptions('depth', [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')]) },
-  language: { label: 'Language', kind: 'combo', help: 'A language tag, like en or pt-BR. Pick one or type your own.',
-    options: [
-      opt('en', 'en', 'English'), opt('en-GB', 'en-GB', 'English (UK)'), opt('es', 'es', 'Spanish'), opt('fr', 'fr', 'French'),
-      opt('de', 'de', 'German'), opt('it', 'it', 'Italian'), opt('pt-BR', 'pt-BR', 'Portuguese (Brazil)'), opt('pt-PT', 'pt-PT', 'Portuguese (Portugal)'),
-      opt('nl', 'nl', 'Dutch'), opt('sv', 'sv', 'Swedish'), opt('pl', 'pl', 'Polish'), opt('tr', 'tr', 'Turkish'),
-      opt('ru', 'ru', 'Russian'), opt('uk', 'uk', 'Ukrainian'), opt('ja', 'ja', 'Japanese'), opt('ko', 'ko', 'Korean'),
-      opt('zh-CN', 'zh-CN', 'Chinese (Simplified)'), opt('zh-TW', 'zh-TW', 'Chinese (Traditional)'), opt('hi', 'hi', 'Hindi'),
-      opt('id', 'id', 'Indonesian'), opt('vi', 'vi', 'Vietnamese'), opt('fil', 'fil', 'Filipino'), opt('ar', 'ar', 'Arabic'), opt('he', 'he', 'Hebrew'),
-    ] },
-  visuals: { label: 'Preferred visuals', kind: 'multi', options: enumList('visualKinds', ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn']), help: 'Picked first when a chapter can use a picture.' },
-  codeWalkthrough: { label: 'Code walkthrough', kind: 'cards', help: 'A line-by-line tour of the few lines that carry the idea.',
-    options: enumOptions('codeWalkthrough', [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')]) },
-  quiz: { label: 'Quiz', kind: 'onoff', help: 'End explainers with a few questions.' },
-  analogies: { label: 'Analogies', kind: 'onoff', help: 'Add a "think of it like" line to key ideas.' },
-  model: { label: 'Model for estimates', kind: 'list', help: 'Used to price a run before it starts.',
-    options: enumOptions('models', [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')]) },
-  budgetUsd: { label: 'Budget in US dollars', kind: 'number', help: 'Start without asking when the estimate fits. Leave empty to always ask.' },
-  confirmBeforeStart: { label: 'Confirm before starting', kind: 'onoff', help: 'Show the estimate and wait for a yes.' },
-  instructions: { label: 'House instructions', kind: 'textarea', help: 'Plain text added to every run: house style, terms to use. Never overrides the truth rules.' },
-};
-const optionValues = (field) => field.options.map((o) => (typeof o === 'string' ? o : o.value));
-const CONFIG_FIELD_DEFAULTS = {
-  style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {}, codeWalkthrough: 'auto',
-  quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
-};
-const INSTRUCTIONS_LIMIT = enumNumber('instructionsLimit', 2000);
-const CLI_NAME = 'concept-explainer';
 
 function readingValue(pref) {
   const value = readStore(pref.storeKey);
@@ -6525,6 +6579,105 @@ function readingGroup(registry) {
     READING_PREFS.map((pref) => settingRow(`set-${pref.key}`, pref.label, labelled(readingSwitch(registry, pref), `set-${pref.key}`), pref.hint)));
 }
 
+function settingsView(registry, { context = {}, config = null, extra = [] } = {}) {
+  const section = h('section', { class: 'view settings-view', 'data-view': 'settings', hidden: true, 'aria-labelledby': 'view-settings-title' },
+    h('header', { class: 'view-head' },
+      h('p', { class: 'eyebrow quiet' }, 'Settings'),
+      h('h1', { id: 'view-settings-title', tabindex: '-1' }, 'Settings'),
+      h('p', { class: 'view-lead' }, 'Reading choices stay in this browser. Explainer defaults shape the next explainer you build.')),
+    h('div', { class: 'settings-body' },
+      readingGroup(registry),
+      defaultsSlot(context, config),
+      extra));
+  return { key: 'settings', title: 'Settings', nav: 'Settings', section, controller: null };
+}
+
+// ---- settings-defaults.js ----
+// Explainer defaults: the fields, their valid values (from the build) and
+// the form that saves them or shows the commands.
+// The valid values come from the build (context.enums, scripts/lib/page-enums.mjs),
+// so the form never keeps its own list that can drift. The lists below are
+// labels for people, and the values for a page built before enums existed.
+// The CLI and the server check every value again.
+const PAGE_ENUMS = (() => {
+  const enums = readContext().enums;
+  return enums && typeof enums === 'object' && !Array.isArray(enums) ? enums : {};
+})();
+
+function enumList(name, fallback) {
+  const values = PAGE_ENUMS[name];
+  return Array.isArray(values) && values.length && values.every((v) => typeof v === 'string') ? values : fallback;
+}
+
+function enumNumber(name, fallback) {
+  const value = PAGE_ENUMS[name];
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+// Every value the build allows, labelled when the page has a label for it.
+function enumOptions(name, labelled, lead = []) {
+  const values = [...new Set([...lead, ...enumList(name, labelled.map((o) => o.value))])];
+  return values.map((value) => labelled.find((o) => o.value === value) || opt(value, value));
+}
+
+const LANGUAGE_PATTERN = (() => {
+  try {
+    return typeof PAGE_ENUMS.languagePattern === 'string' ? new RegExp(PAGE_ENUMS.languagePattern) : null;
+  } catch (error) {
+    return null;
+  }
+})() || /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
+
+function opt(value, label, desc) {
+  return { value, label, desc };
+}
+const ON_OFF = [opt('on', 'On'), opt('off', 'Off')];
+const CONFIG_FIELDS = {
+  style: { label: 'Style', kind: 'style', help: 'The look new explainers open in. Readers can still switch.',
+    options: enumOptions('styles', [opt('clean', 'Clean', 'Calm greys and one orange accent.'), opt('playful', 'Playful', 'Bright, rounded and pressable.')]) },
+  defaultType: { label: 'Explainer type', kind: 'list', help: 'What the skill makes when you do not say.',
+    options: enumOptions('types', [
+      opt('auto', 'Auto detect', 'The skill picks from what you point it at'),
+      opt('repo', 'Repo', 'A whole codebase: parts, flows, data'),
+      opt('pr', 'Pull request', 'One PR or MR, its diff and risks'),
+      opt('change', 'Change', 'A commit range or a release'),
+      opt('proposal', 'Proposal', 'An RFC or design doc and its options'),
+      opt('migration', 'Migration', 'Moving from one system to another'),
+      opt('incident', 'Incident', 'What broke, why, and the fix'),
+      opt('concept', 'Concept', 'An idea or technique, no code needed'),
+    ], ['auto']) },
+  audience: { label: 'Audience', kind: 'cards', help: 'Sets tone, depth and how many terms get explained.',
+    options: enumOptions('audience', [opt('newcomer', 'Newcomer', 'New to the code or the field'), opt('engineer', 'Engineer', 'Works in code day to day'), opt('expert', 'Expert', 'Wants the edges and trade-offs')]) },
+  depth: { label: 'Depth', kind: 'cards', help: 'How many parts, flows and steps to trace.',
+    options: enumOptions('depth', [opt('overview', 'Overview', 'The shape in a few minutes'), opt('standard', 'Standard', 'The main flows and parts'), opt('deep', 'Deep', 'Every important path')]) },
+  language: { label: 'Language', kind: 'combo', help: 'A language tag, like en or pt-BR. Pick one or type your own.',
+    options: [
+      opt('en', 'en', 'English'), opt('en-GB', 'en-GB', 'English (UK)'), opt('es', 'es', 'Spanish'), opt('fr', 'fr', 'French'),
+      opt('de', 'de', 'German'), opt('it', 'it', 'Italian'), opt('pt-BR', 'pt-BR', 'Portuguese (Brazil)'), opt('pt-PT', 'pt-PT', 'Portuguese (Portugal)'),
+      opt('nl', 'nl', 'Dutch'), opt('sv', 'sv', 'Swedish'), opt('pl', 'pl', 'Polish'), opt('tr', 'tr', 'Turkish'),
+      opt('ru', 'ru', 'Russian'), opt('uk', 'uk', 'Ukrainian'), opt('ja', 'ja', 'Japanese'), opt('ko', 'ko', 'Korean'),
+      opt('zh-CN', 'zh-CN', 'Chinese (Simplified)'), opt('zh-TW', 'zh-TW', 'Chinese (Traditional)'), opt('hi', 'hi', 'Hindi'),
+      opt('id', 'id', 'Indonesian'), opt('vi', 'vi', 'Vietnamese'), opt('fil', 'fil', 'Filipino'), opt('ar', 'ar', 'Arabic'), opt('he', 'he', 'Hebrew'),
+    ] },
+  visuals: { label: 'Preferred visuals', kind: 'multi', options: enumList('visualKinds', ['layers', 'cycle', 'state', 'compare', 'hierarchy', 'beforeAfter', 'quadrant', 'funnel', 'venn']), help: 'Picked first when a chapter can use a picture.' },
+  codeWalkthrough: { label: 'Code walkthrough', kind: 'cards', help: 'A line-by-line tour of the few lines that carry the idea.',
+    options: enumOptions('codeWalkthrough', [opt('auto', 'Auto', 'When the code is the point'), opt('always', 'Always', 'Add one to every explainer'), opt('never', 'Never', 'Leave it out')]) },
+  quiz: { label: 'Quiz', kind: 'onoff', help: 'End explainers with a few questions.' },
+  analogies: { label: 'Analogies', kind: 'onoff', help: 'Add a "think of it like" line to key ideas.' },
+  model: { label: 'Model for estimates', kind: 'list', help: 'Used to price a run before it starts.',
+    options: enumOptions('models', [opt('auto', 'Auto', 'Let the estimate pick'), opt('fable-5.2', 'Fable 5.2'), opt('opus-5.5', 'Opus 5.5'), opt('sonnet-5.5', 'Sonnet 5.5'), opt('haiku-5.5', 'Haiku 5.5')]) },
+  budgetUsd: { label: 'Budget in US dollars', kind: 'number', help: 'Start without asking when the estimate fits. Leave empty to always ask.' },
+  confirmBeforeStart: { label: 'Confirm before starting', kind: 'onoff', help: 'Show the estimate and wait for a yes.' },
+  instructions: { label: 'House instructions', kind: 'textarea', help: 'Plain text added to every run: house style, terms to use. Never overrides the truth rules.' },
+};
+const optionValues = (field) => field.options.map((o) => (typeof o === 'string' ? o : o.value));
+const CONFIG_FIELD_DEFAULTS = {
+  style: 'clean', defaultType: 'auto', audience: 'engineer', depth: 'standard', language: 'en', visuals: [], chapters: {}, codeWalkthrough: 'auto',
+  quiz: true, analogies: true, model: 'auto', budgetUsd: null, confirmBeforeStart: true, instructions: '',
+};
+const INSTRUCTIONS_LIMIT = enumNumber('instructionsLimit', 2000);
+const CLI_NAME = 'concept-explainer';
+
 // ---------- Explainer defaults ----------
 function normalizeDefaults(raw) {
   const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
@@ -6619,30 +6772,85 @@ function fieldControl(key, value, id, describedBy) {
   return { el, read: () => el.value, focus: () => el.focus() };
 }
 
+// One row per config field: label, control, hint and its error line.
+function defaultsRow(key, value) {
+  const id = `cfg-${key}`;
+  const errorId = `${id}-error`;
+  const field = CONFIG_FIELDS[key];
+  const control = fieldControl(key, value, id, `${id}-hint ${errorId}`);
+  const error = h('p', { class: 'field-error', id: errorId });
+  const label = ['number', 'textarea', 'combo'].includes(field.kind)
+    ? h('label', { class: 'setting-label', for: id, id: `${id}-label` }, field.label)
+    : h('span', { class: 'setting-label', id: `${id}-label` }, field.label);
+  const wide = ['textarea', 'multi', 'style', 'cards'].includes(field.kind);
+  const el = h('div', { class: `setting-row${wide ? ' is-wide' : ''}`, 'data-field': key },
+    label, control.el, h('p', { class: 'setting-hint', id: `${id}-hint` }, field.help), error);
+  return { el, error, control };
+}
+
+// Marks every bad field and returns the first one's control, or null.
+function markInvalid(fields, values) {
+  let firstBad = null;
+  Object.keys(CONFIG_FIELDS).forEach((key) => {
+    const problems = fieldErrors(key, values[key]);
+    const { error, control } = fields[key];
+    error.textContent = problems.join(' ');
+    const target = control.el.matches('input, textarea') ? control.el : control.el.querySelector('input, [role="radiogroup"], .picker-button') || control.el;
+    target.setAttribute('aria-invalid', String(problems.length > 0));
+    if (problems.length && !firstBad) firstBad = control;
+  });
+  return firstBad;
+}
+
+// The instructions box shows how much of its limit is used.
+function wireInstructionsCount(instructions) {
+  const counter = h('span', { class: 'setting-count', 'aria-live': 'polite' });
+  const paintCount = () => { counter.textContent = `${instructions.value.length} / ${INSTRUCTIONS_LIMIT}`; };
+  instructions.after(counter);
+  instructions.addEventListener('input', paintCount);
+  paintCount();
+}
+
+// Without the server, the page shows the config set commands to copy.
+function showConfigCommands(commands, status, changed, values) {
+  const lines = changed.map((key) => `${CLI_NAME} config set ${key} ${commandValue(key, values[key])}`);
+  status.textContent = `This page cannot write files. Run ${lines.length === 1 ? 'this command' : 'these commands'}, or download config.json.`;
+  fill(commands,
+    h('ul', { class: 'command-list' }, lines.map((line) => h('li', null, h('code', null, line), copyButton(() => line)))),
+    lines.length > 1 && copyButton(() => lines.join('\n'), 'Copy all'));
+}
+
+// Long enough to read "Saved", short enough not to wait on.
+const RELOAD_DELAY_MS = 900;
+
+// One save at a time: a second press while the first runs does nothing.
+// The server rebuilds the pages with the new defaults, so the page reloads.
+function saveConfig(context, { submit, status }, changed, values, onSaved) {
+  if (submit.disabled) return;
+  submit.disabled = true;
+  status.textContent = 'Saving…';
+  serveFetch(context, serveApi(context, 'config'), {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
+  }).then(({ json: body }) => {
+    onSaved(body && body.config ? body.config : values);
+    status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
+    window.setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
+  }).catch((error) => {
+    submit.disabled = false;
+    status.textContent = `Could not save: ${error.message}`;
+  });
+}
+
 function defaultsGroup(context, initialConfig) {
   let saved = normalizeDefaults(initialConfig);
   const serve = context && context.serve && typeof context.serve.token === 'string' ? context.serve : null;
   const status = h('p', { class: 'settings-status', role: 'status', 'aria-live': 'polite' });
   const commands = h('div', { class: 'settings-commands' });
-  const errorsFor = {};
-  const rows = Object.keys(CONFIG_FIELDS).map((key) => {
-    const id = `cfg-${key}`;
-    const errorId = `${id}-error`;
-    const control = fieldControl(key, saved[key], id, `${id}-hint ${errorId}`);
-    const error = h('p', { class: 'field-error', id: errorId });
-    errorsFor[key] = { error, control };
-    const field = CONFIG_FIELDS[key];
-    const labelFor = ['number', 'textarea', 'combo'].includes(field.kind);
-    const label = labelFor
-      ? h('label', { class: 'setting-label', for: id, id: `${id}-label` }, field.label)
-      : h('span', { class: 'setting-label', id: `${id}-label` }, field.label);
-    const wide = ['textarea', 'multi', 'style', 'cards'].includes(field.kind);
-    return h('div', { class: `setting-row${wide ? ' is-wide' : ''}`, 'data-field': key },
-      label, control.el, h('p', { class: 'setting-hint', id: `${id}-hint` }, field.help), error);
-  });
-  const counter = h('span', { class: 'setting-count', 'aria-live': 'polite' });
+  const fields = Object.fromEntries(Object.keys(CONFIG_FIELDS).map((key) => [key, defaultsRow(key, saved[key])]));
+  const current = () => ({ ...saved, ...Object.fromEntries(Object.keys(CONFIG_FIELDS).map((key) => [key, fields[key].control.read()])) });
   const submit = h('button', { class: 'btn primary', type: 'submit' }, serve ? 'Save' : 'Show the commands');
-  const form = h('form', { class: 'settings-form', novalidate: true }, rows,
+  const form = h('form', { class: 'settings-form', novalidate: true }, Object.values(fields).map((f) => f.el),
     h('p', { class: 'setting-hint' }, 'Chapters per type are set from the command line: ',
       h('code', null, `${CLI_NAME} config set chapters '{"repo":{"quiz":false}}'`)),
     h('div', { class: 'settings-actions' },
@@ -6650,69 +6858,17 @@ function defaultsGroup(context, initialConfig) {
       h('button', { class: 'btn', type: 'button', onclick: () => downloadBlob('config.json', `${JSON.stringify(current(), null, 2)}\n`) }, icon('download'), 'Download config.json'),
       status),
     commands);
-
-  const instructions = errorsFor.instructions.control.el;
-  const paintCount = () => { counter.textContent = `${instructions.value.length} / ${INSTRUCTIONS_LIMIT}`; };
-  instructions.after(counter);
-  instructions.addEventListener('input', paintCount);
-  paintCount();
-
-  function current() {
-    return { ...saved, ...Object.fromEntries(Object.keys(CONFIG_FIELDS).map((key) => [key, errorsFor[key].control.read()])) };
-  }
-
-  function validate(values) {
-    let firstBad = null;
-    Object.keys(CONFIG_FIELDS).forEach((key) => {
-      const problems = fieldErrors(key, values[key]);
-      const { error, control } = errorsFor[key];
-      error.textContent = problems.join(' ');
-      const target = control.el.matches('input, textarea') ? control.el : control.el.querySelector('input, [role="radiogroup"], .picker-button') || control.el;
-      target.setAttribute('aria-invalid', String(problems.length > 0));
-      if (problems.length && !firstBad) firstBad = control;
-    });
-    return firstBad;
-  }
+  wireInstructionsCount(fields.instructions.control.el);
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const values = current();
-    const bad = validate(values);
-    if (bad) {
-      status.textContent = 'Fix the marked fields first.';
-      bad.focus();
-      return;
-    }
+    const bad = markInvalid(fields, values);
+    if (bad) { status.textContent = 'Fix the marked fields first.'; bad.focus(); return; }
     const changed = Object.keys(values).filter((key) => JSON.stringify(values[key]) !== JSON.stringify(saved[key]));
-    if (!changed.length) {
-      status.textContent = 'Nothing changed.';
-      fill(commands);
-      return;
-    }
-    if (serve) {
-      // One save at a time: a second press while the first runs does nothing.
-      if (submit.disabled) return;
-      submit.disabled = true;
-      status.textContent = 'Saving…';
-      serveFetch(context, serveApi(context, 'config'), {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(Object.fromEntries(changed.map((key) => [key, values[key]]))),
-      }).then(({ json: body }) => {
-        saved = normalizeDefaults(body && body.config ? body.config : values);
-        // The server rebuilt the pages with the new defaults: load them.
-        status.textContent = `Saved ${countLabel(changed.length, 'setting')}. Reloading with the new defaults.`;
-        window.setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
-      }).catch((error) => {
-        submit.disabled = false;
-        status.textContent = `Could not save: ${error.message}`;
-      });
-      return;
-    }
-    const lines = changed.map((key) => `${CLI_NAME} config set ${key} ${commandValue(key, values[key])}`);
-    status.textContent = `This page cannot write files. Run ${lines.length === 1 ? 'this command' : 'these commands'}, or download config.json.`;
-    fill(commands,
-      h('ul', { class: 'command-list' }, lines.map((line) => h('li', null, h('code', null, line), copyButton(() => line)))),
-      lines.length > 1 && copyButton(() => lines.join('\n'), 'Copy all'));
+    if (!changed.length) { status.textContent = 'Nothing changed.'; fill(commands); return; }
+    if (serve) saveConfig(context, { submit, status }, changed, values, (config) => { saved = normalizeDefaults(config); });
+    else showConfigCommands(commands, status, changed, values);
   });
 
   return h('section', { class: 'panel settings-group', 'aria-labelledby': 'settings-defaults-title' },
@@ -6745,25 +6901,13 @@ function defaultsSlot(context, config) {
  * page has them (context.config on explainer pages, data.config on the hub).
  * @returns {{ key: string, title: string, nav: string, section: HTMLElement, controller: object }}
  */
-function settingsView(registry, { context = {}, config = null, extra = [] } = {}) {
-  const section = h('section', { class: 'view settings-view', 'data-view': 'settings', hidden: true, 'aria-labelledby': 'view-settings-title' },
-    h('header', { class: 'view-head' },
-      h('p', { class: 'eyebrow quiet' }, 'Settings'),
-      h('h1', { id: 'view-settings-title', tabindex: '-1' }, 'Settings'),
-      h('p', { class: 'view-lead' }, 'Reading choices stay in this browser. Explainer defaults shape the next explainer you build.')),
-    h('div', { class: 'settings-body' },
-      readingGroup(registry),
-      defaultsSlot(context, config),
-      extra));
-  return { key: 'settings', title: 'Settings', nav: 'Settings', section, controller: null };
-}
 
+// ---- share.js ----
+// Share: export bundles, import them, and save the page as one file.
 // ---------- Share ----------
 const BUNDLE_FORMAT = typeof PAGE_ENUMS.bundleFormat === 'string' && PAGE_ENUMS.bundleFormat ? PAGE_ENUMS.bundleFormat : 'concept-explainer-bundle';
 const BUNDLE_MAX_BYTES = enumNumber('bundleMaxBytes', 10 * 1024 * 1024);
 const BUNDLE_MAX_LABEL = `${Math.round(BUNDLE_MAX_BYTES / 1024 / 1024)} MB`;
-// Long enough to read "Saved", short enough not to wait on.
-const RELOAD_DELAY_MS = 900;
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LOCAL_PATH_KEYS = new Set(['sourcePath', 'repoPath']);
 
@@ -6979,87 +7123,35 @@ function fileSize(bytes) {
   return bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// One unit in the control column: drop zone, conflict choice, dry-run
-// summary, then the Import button.
-function importServed(context, status, out) {
+// The drop zone with its hidden file input and "choose a file" button.
+function importDropZone() {
   const input = h('input', { class: 'sr-only', type: 'file', id: 'import-file', accept: '.json,application/json', tabindex: '-1', 'aria-hidden': 'true' });
   const choose = h('button', { class: 'link drop-choose', type: 'button', onclick: () => input.click() }, 'or choose a file');
   const picked = h('div', { class: 'drop-picked', hidden: true });
   const zone = h('div', { class: 'drop-zone', 'aria-describedby': 'import-file-hint' },
     icon('upload'), h('span', { class: 'drop-title' }, 'Drop a .explainers.json file'), choose, picked);
-  let pending = null;
-  let busy = false;
-  let checkId = 0;
-  let run = () => {};
-  const conflict = optionGroup({
+  return { input, choose, picked, zone };
+}
+
+function importConflictChoice(onChange) {
+  return optionGroup({
     variant: 'cards', value: 'rename', labelledBy: 'import-conflict-label', describedBy: 'import-conflict-hint',
     options: [
       { value: 'rename', label: 'Keep both', desc: 'Renames the new one with a -2' },
       { value: 'skip', label: 'Skip', desc: 'Keeps the one you have' },
       { value: 'replace', label: 'Replace', desc: 'Only one from the same source' },
     ],
-    onChange: () => run(true),
+    onChange,
   });
-  const clear = () => {
-    if (busy) return;
-    pending = null;
-    picked.hidden = true;
-    zone.classList.remove('has-file');
-    input.value = '';
-    fill(out);
-    status.textContent = '';
-    choose.focus();
-  };
-  run = (dryRun, applyButton) => {
-    // While an import runs, nothing else starts: a double press imports once.
-    if (!pending || busy) return;
-    const job = pending;
-    const id = ++checkId;
-    if (!dryRun) {
-      busy = true;
-      pending = null;
-      if (applyButton) applyButton.disabled = true;
-    }
-    status.textContent = dryRun ? 'Checking the bundle…' : 'Importing…';
-    serveFetch(context, `${serveApi(context, 'import')}?onConflict=${conflict.read()}${dryRun ? '&dryRun=1' : ''}`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: job.text,
-    }).then(({ json: raw }) => {
-      // A newer check (the conflict choice changed) replaces this one.
-      if (dryRun && (id !== checkId || pending !== job)) return;
-      // The server wraps the result in { summary }; accept the bare shape too.
-      const json = raw && raw.summary && typeof raw.summary === 'object' ? raw.summary : raw;
-      if (dryRun) {
-        status.textContent = `Here is what importing ${job.name} would do. Nothing has changed yet.`;
-        const apply = h('button', { class: 'btn primary', type: 'button' }, 'Import');
-        apply.addEventListener('click', () => run(false, apply));
-        fill(out, importSummary(json), h('div', { class: 'btn-row' }, apply));
-      } else {
-        status.textContent = 'Imported. Reload the library to see the new explainers.';
-        fill(out, importSummary(json), h('div', { class: 'btn-row' }, h('button', { class: 'btn', type: 'button', onclick: () => window.location.reload() }, 'Reload')));
-        busy = false;
-      }
-    }).catch((error) => {
-      if (!dryRun) {
-        // Nothing was imported: the same file can be tried again.
-        busy = false;
-        pending = job;
-        if (applyButton) applyButton.disabled = false;
-      }
-      status.textContent = `Could not import: ${error.message}`;
-    });
-  };
-  const take = (file) => {
-    if (!file || busy) return;
-    if (file.size > BUNDLE_MAX_BYTES) { status.textContent = `${file.name} is over ${BUNDLE_MAX_LABEL}. Bundles must be smaller.`; return; }
-    file.text().then((body) => {
-      pending = { name: file.name, text: body };
-      zone.classList.add('has-file');
-      fill(picked, h('span', { class: 'drop-file' }, softBreaks(file.name)), h('span', { class: 'drop-size' }, fileSize(file.size)),
-        h('button', { class: 'link', type: 'button', onclick: clear }, 'Remove'));
-      picked.hidden = false;
-      run(true);
-    }).catch(() => { status.textContent = `Could not read ${file.name}.`; });
-  };
+}
+
+// The server wraps the result in { summary }; accept the bare shape too.
+function importResult(raw) {
+  return raw && raw.summary && typeof raw.summary === 'object' ? raw.summary : raw;
+}
+
+// Files dropped on the zone or picked with the input go to take(file).
+function wireDropZone({ input, zone }, take) {
   input.addEventListener('change', () => take(input.files && input.files[0]));
   zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('is-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('is-over'));
@@ -7068,12 +7160,92 @@ function importServed(context, status, out) {
     zone.classList.remove('is-over');
     take(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]);
   });
-  return h('div', { class: 'import-controls' }, input, zone,
+}
+
+function importPickedRow(file, onRemove) {
+  return [h('span', { class: 'drop-file' }, softBreaks(file.name)), h('span', { class: 'drop-size' }, fileSize(file.size)),
+    h('button', { class: 'link', type: 'button', onclick: onRemove }, 'Remove')];
+}
+
+// What the dry run found, with the Import button; or what the import did.
+function importOutcome(out, json, { dryRun, apply }) {
+  if (dryRun) {
+    const button = h('button', { class: 'btn primary', type: 'button' }, 'Import');
+    button.addEventListener('click', () => apply(button));
+    fill(out, importSummary(json), h('div', { class: 'btn-row' }, button));
+    return;
+  }
+  fill(out, importSummary(json), h('div', { class: 'btn-row' }, h('button', { class: 'btn', type: 'button', onclick: () => window.location.reload() }, 'Reload')));
+}
+
+function resetDropZone(drop, out, status) {
+  drop.picked.hidden = true;
+  drop.zone.classList.remove('has-file');
+  drop.input.value = '';
+  fill(out);
+  status.textContent = '';
+  drop.choose.focus();
+}
+
+function importControls(drop, conflict) {
+  return h('div', { class: 'import-controls' }, drop.input, drop.zone,
     h('p', { class: 'setting-hint', id: 'import-file-hint' }, `A bundle someone exported. Up to ${BUNDLE_MAX_LABEL}. Nothing changes until you press Import.`),
     h('div', { class: 'import-field' },
       h('span', { class: 'setting-label', id: 'import-conflict-label' }, 'If it is already in your library'),
       conflict.el,
       h('p', { class: 'setting-hint', id: 'import-conflict-hint' }, 'Applies to explainers with the same name.')));
+}
+
+// One unit in the control column: drop zone, conflict choice, dry-run
+// summary, then the Import button. While an import runs nothing else
+// starts, so a double press imports once.
+function importServed(context, status, out) {
+  const drop = importDropZone();
+  let pending = null;
+  let busy = false;
+  let checkId = 0;
+  const conflict = importConflictChoice(() => run(true));
+  const clear = () => {
+    if (busy) return;
+    pending = null;
+    resetDropZone(drop, out, status);
+  };
+  const settle = (job, applyButton, failed) => {
+    busy = false;
+    // Nothing was imported: the same file can be tried again.
+    if (failed) { pending = job; if (applyButton) applyButton.disabled = false; }
+  };
+  function run(dryRun, applyButton) {
+    if (!pending || busy) return;
+    const job = pending;
+    const id = ++checkId;
+    if (!dryRun) { busy = true; pending = null; if (applyButton) applyButton.disabled = true; }
+    status.textContent = dryRun ? 'Checking the bundle…' : 'Importing…';
+    serveFetch(context, `${serveApi(context, 'import')}?onConflict=${conflict.read()}${dryRun ? '&dryRun=1' : ''}`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: job.text,
+    }).then(({ json }) => {
+      // A newer check (the conflict choice changed) replaces this one.
+      if (dryRun && (id !== checkId || pending !== job)) return;
+      status.textContent = dryRun ? `Here is what importing ${job.name} would do. Nothing has changed yet.` : 'Imported. Reload the library to see the new explainers.';
+      importOutcome(out, importResult(json), { dryRun, apply: (button) => run(false, button) });
+      if (!dryRun) settle(job, applyButton, false);
+    }).catch((error) => {
+      if (!dryRun) settle(job, applyButton, true);
+      status.textContent = `Could not import: ${error.message}`;
+    });
+  }
+  wireDropZone(drop, (file) => {
+    if (!file || busy) return;
+    if (file.size > BUNDLE_MAX_BYTES) { status.textContent = `${file.name} is over ${BUNDLE_MAX_LABEL}. Bundles must be smaller.`; return; }
+    file.text().then((body) => {
+      pending = { name: file.name, text: body };
+      drop.zone.classList.add('has-file');
+      fill(drop.picked, ...importPickedRow(file, clear));
+      drop.picked.hidden = false;
+      run(true);
+    }).catch(() => { status.textContent = `Could not read ${file.name}.`; });
+  });
+  return importControls(drop, conflict);
 }
 
 // ---- sections.js ----
@@ -7369,20 +7541,46 @@ function kitSettings(registry) {
   return section;
 }
 
+function kitTopBar(registry) {
+  return h('header', { class: 'top' }, h('div', { class: 'bar' },
+    h('a', { class: 'brand', href: '#main', 'aria-label': 'Concept Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
+    h('div', { class: 'bar-actions' }, quickTheme(registry), h('a', { class: 'btn small', href: '#kit-settings' }, icon('settings'), 'Settings'))));
+}
+
+// Every catalogue section of the kit, in page order.
+function kitSections(kinds, patterns) {
+  return [
+    kitSection('kit-icons', 'Icons', 'Set a node "kind" to one of these names. Unknown kinds fall back to "service". One hairline weight, drawn in the text colour.',
+      h('div', { class: 'kit-grid' }, [...kinds, 'robot', 'trophy', 'folder', 'file'].map((kind) => h('div', { class: 'panel kit-icon' },
+        icon(kind), h('code', null, kind), kinds.includes(kind) ? null : tag('UI only'))))),
+
+    kitSection('kit-layers', 'Layer markers', 'Set a layer "color" to one of these names. It shows as a small square and a thin bar on each box, never as a fill.',
+      h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: layerStyle(name) },
+        h('span', { class: 'map-col-head' }, name),
+        h('button', { class: 'node', type: 'button' }, h('span', { class: 'node-icon' }, icon('service')),
+          h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, `${colors.ink} / ${PLAYFUL_LAYERS[name]}`))))))),
+
+    kitSection('kit-tokens', 'Tokens', 'Fixed. These are the only colours in styles.css. Each switches value in the dark theme. Explainers never add others.',
+      h('div', { class: 'kit-grid kit-grid-wide' }, KIT_TOKENS.map(swatch))),
+
+    kitSection('kit-components', 'Components', 'All of these come from the data file. Depth is a hairline ring, never a shadow.', kitComponents()),
+
+    kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `concept-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
+      h('div', { class: 'kit-grid kit-grid-wide' }, patterns.map((pattern) => h('article', { class: 'panel kit-pattern' },
+        h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
+        h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
+  ];
+}
+
 function bootGallery() {
   const context = readContext();
   applyLook(context);
   applyReading();
   const data = JSON.parse(document.getElementById('explainer-data').textContent);
-  const kinds = list(data.kinds);
-  const patterns = list(data.patterns);
   const version = String(data.version || '');
   const registry = themeRegistry();
   const app = document.getElementById('app');
-  const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
-    h('a', { class: 'brand', href: '#main', 'aria-label': 'Concept Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
-    h('div', { class: 'bar-actions' }, quickTheme(registry), h('a', { class: 'btn small', href: '#kit-settings' }, icon('settings'), 'Settings'))));
-  const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, top, h('div', { class: 'wrap' },
+  const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, kitTopBar(registry), h('div', { class: 'wrap' },
     h('div', { class: 'view' },
       h('header', { class: 'view-head' },
         h('p', { class: 'eyebrow quiet' }, `Design kit · v${version}`),
@@ -7390,26 +7588,7 @@ function bootGallery() {
         h('p', { class: 'view-lead' }, 'Everything an explainer is made of. Reuse these by name in your data file. Never redraw, recolour or restyle them.'),
         h('div', { class: 'kit-credit' }, designCredit())),
       h('div', { class: 'panel kit-logo' }, brandMark()),
-
-      kitSection('kit-icons', 'Icons', 'Set a node "kind" to one of these names. Unknown kinds fall back to "service". One hairline weight, drawn in the text colour.',
-        h('div', { class: 'kit-grid' }, [...kinds, 'robot', 'trophy', 'folder', 'file'].map((kind) => h('div', { class: 'panel kit-icon' },
-          icon(kind), h('code', null, kind), kinds.includes(kind) ? null : tag('UI only'))))),
-
-      kitSection('kit-layers', 'Layer markers', 'Set a layer "color" to one of these names. It shows as a small square and a thin bar on each box, never as a fill.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: layerStyle(name) },
-          h('span', { class: 'map-col-head' }, name),
-          h('button', { class: 'node', type: 'button' }, h('span', { class: 'node-icon' }, icon('service')),
-            h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, `${colors.ink} / ${PLAYFUL_LAYERS[name]}`))))))),
-
-      kitSection('kit-tokens', 'Tokens', 'Fixed. These are the only colours in styles.css. Each switches value in the dark theme. Explainers never add others.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, KIT_TOKENS.map(swatch))),
-
-      kitSection('kit-components', 'Components', 'All of these come from the data file. Depth is a hairline ring, never a shadow.', kitComponents()),
-
-      kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `concept-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, patterns.map((pattern) => h('article', { class: 'panel kit-pattern' },
-          h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
-          h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
+      kitSections(list(data.kinds), list(data.patterns)),
       kitSettings(registry),
       h('footer', { class: 'site-footer' }, designCredit()))));
   const kitLinks = [];
@@ -7420,7 +7599,6 @@ function bootGallery() {
   trackKitSections(kitLinks);
   watchNavMore(document.querySelector('.side > .links'));
 }
-
 
 bootGallery();
 })();

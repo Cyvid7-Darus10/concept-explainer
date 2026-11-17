@@ -6,30 +6,10 @@ const FLOW_SIDE_BY_SIDE = '(min-width: 1180px)';
 const FLOW_CARD_WIDTH = 380;
 const LABEL_CHAR = 6.6;
 
-function renderFlows(data, mount) {
-  const flows = list(data.flows);
-  if (!flows.length) {
-    mount.append(h('p', { class: 'empty' }, 'No flows traced yet.'));
-    return null;
-  }
-  const nodeIndex = byId(data.nodes);
-  let state = { flowIndex: 0, stepIndex: 0, finished: false, direction: 1 };
-
-  const picker = h('ul', { class: 'flow-list', 'aria-label': 'Flows' });
-  const meta = h('div', { class: 'flow-meta' });
-  const headsWrap = h('div', { class: 'seq-heads-wrap' });
-  const bodyWrap = h('div', { class: 'seq-body' });
-  const seqWrap = h('div', { class: 'panel seq-wrap seq', 'aria-label': 'Sequence diagram' }, headsWrap, bodyWrap);
-  // The body scrolls sideways only; the sticky header strip follows it.
-  bodyWrap.addEventListener('scroll', () => {
-    if (headsWrap.firstElementChild) headsWrap.firstElementChild.style.transform = `translateX(${-bodyWrap.scrollLeft}px)`;
-  }, { passive: true });
-  const panel = h('div', { class: 'panel step-card', 'aria-live': 'polite' });
-  const layout = h('div', { class: 'flow-layout' }, seqWrap, panel);
-  const root = h('div', { class: 'flow-player' }, picker, meta, layout);
-  // Side by side only when the widest flow fits beside the step card without
-  // sideways scrolling; otherwise the card comes first and the diagram gets
-  // the full width. Decided for the whole page, so flows do not jump around.
+// Side by side only when the widest flow fits beside the step card without
+// sideways scrolling; otherwise the card comes first and the diagram gets the
+// full width. Decided for the whole page, so flows do not jump around.
+function watchFlowLayout(flows, { root, layout, panel }, render) {
   const widest = Math.max(...flows.map((f) => flowActors(list(f.steps)).length), 1);
   const fitsBeside = () => window.matchMedia(FLOW_SIDE_BY_SIDE).matches
     && root.clientWidth - FLOW_CARD_WIDTH - 16 >= widest * SEQ.minCol + SEQ.pad * 2;
@@ -44,109 +24,180 @@ function renderFlows(data, mount) {
   new ResizeObserver(() => {
     panel.classList.toggle('is-static', panel.offsetHeight > window.innerHeight - 96);
   }).observe(panel);
+}
+
+function flowPicks(flows, current, onPick) {
+  return flows.map((f, i) => h('li', null, h('button', {
+    class: 'flow-pick', type: 'button', 'aria-pressed': String(i === current), onclick: () => onPick(i),
+  },
+  h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
+  h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title)))));
+}
+
+// onJump(flowId, stepIndex) switches to a paired flow.
+function flowMeta(flows, flow, nodeIndex, onJump) {
+  const pair = chFlowPair(flows, flow);
+  return [
+    flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
+    flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)),
+    chPairSwitch(pair, flow.id, (id) => onJump(id, 0)),
+    chPairCompare(pair, nodeIndex, (id, n) => onJump(id, n - 1)),
+  ];
+}
+
+function flowStepRoute(step, nodeIndex) {
+  const from = nodeIndex.get(step.from);
+  const to = nodeIndex.get(step.to);
+  return h('div', { class: 'step-route' },
+    h('span', { class: 'route-part' }, from && icon(from.kind), softBreaks(text(from && from.label, step.from))),
+    h('span', { class: 'arrow-glyph', 'aria-hidden': 'true' }, step.from === step.to ? '↺' : '→'),
+    step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), softBreaks(text(to && to.label, step.to))));
+}
+
+function flowStepPanel(data, flow, stepIndex, nodeIndex, go) {
+  const steps = list(flow.steps);
+  const step = steps[stepIndex];
+  const last = stepIndex === steps.length - 1;
+  return [h('div', { class: 'step-body' }, h('div', { class: 'step-text' },
+    h('div', { class: 'step-top' },
+      h('span', { class: 'step-count' }, `Step ${stepIndex + 1} of ${steps.length}`),
+      step.kind && tag(step.kind, `tag-${step.kind}`)),
+    flowStepRoute(step, nodeIndex),
+    h('h3', null, softBreaks(step.label)),
+    step.detail && h('p', null, softBreaks(step.detail)),
+    step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
+    (step.file || step.code) && h('div', { class: 'step-code' },
+      step.file && h('div', { class: 'code-head' }, fileChip(step.file), chWalkthroughLink(data, step.file)),
+      step.code && codeBlock(step.code, step.lang))),
+    h('div', { class: 'step-controls' },
+      stepDots(steps.length, stepIndex, go),
+      h('button', { class: 'btn', type: 'button', disabled: stepIndex === 0, onclick: () => go(stepIndex - 1) }, 'Back'),
+      h('button', { class: 'btn primary', type: 'button', onclick: () => go(stepIndex + 1) }, last ? 'Finish' : 'Continue')),
+    h('p', { class: 'kbd-hint' }, 'Tip: use ', h('kbd', null, '←'), ' ', h('kbd', null, '→'), ' to step through.'),
+  ];
+}
+
+// onNext is null on the last flow.
+function flowDonePanel(flow, go, onNext) {
+  const steps = list(flow.steps);
+  const actors = new Set(steps.flatMap((st) => [st.from, st.to]));
+  return [h('div', { class: 'flow-done' },
+    h('span', { class: 'trophy' }, icon('trophy')),
+    h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
+    h('h3', null, softBreaks(flow.title)),
+    h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
+    h('div', { class: 'btn-row' },
+      h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
+      onNext && h('button', { class: 'btn primary', type: 'button', onclick: onNext }, 'Next flow')))];
+}
+
+// Draw the current arrow, slide the card in, keep the step in view.
+function animateFlowStep(diagram, panel, layout, state, animate) {
+  const current = diagram.body.querySelector('.seq-step.is-current .arrow');
+  if (current) {
+    const marker = current.dataset.marker;
+    if (animate) drawPath(current, marker); else current.setAttribute('marker-end', marker);
+  }
+  if (!animate) return;
+  slideIn(panel.firstElementChild, state.direction);
+  // Stacked layouts keep the reader at the Continue button instead.
+  if (!state.finished && !layout.classList.contains('is-stacked')) revealCurrentStep(diagram.body);
+  if (state.finished) pop(panel.querySelector('.trophy'));
+}
+
+function flowPlayerParts() {
+  const headsWrap = h('div', { class: 'seq-heads-wrap' });
+  const bodyWrap = h('div', { class: 'seq-body' });
+  // The body scrolls sideways only; the sticky header strip follows it.
+  bodyWrap.addEventListener('scroll', () => {
+    if (headsWrap.firstElementChild) headsWrap.firstElementChild.style.transform = `translateX(${-bodyWrap.scrollLeft}px)`;
+  }, { passive: true });
+  const seqWrap = h('div', { class: 'panel seq-wrap seq', 'aria-label': 'Sequence diagram' }, headsWrap, bodyWrap);
+  const picker = h('ul', { class: 'flow-list', 'aria-label': 'Flows' });
+  const meta = h('div', { class: 'flow-meta' });
+  const panel = h('div', { class: 'panel step-card', 'aria-live': 'polite' });
+  const layout = h('div', { class: 'flow-layout' }, seqWrap, panel);
+  const root = h('div', { class: 'flow-player' }, picker, meta, layout);
+  return { headsWrap, bodyWrap, picker, meta, panel, layout, root };
+}
+
+// #flows/<id>/<n>, with n = the step count once finished.
+function flowLink(flows, state) {
+  const flow = flows[state.flowIndex];
+  return `flows/${linkPart(flow.id)}/${state.finished ? list(flow.steps).length : state.stepIndex + 1}`;
+}
+
+// Going past the last step finishes the flow.
+function flowStepState(flows, state, stepIndex) {
+  if (stepIndex >= list(flows[state.flowIndex].steps).length) return { finished: true, direction: 1 };
+  return { stepIndex: Math.max(0, stepIndex), finished: false, direction: stepIndex >= state.stepIndex ? 1 : -1 };
+}
+
+// Left and right arrows step through, except while typing.
+function wireFlowKeys(root, getState, go) {
+  root.addEventListener('keydown', (event) => {
+    if (event.target.closest('input, textarea')) return;
+    const state = getState();
+    if (event.key === 'ArrowRight') { event.preventDefault(); go(state.stepIndex + 1); }
+    if (event.key === 'ArrowLeft') { event.preventDefault(); go(state.finished ? state.stepIndex : state.stepIndex - 1); }
+  });
+}
+
+// #flows/<id>/<n>: the state to open, or null when the flow is unknown.
+function flowOpenState(flows, flowId, n) {
+  if (flowId === undefined) return null;
+  const index = flows.findIndex((f) => f.id === flowId);
+  if (index < 0) return null;
+  const count = list(flows[index].steps).length;
+  const wanted = Number.parseInt(n, 10);
+  const stepIndex = Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0;
+  return { flowIndex: index, stepIndex, finished: false, direction: 1 };
+}
+
+function renderFlows(data, mount) {
+  const flows = list(data.flows);
+  if (!flows.length) {
+    mount.append(h('p', { class: 'empty' }, 'No flows traced yet.'));
+    return null;
+  }
+  const nodeIndex = byId(data.nodes);
+  const parts = flowPlayerParts();
+  const { headsWrap, bodyWrap, picker, meta, panel, layout, root } = parts;
+  let state = { flowIndex: 0, stepIndex: 0, finished: false, direction: 1 };
 
   function setState(next) {
     state = { ...state, ...next };
-    const flow = flows[state.flowIndex];
-    const step = state.finished ? list(flow.steps).length : state.stepIndex + 1;
-    setDeepLink(`flows/${linkPart(flow.id)}/${step}`);
+    setDeepLink(flowLink(flows, state));
     render({ animate: true });
   }
 
-  function go(stepIndex) {
-    const steps = list(flows[state.flowIndex].steps);
-    if (stepIndex >= steps.length) return setState({ finished: true, direction: 1 });
-    return setState({ stepIndex: Math.max(0, stepIndex), finished: false, direction: stepIndex >= state.stepIndex ? 1 : -1 });
-  }
+  const go = (stepIndex) => setState(flowStepState(flows, state, stepIndex));
+
+  const jump = (id, stepIndex) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex, finished: false });
+  const nextFlow = () => (state.flowIndex + 1 < flows.length ? () => setState({ flowIndex: state.flowIndex + 1, stepIndex: 0, finished: false }) : null);
 
   function render({ animate = false } = {}) {
     const flow = flows[state.flowIndex];
-    fill(picker, ...flows.map((f, i) => h('li', null, h('button', {
-      class: 'flow-pick', type: 'button', 'aria-pressed': String(i === state.flowIndex),
-      onclick: () => setState({ flowIndex: i, stepIndex: 0, finished: false }),
-    },
-    h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
-    h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title))))));
-    fill(meta,
-      flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
-      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)),
-      chPairSwitch(chFlowPair(flows, flow), flow.id, (id) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: 0, finished: false })),
-      chPairCompare(chFlowPair(flows, flow), nodeIndex, (id, n) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: n - 1, finished: false })));
+    fill(picker, ...flowPicks(flows, state.flowIndex, (i) => setState({ flowIndex: i, stepIndex: 0, finished: false })));
+    fill(meta, ...flowMeta(flows, flow, nodeIndex, jump));
     const diagram = sequenceDiagram(flow, nodeIndex, state.finished ? list(flow.steps).length : state.stepIndex, go, bodyWrap.clientWidth);
     fill(headsWrap, diagram.heads);
     fill(bodyWrap, diagram.body);
     centerCurrentStep(bodyWrap, animate);
-    fill(panel, ...(state.finished ? finishedPanel(flow) : stepPanel(flow)));
-    const current = diagram.body.querySelector('.seq-step.is-current .arrow');
-    if (current) {
-      const marker = current.dataset.marker;
-      if (animate) drawPath(current, marker); else current.setAttribute('marker-end', marker);
-    }
-    if (animate) slideIn(panel.firstElementChild, state.direction);
-    // Stacked layouts keep the reader at the Continue button instead.
-    if (animate && !state.finished && !layout.classList.contains('is-stacked')) revealCurrentStep(diagram.body);
-    if (animate && state.finished) pop(panel.querySelector('.trophy'));
+    fill(panel, ...(state.finished ? flowDonePanel(flow, go, nextFlow()) : flowStepPanel(data, flow, state.stepIndex, nodeIndex, go)));
+    animateFlowStep(diagram, panel, layout, state, animate);
   }
 
-  function stepPanel(flow) {
-    const steps = list(flow.steps);
-    const step = steps[state.stepIndex];
-    const from = nodeIndex.get(step.from);
-    const to = nodeIndex.get(step.to);
-    const last = state.stepIndex === steps.length - 1;
-    return [h('div', { class: 'step-body' }, h('div', { class: 'step-text' },
-      h('div', { class: 'step-top' },
-        h('span', { class: 'step-count' }, `Step ${state.stepIndex + 1} of ${steps.length}`),
-        step.kind && tag(step.kind, `tag-${step.kind}`)),
-      h('div', { class: 'step-route' },
-        h('span', { class: 'route-part' }, from && icon(from.kind), softBreaks(text(from && from.label, step.from))),
-        h('span', { class: 'arrow-glyph', 'aria-hidden': 'true' }, step.from === step.to ? '↺' : '→'),
-        step.from !== step.to && h('span', { class: 'route-part' }, to && icon(to.kind), softBreaks(text(to && to.label, step.to)))),
-      h('h3', null, softBreaks(step.label)),
-      step.detail && h('p', null, softBreaks(step.detail)),
-      step.why && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Why it works this way'), h('p', null, softBreaks(step.why)))),
-      (step.file || step.code) && h('div', { class: 'step-code' },
-        step.file && h('div', { class: 'code-head' }, fileChip(step.file), chWalkthroughLink(data, step.file)),
-        step.code && codeBlock(step.code, step.lang))),
-      h('div', { class: 'step-controls' },
-        stepDots(steps.length, state.stepIndex, go),
-        h('button', { class: 'btn', type: 'button', disabled: state.stepIndex === 0, onclick: () => go(state.stepIndex - 1) }, 'Back'),
-        h('button', { class: 'btn primary', type: 'button', onclick: () => go(state.stepIndex + 1) }, last ? 'Finish' : 'Continue')),
-      h('p', { class: 'kbd-hint' }, 'Tip: use ', h('kbd', null, '←'), ' ', h('kbd', null, '→'), ' to step through.'),
-    ];
-  }
-
-  function finishedPanel(flow) {
-    const steps = list(flow.steps);
-    const actors = new Set(steps.flatMap((st) => [st.from, st.to]));
-    const nextIndex = state.flowIndex + 1;
-    return [h('div', { class: 'flow-done' },
-      h('span', { class: 'trophy' }, icon('trophy')),
-      h('p', { class: 'eyebrow quiet' }, 'Flow complete'),
-      h('h3', null, softBreaks(flow.title)),
-      h('p', null, `You followed it through ${steps.length} steps and ${actors.size} parts of the system.`),
-      h('div', { class: 'btn-row' },
-        h('button', { class: 'btn', type: 'button', onclick: () => go(0) }, 'Replay'),
-        nextIndex < flows.length && h('button', { class: 'btn primary', type: 'button', onclick: () => setState({ flowIndex: nextIndex, stepIndex: 0, finished: false }) }, 'Next flow')))];
-  }
-
-  root.addEventListener('keydown', (event) => {
-    if (event.target.closest('input, textarea')) return;
-    if (event.key === 'ArrowRight') { event.preventDefault(); go(state.stepIndex + 1); }
-    if (event.key === 'ArrowLeft') { event.preventDefault(); go(state.finished ? state.stepIndex : state.stepIndex - 1); }
-  });
+  watchFlowLayout(flows, parts, render);
+  wireFlowKeys(root, () => state, go);
 
   render();
   mount.append(root);
   return {
     open([flowId, n] = []) {
-      if (flowId === undefined) return null;
-      const index = flows.findIndex((f) => f.id === flowId);
-      if (index < 0) return null;
-      const count = list(flows[index].steps).length;
-      const wanted = Number.parseInt(n, 10);
-      const stepIndex = Number.isInteger(wanted) && wanted >= 1 && wanted <= count ? wanted - 1 : 0;
-      state = { flowIndex: index, stepIndex, finished: false, direction: 1 };
+      const opened = flowOpenState(flows, flowId, n);
+      if (!opened) return null;
+      state = opened;
       render();
       return panel;
     },

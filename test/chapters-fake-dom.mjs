@@ -1,6 +1,7 @@
 // A small fake DOM, enough to run template/js/dom.js and the chapter modules
 // in node:vm. It records every element created, so tests can check that data
 // never becomes markup. Layout is not simulated: widths are what callers pass.
+import { DOM_LAYER } from '../scripts/lib/build.mjs';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
@@ -197,7 +198,7 @@ function makeDocument(created) {
 const ORDER = ['kit', 'viz-core', 'viz-linear', 'viz-graph', 'viz-grid', 'visuals', 'context', 'diff', 'options', 'risks', 'rollout', 'timeline', 'code', 'hooks'];
 
 /**
- * Load dom.js and every chapter module into a fresh vm context.
+ * Load the shared DOM layer (DOM_LAYER) and every chapter module into a fresh vm context.
  * @returns {{ ctx: object, created: object[], document: object, window: object }}
  */
 export function loadChapters() {
@@ -218,7 +219,7 @@ export function loadChapters() {
     window, document: doc, Node: FakeNode, navigator: {}, CSS: { escape: (v) => v }, console,
   });
   const dir = new URL('../template/js/', import.meta.url);
-  const source = [readFileSync(new URL('dom.js', dir), 'utf8'),
+  const source = [...DOM_LAYER.map((f) => readFileSync(new URL(f, dir), 'utf8')),
     ...ORDER.map((f) => readFileSync(new URL(`chapters/${f}.js`, dir), 'utf8'))].join('\n;\n');
   // Function declarations become properties of the context's global object.
   vm.runInContext(source, ctx, { filename: 'chapters-bundle.js' });

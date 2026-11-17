@@ -15,7 +15,8 @@ const BUILD = read('../scripts/lib/build.mjs');
 
 const chaptersBlock = APP.slice(APP.indexOf('const CHAPTERS = ['), APP.indexOf('];', APP.indexOf('const CHAPTERS = [')));
 const ENTRIES = [...chaptersBlock.matchAll(/\{\s*key:\s*'([\w-]+)'[\s\S]*?render:\s*([\w$]+)/g)].map((m) => ({ key: m[1], render: m[2] }));
-const SCRIPT_ORDER = JSON.parse(BUILD.match(/const SCRIPT_ORDER = (\[[^\]]*\]);/)[1].replace(/'/g, '"'));
+// build.mjs exports the order (it is built from shared file groups).
+const { SCRIPT_ORDER } = await import('../scripts/lib/build.mjs');
 const shippedSource = SCRIPT_ORDER.map((f) => read(`../template/js/${f}`)).join('\n');
 const allSources = [
   ...readdirSync(new URL('../template/js/', import.meta.url)).filter((f) => f.endsWith('.js')),

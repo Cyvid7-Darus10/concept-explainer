@@ -1,3 +1,4 @@
+import { DOM_LAYER } from '../scripts/lib/build.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -96,10 +97,10 @@ test('top-level names are prefixed and do not collide with the other modules', (
   assert.deepEqual(mine.filter((name) => others.includes(name)), [], 'no clash with dom.js, app.js and the rest');
 });
 
-test('chapter modules depend on dom.js only, not on the chapters other modules own', () => {
+test('chapter modules depend on the shared DOM layer only, not on the chapters other modules own', () => {
   const topLevel = (file) => [...readFileSync(new URL(file, jsDir), 'utf8').matchAll(/^function\s+([\w$]+)/gm)].map((m) => m[1]);
-  const dom = new Set(topLevel('dom.js'));
-  const elsewhere = readdirSync(jsDir).filter((f) => f.endsWith('.js') && f !== 'dom.js').flatMap(topLevel).filter((name) => !dom.has(name));
+  const dom = new Set(DOM_LAYER.flatMap(topLevel));
+  const elsewhere = readdirSync(jsDir).filter((f) => f.endsWith('.js') && !DOM_LAYER.includes(f)).flatMap(topLevel).filter((name) => !dom.has(name));
   const called = new Set([...js.matchAll(/(?<![.\w$])([a-zA-Z][\w$]*)\(/g)].map((m) => m[1]));
   // Names the chapter modules define themselves (locals, methods) are theirs.
   const own = new Set([...js.matchAll(/(?:const|let|function)\s+([\w$]+)/g), ...js.matchAll(/^\s*([\w$]+)\([^()]*\)\s*\{/gm)].map((m) => m[1]));

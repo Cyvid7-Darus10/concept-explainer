@@ -12,20 +12,42 @@ function changeKey(change, index) {
   return text(change && change.id, String(index));
 }
 
-function renderChanges(data, mount) {
-  const changes = list(data.changes)
+// Newest first, each with its deep-link key.
+function sortedChanges(data) {
+  return list(data.changes)
     .map((change, i) => ({ ...change, key: changeKey(change, i) }))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
+function visibleChanges(changes, state) {
+  return changes.filter((c) => (state.author === 'all' || c.authorType === state.author)
+    && (state.kind === 'all' || c.kind === state.kind));
+}
+
+function changesToolbar(state, kinds, setState) {
+  return [
+    h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' },
+      AUTHOR_FILTERS.map((f) => filterChip(f.label, state.author === f.id, () => setState({ author: f.id })))),
+    kinds.length > 2 && h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by type' },
+      kinds.map((k) => filterChip(k === 'all' ? 'All types' : k, state.kind === k, () => setState({ kind: k })))),
+    h('button', {
+      class: 'btn small changes-map', type: 'button',
+      onclick: () => { emit('highlight-changes', { enabled: true }); window.location.hash = 'map'; },
+    }, 'Show on map'),
+  ];
+}
+
+function renderChanges(data, mount) {
+  const changes = sortedChanges(data);
   if (!changes.length) {
     mount.append(h('p', { class: 'empty' }, 'No recent changes recorded.'));
     return null;
   }
   const nodeIndex = byId(data.nodes);
-  let state = { author: 'all', kind: 'all', target: null };
-
   const kinds = ['all', ...new Set(changes.map((c) => c.kind).filter(Boolean))];
   const toolbar = h('div', { class: 'changes-toolbar' });
   const timeline = h('ol', { class: 'timeline' });
+  let state = { author: 'all', kind: 'all', target: null };
 
   function setState(next, { animate = true } = {}) {
     state = { ...state, ...next };
@@ -33,23 +55,9 @@ function renderChanges(data, mount) {
     if (animate) [...timeline.children].slice(0, 8).forEach((item, i) => riseIn(item, i * 35));
   }
 
-  function visible() {
-    return changes.filter((c) => (state.author === 'all' || c.authorType === state.author)
-      && (state.kind === 'all' || c.kind === state.kind));
-  }
-
   function render() {
-    fill(toolbar,
-      h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by author' },
-        AUTHOR_FILTERS.map((f) => filterChip(f.label, state.author === f.id, () => setState({ author: f.id })))),
-      kinds.length > 2 && h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by type' },
-        kinds.map((k) => filterChip(k === 'all' ? 'All types' : k, state.kind === k, () => setState({ kind: k })))),
-      h('button', {
-        class: 'btn small changes-map', type: 'button',
-        onclick: () => { emit('highlight-changes', { enabled: true }); window.location.hash = 'map'; },
-      }, 'Show on map'),
-    );
-    const items = visible();
+    fill(toolbar, ...changesToolbar(state, kinds, setState));
+    const items = visibleChanges(changes, state);
     fill(timeline, ...(items.length
       ? items.map((change) => changeItem(change, nodeIndex, change.key === state.target))
       : [h('li', { class: 'empty' }, 'Nothing matches these filters.')]));

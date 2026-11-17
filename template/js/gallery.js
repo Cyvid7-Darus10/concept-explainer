@@ -99,20 +99,46 @@ function kitSettings(registry) {
   return section;
 }
 
+function kitTopBar(registry) {
+  return h('header', { class: 'top' }, h('div', { class: 'bar' },
+    h('a', { class: 'brand', href: '#main', 'aria-label': 'Concept Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
+    h('div', { class: 'bar-actions' }, quickTheme(registry), h('a', { class: 'btn small', href: '#kit-settings' }, icon('settings'), 'Settings'))));
+}
+
+// Every catalogue section of the kit, in page order.
+function kitSections(kinds, patterns) {
+  return [
+    kitSection('kit-icons', 'Icons', 'Set a node "kind" to one of these names. Unknown kinds fall back to "service". One hairline weight, drawn in the text colour.',
+      h('div', { class: 'kit-grid' }, [...kinds, 'robot', 'trophy', 'folder', 'file'].map((kind) => h('div', { class: 'panel kit-icon' },
+        icon(kind), h('code', null, kind), kinds.includes(kind) ? null : tag('UI only'))))),
+
+    kitSection('kit-layers', 'Layer markers', 'Set a layer "color" to one of these names. It shows as a small square and a thin bar on each box, never as a fill.',
+      h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: layerStyle(name) },
+        h('span', { class: 'map-col-head' }, name),
+        h('button', { class: 'node', type: 'button' }, h('span', { class: 'node-icon' }, icon('service')),
+          h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, `${colors.ink} / ${PLAYFUL_LAYERS[name]}`))))))),
+
+    kitSection('kit-tokens', 'Tokens', 'Fixed. These are the only colours in styles.css. Each switches value in the dark theme. Explainers never add others.',
+      h('div', { class: 'kit-grid kit-grid-wide' }, KIT_TOKENS.map(swatch))),
+
+    kitSection('kit-components', 'Components', 'All of these come from the data file. Depth is a hairline ring, never a shadow.', kitComponents()),
+
+    kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `concept-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
+      h('div', { class: 'kit-grid kit-grid-wide' }, patterns.map((pattern) => h('article', { class: 'panel kit-pattern' },
+        h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
+        h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
+  ];
+}
+
 function bootGallery() {
   const context = readContext();
   applyLook(context);
   applyReading();
   const data = JSON.parse(document.getElementById('explainer-data').textContent);
-  const kinds = list(data.kinds);
-  const patterns = list(data.patterns);
   const version = String(data.version || '');
   const registry = themeRegistry();
   const app = document.getElementById('app');
-  const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
-    h('a', { class: 'brand', href: '#main', 'aria-label': 'Concept Explainer kit' }, brandMark(), h('span', { class: 'name kit-bar-name' }, 'Kit')),
-    h('div', { class: 'bar-actions' }, quickTheme(registry), h('a', { class: 'btn small', href: '#kit-settings' }, icon('settings'), 'Settings'))));
-  const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, top, h('div', { class: 'wrap' },
+  const main = h('main', { id: 'main', class: 'main-col', tabindex: '-1' }, kitTopBar(registry), h('div', { class: 'wrap' },
     h('div', { class: 'view' },
       h('header', { class: 'view-head' },
         h('p', { class: 'eyebrow quiet' }, `Design kit · v${version}`),
@@ -120,26 +146,7 @@ function bootGallery() {
         h('p', { class: 'view-lead' }, 'Everything an explainer is made of. Reuse these by name in your data file. Never redraw, recolour or restyle them.'),
         h('div', { class: 'kit-credit' }, designCredit())),
       h('div', { class: 'panel kit-logo' }, brandMark()),
-
-      kitSection('kit-icons', 'Icons', 'Set a node "kind" to one of these names. Unknown kinds fall back to "service". One hairline weight, drawn in the text colour.',
-        h('div', { class: 'kit-grid' }, [...kinds, 'robot', 'trophy', 'folder', 'file'].map((kind) => h('div', { class: 'panel kit-icon' },
-          icon(kind), h('code', null, kind), kinds.includes(kind) ? null : tag('UI only'))))),
-
-      kitSection('kit-layers', 'Layer markers', 'Set a layer "color" to one of these names. It shows as a small square and a thin bar on each box, never as a fill.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, Object.entries(PALETTE).map(([name, colors]) => h('div', { class: 'panel kit-layer map-col', style: layerStyle(name) },
-          h('span', { class: 'map-col-head' }, name),
-          h('button', { class: 'node', type: 'button' }, h('span', { class: 'node-icon' }, icon('service')),
-            h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, 'A component'), h('span', { class: 'node-tech' }, `${colors.ink} / ${PLAYFUL_LAYERS[name]}`))))))),
-
-      kitSection('kit-tokens', 'Tokens', 'Fixed. These are the only colours in styles.css. Each switches value in the dark theme. Explainers never add others.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, KIT_TOKENS.map(swatch))),
-
-      kitSection('kit-components', 'Components', 'All of these come from the data file. Depth is a hairline ring, never a shadow.', kitComponents()),
-
-      kitSection('kit-patterns', 'Flow patterns', 'Starting points for flows. Run `concept-explainer patterns <id>`, copy the steps, rename roles to your node ids, add file:line to every step.',
-        h('div', { class: 'kit-grid kit-grid-wide' }, patterns.map((pattern) => h('article', { class: 'panel kit-pattern' },
-          h('code', null, pattern.id), h('h3', null, pattern.name), h('p', null, pattern.use),
-          h('div', { class: 'step-route' }, list(pattern.roles).map((role, i) => [i > 0 && h('span', { class: 'arrow-glyph' }, '→'), h('span', { class: 'chip' }, role)])))))),
+      kitSections(list(data.kinds), list(data.patterns)),
       kitSettings(registry),
       h('footer', { class: 'site-footer' }, designCredit()))));
   const kitLinks = [];
@@ -150,4 +157,3 @@ function bootGallery() {
   trackKitSections(kitLinks);
   watchNavMore(document.querySelector('.side > .links'));
 }
-

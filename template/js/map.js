@@ -1,23 +1,128 @@
 // Chapter: architecture map. Layers are columns, nodes are pressable cards,
 // edges are an SVG overlay redrawn whenever the layout changes.
+function mapRelated(edges, id) {
+  return edges.filter((edge) => edge.from === id || edge.to === id);
+}
+
+// Selected node, its neighbours, and the lines between them.
+function mapPaintSelection(canvas, grid, svg, edges, selectedId) {
+  canvas.classList.toggle('has-selection', Boolean(selectedId));
+  canvas.classList.remove('is-changes');
+  const neighbours = new Set(selectedId ? mapRelated(edges, selectedId).flatMap((e) => [e.from, e.to]) : []);
+  grid.querySelectorAll('.node').forEach((el) => {
+    el.classList.toggle('is-selected', el.dataset.node === selectedId);
+    el.classList.toggle('is-related', neighbours.has(el.dataset.node));
+    el.setAttribute('aria-pressed', String(el.dataset.node === selectedId));
+  });
+  svg.querySelectorAll('[data-edge]').forEach((el) => {
+    const [from, to] = el.dataset.edge.split('→');
+    const active = from === selectedId || to === selectedId;
+    el.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
+    el.querySelector('path').setAttribute('marker-end', active ? 'url(#map-arrow-active)' : 'url(#map-arrow)');
+  });
+}
+
+function mapEmptyDetail() {
+  return [h('div', { class: 'detail-main' },
+    h('p', { class: 'eyebrow quiet' }, 'Tip'),
+    h('h3', null, 'Pick any box above'),
+    h('p', null, 'You will see what it does, which files hold it, and who it talks to. Pick it again to clear.'))];
+}
+
+function mapRelationItem(edge, selfId, nodeIndex, select) {
+  const otherId = edge.from === selfId ? edge.to : edge.from;
+  const other = nodeIndex.get(otherId);
+  const direction = edge.from === selfId ? '→' : '←';
+  return h('li', null, h('span', { class: 'arrow-glyph' }, direction),
+    h('button', { class: 'link', type: 'button', onclick: () => select(otherId) }, softBreaks(other ? other.label : otherId)),
+    edge.label && tag(edge.label));
+}
+
+function mapNodeDetail(data, node, nodeIndex, select) {
+  const layer = list(data.layers).find((l) => l.id === node.layer);
+  const links = mapRelated(list(data.edges), node.id);
+  const flows = list(data.flows).filter((flow) => list(flow.steps).some((st) => st.from === node.id || st.to === node.id));
+  return [h('div', { class: 'detail-main' },
+    h('div', { class: 'step-top' }, h('span', { class: 'detail-icon' }, icon(node.kind)), tag(text(layer && layer.label, node.layer), 'tag-layer'), node.kind && tag(node.kind)),
+    h('h3', null, softBreaks(node.label)),
+    h('p', null, softBreaks(text(node.summary, 'No summary yet.'))),
+    node.tech && h('p', { class: 'detail-tech' }, softBreaks(node.tech)),
+    list(node.files).length > 0 && [h('div', { class: 'detail-label' }, 'Lives in'), h('div', { class: 'files' }, list(node.files).map(fileChip))]),
+  h('div', { class: 'detail-side' },
+    links.length > 0 && [h('div', { class: 'detail-label' }, 'Talks to'), h('ul', { class: 'rel' }, links.map((edge) => mapRelationItem(edge, node.id, nodeIndex, select)))],
+    flows.length > 0 && [h('div', { class: 'detail-label' }, 'Shows up in'), h('ul', { class: 'rel' }, flows.map((flow) => h('li', null,
+      h('a', { class: 'link', href: `#flows/${linkPart(flow.id)}` }, softBreaks(flow.title)))))]),
+  ];
+}
+
+function mapEdgeShape(edge, grid, box) {
+  const fromEl = grid.querySelector(`[data-node="${CSS.escape(edge.from)}"]`);
+  const toEl = grid.querySelector(`[data-node="${CSS.escape(edge.to)}"]`);
+  if (!fromEl || !toEl) return null;
+  const a = relativeRect(fromEl, box);
+  const b = relativeRect(toEl, box);
+  const d = connectorPath(a, b);
+  const key = `${edge.from}→${edge.to}`;
+  const mid = { x: (a.cx + b.cx) / 2, y: (a.cy + b.cy) / 2 };
+  // No label when the boxes almost touch: it would sit on top of them.
+  const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
+  return s('g', { 'data-edge': key },
+    s('path', { class: `edge${edge.kind === 'async' ? ' is-async' : ''}`, d, 'marker-end': 'url(#map-arrow)' }),
+    edge.label && gap > 36 && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
+}
+
+function mapLegend(nodes, changedIds) {
+  return h('div', { class: 'map-legend' },
+    h('span', null, h('i'), 'Calls / reads'),
+    h('span', null, h('i', { class: 'dash' }), 'Async / events'),
+    chStatusLegend(nodes),
+    changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently'));
+}
+
+// As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto the
+// next row, so the map never scrolls sideways.
+function mapFitColumns(canvas, layerCount) {
+  const width = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+  const fit = Math.max(1, Math.min(layerCount, Math.floor((width + MAP_GAP) / (MAP_MIN_COL + MAP_GAP))));
+  if (canvas.style.getPropertyValue('--fit-cols') !== String(fit)) canvas.style.setProperty('--fit-cols', String(fit));
+}
+
+function mapParts(layers, nodes, changedIds, onSelect) {
+  const cols = `--cols:${Math.max(layers.length, 1)}`;
+  const svg = s('svg', { class: 'map-edges', 'aria-hidden': 'true' });
+  const grid = h('div', { class: 'map-grid', style: cols }, layers.map((layer) => mapColumn(layer, nodes, changedIds, onSelect)));
+  const canvas = h('div', { class: 'map-canvas', style: cols }, svg, grid);
+  const detail = h('aside', { class: 'map-detail panel', 'aria-live': 'polite' });
+  return { svg, grid, canvas, detail };
+}
+
+function mapShowChanges(canvas, grid, changedIds) {
+  canvas.classList.remove('has-selection');
+  canvas.classList.add('is-changes');
+  grid.querySelectorAll('.node').forEach((el) => el.classList.toggle('is-changed', changedIds.has(el.dataset.node)));
+}
+
+function mapDrawEdges(canvas, svg, grid, edges) {
+  const box = canvas.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+  const defs = s('defs', null, arrowMarker('map-arrow', 'is-rest'), arrowMarker('map-arrow-active', 'is-active'));
+  fill(svg, defs, ...edges.map((edge) => mapEdgeShape(edge, grid, box)).filter(Boolean));
+}
+
 function renderMap(data, mount) {
-  const layers = list(data.layers);
-  const nodes = list(data.nodes);
-  const edges = list(data.edges);
+  const [layers, nodes, edges] = [list(data.layers), list(data.nodes), list(data.edges)];
   const nodeIndex = byId(nodes);
   const changedIds = new Set(list(data.changes).flatMap((change) => list(change.nodes)));
-
-  const svg = s('svg', { class: 'map-edges', 'aria-hidden': 'true' });
-  const grid = h('div', { class: 'map-grid', style: `--cols:${Math.max(layers.length, 1)}` },
-    layers.map((layer) => mapColumn(layer, nodes, changedIds, (id) => select(id))));
-  const canvas = h('div', { class: 'map-canvas', style: `--cols:${Math.max(layers.length, 1)}` }, svg, grid);
-  const detail = h('aside', { class: 'map-detail panel', 'aria-live': 'polite' });
+  const { svg, grid, canvas, detail } = mapParts(layers, nodes, changedIds, (id) => select(id));
   let selectedId = null;
 
   function select(id) {
     setSelected(selectedId === id ? null : id);
     setDeepLink(selectedId ? `map/${linkPart(selectedId)}` : 'map');
   }
+
+  const paintSelection = () => mapPaintSelection(canvas, grid, svg, edges, selectedId);
+  const renderDetail = () => fill(detail, ...(selectedId ? mapNodeDetail(data, nodeIndex.get(selectedId), nodeIndex, select) : mapEmptyDetail()));
 
   function setSelected(id) {
     selectedId = id;
@@ -26,94 +131,11 @@ function renderMap(data, mount) {
     renderDetail();
   }
 
-  function related(id) {
-    return edges.filter((edge) => edge.from === id || edge.to === id);
-  }
-
-  function paintSelection() {
-    canvas.classList.toggle('has-selection', Boolean(selectedId));
-    canvas.classList.remove('is-changes');
-    const neighbours = new Set(selectedId ? related(selectedId).flatMap((e) => [e.from, e.to]) : []);
-    grid.querySelectorAll('.node').forEach((el) => {
-      el.classList.toggle('is-selected', el.dataset.node === selectedId);
-      el.classList.toggle('is-related', neighbours.has(el.dataset.node));
-      el.setAttribute('aria-pressed', String(el.dataset.node === selectedId));
-    });
-    svg.querySelectorAll('[data-edge]').forEach((el) => {
-      const [from, to] = el.dataset.edge.split('→');
-      const active = from === selectedId || to === selectedId;
-      el.querySelectorAll('path, text').forEach((part) => part.classList.toggle('is-active', active));
-      el.querySelector('path').setAttribute('marker-end', active ? 'url(#map-arrow-active)' : 'url(#map-arrow)');
-    });
-  }
-
-  function renderDetail() {
-    fill(detail, ...(selectedId ? nodeDetail(nodeIndex.get(selectedId)) : emptyDetail()));
-  }
-
-  function emptyDetail() {
-    return [h('div', { class: 'detail-main' },
-      h('p', { class: 'eyebrow quiet' }, 'Tip'),
-      h('h3', null, 'Pick any box above'),
-      h('p', null, 'You will see what it does, which files hold it, and who it talks to. Pick it again to clear.'))];
-  }
-
-  function nodeDetail(node) {
-    const layer = layers.find((l) => l.id === node.layer);
-    const links = related(node.id);
-    const flows = list(data.flows).filter((flow) => list(flow.steps).some((st) => st.from === node.id || st.to === node.id));
-    return [h('div', { class: 'detail-main' },
-      h('div', { class: 'step-top' }, h('span', { class: 'detail-icon' }, icon(node.kind)), tag(text(layer && layer.label, node.layer), 'tag-layer'), node.kind && tag(node.kind)),
-      h('h3', null, softBreaks(node.label)),
-      h('p', null, softBreaks(text(node.summary, 'No summary yet.'))),
-      node.tech && h('p', { class: 'detail-tech' }, softBreaks(node.tech)),
-      list(node.files).length > 0 && [h('div', { class: 'detail-label' }, 'Lives in'), h('div', { class: 'files' }, list(node.files).map(fileChip))]),
-    h('div', { class: 'detail-side' },
-      links.length > 0 && [h('div', { class: 'detail-label' }, 'Talks to'), h('ul', { class: 'rel' }, links.map((edge) => relationItem(edge, node.id)))],
-      flows.length > 0 && [h('div', { class: 'detail-label' }, 'Shows up in'), h('ul', { class: 'rel' }, flows.map((flow) => h('li', null,
-        h('a', { class: 'link', href: `#flows/${linkPart(flow.id)}` }, softBreaks(flow.title)))))]),
-    ];
-  }
-
-  function relationItem(edge, selfId) {
-    const otherId = edge.from === selfId ? edge.to : edge.from;
-    const other = nodeIndex.get(otherId);
-    const direction = edge.from === selfId ? '→' : '←';
-    return h('li', null, h('span', { class: 'arrow-glyph' }, direction),
-      h('button', { class: 'link', type: 'button', onclick: () => select(otherId) }, softBreaks(other ? other.label : otherId)),
-      edge.label && tag(edge.label));
-  }
-
+  const showChanges = () => mapShowChanges(canvas, grid, changedIds);
   function drawEdges() {
-    const box = canvas.getBoundingClientRect();
-    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
-    const defs = s('defs', null, arrowMarker('map-arrow', 'is-rest'), arrowMarker('map-arrow-active', 'is-active'));
-    const paths = edges.map((edge) => edgeShape(edge, box)).filter(Boolean);
-    fill(svg, defs, ...paths);
+    mapDrawEdges(canvas, svg, grid, edges);
     paintSelection();
     if (canvas.dataset.changes === 'on') showChanges();
-  }
-
-  function edgeShape(edge, box) {
-    const fromEl = grid.querySelector(`[data-node="${CSS.escape(edge.from)}"]`);
-    const toEl = grid.querySelector(`[data-node="${CSS.escape(edge.to)}"]`);
-    if (!fromEl || !toEl) return null;
-    const a = relativeRect(fromEl, box);
-    const b = relativeRect(toEl, box);
-    const d = connectorPath(a, b);
-    const key = `${edge.from}→${edge.to}`;
-    const mid = { x: (a.cx + b.cx) / 2, y: (a.cy + b.cy) / 2 };
-    // No label when the boxes almost touch: it would sit on top of them.
-    const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
-    return s('g', { 'data-edge': key },
-      s('path', { class: `edge${edge.kind === 'async' ? ' is-async' : ''}`, d, 'marker-end': 'url(#map-arrow)' }),
-      edge.label && gap > 36 && s('text', { class: 'edge-label', x: mid.x, y: mid.y - 6, 'text-anchor': 'middle' }, truncate(edge.label, 28)));
-  }
-
-  function showChanges() {
-    canvas.classList.remove('has-selection');
-    canvas.classList.add('is-changes');
-    grid.querySelectorAll('.node').forEach((el) => el.classList.toggle('is-changed', changedIds.has(el.dataset.node)));
   }
 
   on('highlight-changes', ({ enabled }) => {
@@ -124,22 +146,8 @@ function renderMap(data, mount) {
   });
 
   renderDetail();
-  mount.append(
-    h('div', { class: 'map-shell' }, h('div', { class: 'panel map-panel' }, h('div', { class: 'map-scroll' }, canvas)), detail),
-    h('div', { class: 'map-legend' },
-      h('span', null, h('i'), 'Calls / reads'),
-      h('span', null, h('i', { class: 'dash' }), 'Async / events'),
-      chStatusLegend(nodes),
-      changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently')),
-  );
-  // As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto
-  // the next row, so the map never scrolls sideways.
-  const fitColumns = () => {
-    const width = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
-    const fit = Math.max(1, Math.min(layers.length, Math.floor((width + MAP_GAP) / (MAP_MIN_COL + MAP_GAP))));
-    if (canvas.style.getPropertyValue('--fit-cols') !== String(fit)) canvas.style.setProperty('--fit-cols', String(fit));
-  };
-  const redraw = () => window.requestAnimationFrame(() => { fitColumns(); drawEdges(); });
+  mount.append(h('div', { class: 'map-shell' }, h('div', { class: 'panel map-panel' }, h('div', { class: 'map-scroll' }, canvas)), detail), mapLegend(nodes, changedIds));
+  const redraw = () => window.requestAnimationFrame(() => { mapFitColumns(canvas, layers.length); drawEdges(); });
   new ResizeObserver(redraw).observe(canvas.parentElement || canvas);
   if (document.fonts) document.fonts.ready.then(redraw);
   return {

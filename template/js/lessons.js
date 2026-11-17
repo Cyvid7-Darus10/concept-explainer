@@ -90,23 +90,174 @@ function optionLabel(option) {
   return h('span', { class: 'option-text' }, softBreaks(value));
 }
 
+// ---------- Quiz state (pure) ----------
+const QUIZ_OPEN = Object.freeze({ tries: [], status: 'open', picked: null });
+
+function quizAnswerOf(state, i) {
+  return state.answers[i] || QUIZ_OPEN;
+}
+
+// The answer after pressing Check: right first time, right late (counts as
+// missed), another try, or out of tries.
+function quizChecked(answer, question) {
+  const right = answer.picked === question.answer;
+  const tries = [...answer.tries, answer.picked];
+  const status = right ? (tries.length === 1 ? 'right' : 'right-late') : tries.length >= QUIZ_TRIES ? 'missed' : 'retry';
+  return { ...answer, tries, status: status === 'right-late' ? 'missed' : status, firstTry: right && tries.length === 1, picked: right ? answer.picked : null, late: status === 'right-late' };
+}
+
+function quizWithAnswer(state, i, next) {
+  const answers = [...state.answers];
+  answers[i] = { ...quizAnswerOf(state, i), ...next };
+  return { ...state, answers };
+}
+
+const quizPicked = (answer) => answer.picked !== null && answer.picked !== undefined;
+
+// ---------- Quiz screens ----------
+function quizProgress(questions, state, current, go) {
+  return h('div', { class: 'step-dots quiz-dots' }, questions.map((_, i) => {
+    const status = quizAnswerOf(state, i).status;
+    return h('button', {
+      type: 'button', class: [i === current ? 'is-current' : '', status !== 'open' ? 'is-done' : ''].join(' ').trim(),
+      'aria-label': `Question ${i + 1}${status === 'right' ? ', right' : status === 'missed' ? ', missed' : ''}`,
+      'aria-current': i === current ? 'step' : null, onclick: () => go(i),
+    });
+  }));
+}
+
+function quizFeedback(question, answer) {
+  const live = h('div', { class: 'quiz-live', 'aria-live': 'polite' });
+  if (answer.status === 'open') return live;
+  const correctText = list(question.options)[question.answer];
+  const explain = text(question.explain, `The answer is “${correctText}”.`);
+  const states = {
+    retry: { cls: 'is-retry', head: 'Not yet. Try again.', body: 'Pick another answer, or show the answer.' },
+    right: { cls: 'is-right', head: 'Right', body: explain },
+    missed: { cls: 'is-missed', head: answer.late ? 'Right on the second try' : 'Why', body: explain },
+  };
+  const view = states[answer.status] || states.missed;
+  live.append(h('div', { class: `feedback ${view.cls}` },
+    h('p', { class: 'feedback-head', tabindex: '-1', 'data-focus': '' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), view.head),
+    h('p', null, softBreaks(view.body))));
+  return live;
+}
+
+function quizOptions(question, answer, resolved, pick) {
+  const optionEls = list(question.options).map((option, j) => {
+    const tried = answer.tries.includes(j);
+    const isAnswer = resolved && j === question.answer;
+    return h('button', {
+      class: ['option', tried && !isAnswer ? 'is-tried' : '', isAnswer ? 'is-answer' : ''].join(' ').trim(),
+      type: 'button', role: 'radio', 'aria-checked': String(answer.picked === j), tabindex: '-1', disabled: resolved,
+      onclick: () => pick(j),
+    },
+    h('span', { class: 'key' }, String(j + 1)), optionLabel(option),
+    isAnswer && h('span', { class: 'tag tag-answer' }, 'Correct answer'),
+    tried && !isAnswer && h('span', { class: 'option-note' }, 'Your try'));
+  });
+  const focusable = optionEls[answer.picked ?? 0] || optionEls[0];
+  if (focusable && !resolved) focusable.tabIndex = 0;
+  return optionEls;
+}
+
+// Arrows move the pick, 1 to n pick directly, Enter checks.
+function quizKeys(event, answer, count, { pick, check }) {
+  const move = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+  const number = Number.parseInt(event.key, 10);
+  if (move) {
+    event.preventDefault();
+    pick(((answer.picked ?? -1) + move + count) % count);
+  } else if (number >= 1 && number <= count) {
+    event.preventDefault();
+    pick(number - 1);
+  } else if (event.key === 'Enter' && quizPicked(answer)) {
+    event.preventDefault();
+    check();
+  }
+}
+
+function quizControls(i, count, answer, resolved, actions) {
+  const checkButton = !resolved && h('button', {
+    class: 'btn primary', type: 'button', disabled: !quizPicked(answer), onclick: actions.check,
+  }, answer.status === 'retry' ? 'Check again' : 'Check');
+  const showAnswer = answer.status === 'retry' && h('button', { class: 'link quiz-reveal', type: 'button', onclick: actions.reveal }, 'Show answer');
+  return h('div', { class: 'step-controls quiz-controls' },
+    h('button', { class: 'btn', type: 'button', disabled: i === 0, onclick: () => actions.go(i - 1) }, 'Back'),
+    showAnswer,
+    resolved
+      ? h('button', { class: 'btn primary', type: 'button', onclick: () => actions.go(i + 1) }, i === count - 1 ? 'See your score' : 'Continue')
+      : checkButton);
+}
+
+// actions: { pick(j), check(), reveal(), go(i), reset() }
+function quizQuestionScreen(questions, state, i, actions) {
+  const question = questions[i];
+  const count = list(question.options).length;
+  const answer = quizAnswerOf(state, i);
+  const resolved = answer.status === 'right' || answer.status === 'missed';
+  const group = h('div', {
+    class: 'options', role: 'radiogroup', 'aria-label': question.question,
+    onkeydown: (event) => { if (!resolved) quizKeys(event, answer, count, actions); },
+  }, quizOptions(question, answer, resolved, actions.pick));
+  return [
+    h('div', { class: 'quiz-top' },
+      h('span', { class: 'step-count' }, `Question ${i + 1} of ${questions.length}`),
+      h('button', { class: 'link quiz-reset', type: 'button', onclick: actions.reset }, 'Reset')),
+    quizProgress(questions, state, i, actions.go),
+    h('h3', { class: 'quiz-q', tabindex: '-1', 'data-focus': answer.status === 'open' ? '' : null }, softBreaks(question.question)),
+    group,
+    quizFeedback(question, answer),
+    quizControls(i, questions.length, answer, resolved, actions),
+    h('p', { class: 'kbd-hint' }, 'Tip: press ', h('kbd', null, '1'), ' to ', h('kbd', null, String(count)), ' to pick, ', h('kbd', null, 'Enter'), ' to check.'),
+  ];
+}
+
+function quizMissedList(data, missed, go) {
+  return h('div', { class: 'quiz-missed' },
+    h('p', { class: 'eyebrow quiet' }, 'To revisit'),
+    h('ul', { class: 'rows' }, missed.map(({ q, i }) => {
+      const lesson = quizLesson(q, data);
+      return h('li', { class: 'quiz-missed-row' },
+        h('button', { class: 'link', type: 'button', onclick: () => go(i) }, softBreaks(`${i + 1}. ${q.question}`)),
+        lesson && h('a', { class: 'quiz-lesson', href: lesson.href }, softBreaks(`Read: ${lesson.label}`)));
+    })));
+}
+
+function quizEndScreen(data, questions, state, { go, reset }) {
+  const firstTry = questions.filter((_, i) => quizAnswerOf(state, i).status === 'right').length;
+  const missed = questions.map((q, i) => ({ q, i, a: quizAnswerOf(state, i) })).filter(({ a }) => a.status !== 'right');
+  return [
+    h('div', { class: 'quiz-top' }, h('span', { class: 'step-count' }, 'Your score'),
+      h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
+    quizProgress(questions, state, -1, go),
+    h('h3', { class: 'quiz-score', tabindex: '-1', 'data-focus': '' }, `${firstTry} of ${questions.length} on the first try`),
+    h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${firstTry / questions.length}` })),
+    missed.length
+      ? quizMissedList(data, missed, go)
+      : h('p', { class: 'quiz-perfect' }, 'Every answer right on the first try. This chapter is done.'),
+    h('div', { class: 'step-controls quiz-controls' },
+      h('button', { class: 'btn', type: 'button', onclick: () => go(questions.length - 1) }, 'Back'),
+      h('button', { class: 'btn primary', type: 'button', onclick: reset }, 'Try again')),
+  ];
+}
+
+// A right answer keeps its pick and pops; a wrong one shakes.
+function quizCelebrate(card, answer) {
+  const chosen = card.querySelectorAll('.option')[answer.tries[answer.tries.length - 1]];
+  if (!chosen) return;
+  if (answer.picked !== null) pop(chosen); else shake(chosen);
+}
+
 function renderQuiz(data, mount) {
   const questions = list(data.quiz);
   if (!questions.length) return null;
   const key = quizStoreKey(data.meta);
-  const saved = loadQuiz(key, questions.length);
-  let state = saved || { index: 0, answers: [] };
+  let state = loadQuiz(key, questions.length) || { index: 0, answers: [] };
   const card = h('article', { class: 'panel quiz-card' });
-
-  const answerOf = (i) => state.answers[i] || { tries: [], status: 'open', picked: null };
   const persist = () => writeStore(key, JSON.stringify({ index: state.index, answers: state.answers }));
-
-  function setAnswer(i, next) {
-    const answers = [...state.answers];
-    answers[i] = { ...answerOf(i), ...next };
-    state = { ...state, answers };
-    persist();
-  }
+  const update = (i, next) => { state = quizWithAnswer(state, i, next); persist(); };
+  const focusOption = (j) => { const el = card.querySelectorAll('.option')[j]; if (el) el.focus(); return el; };
 
   function go(index, { focus = true, link = true } = {}) {
     state = { ...state, index: Math.min(Math.max(index, 0), questions.length) };
@@ -115,158 +266,24 @@ function renderQuiz(data, mount) {
     render({ focus });
   }
 
-  function reset() {
-    state = { index: 0, answers: [] };
-    persist();
-    go(0);
-  }
+  const actions = {
+    go,
+    reset: () => { state = { index: 0, answers: [] }; persist(); go(0); },
+    pick: (j) => { update(state.index, { picked: j }); render(); focusOption(j); },
+    reveal: () => { update(state.index, { status: 'missed', picked: null }); render({ focus: true }); },
+    check: () => {
+      const i = state.index;
+      if (!quizPicked(quizAnswerOf(state, i))) return;
+      update(i, quizChecked(quizAnswerOf(state, i), questions[i]));
+      render({ focus: true });
+      quizCelebrate(card, quizAnswerOf(state, i));
+    },
+  };
 
   function render({ focus = false } = {}) {
-    fill(card, ...(state.index >= questions.length ? endScreen() : questionScreen(state.index)));
-    if (focus) {
-      const head = card.querySelector('[data-focus]');
-      if (head) head.focus({ preventScroll: true });
-    }
-  }
-
-  function progress(current) {
-    return h('div', { class: 'step-dots quiz-dots' }, questions.map((_, i) => {
-      const status = answerOf(i).status;
-      return h('button', {
-        type: 'button', class: [i === current ? 'is-current' : '', status !== 'open' ? 'is-done' : ''].join(' ').trim(),
-        'aria-label': `Question ${i + 1}${status === 'right' ? ', right' : status === 'missed' ? ', missed' : ''}`,
-        'aria-current': i === current ? 'step' : null, onclick: () => go(i),
-      });
-    }));
-  }
-
-  function questionScreen(i) {
-    const question = questions[i];
-    const options = list(question.options);
-    const answer = answerOf(i);
-    const resolved = answer.status === 'right' || answer.status === 'missed';
-    const optionEls = options.map((option, j) => {
-      const tried = answer.tries.includes(j);
-      const isAnswer = resolved && j === question.answer;
-      const el = h('button', {
-        class: ['option', tried && !isAnswer ? 'is-tried' : '', isAnswer ? 'is-answer' : ''].join(' ').trim(),
-        type: 'button', role: 'radio', 'aria-checked': String(answer.picked === j), tabindex: '-1', disabled: resolved,
-        onclick: () => pick(j),
-      },
-      h('span', { class: 'key' }, String(j + 1)), optionLabel(option),
-      isAnswer && h('span', { class: 'tag tag-answer' }, 'Correct answer'),
-      tried && !isAnswer && h('span', { class: 'option-note' }, 'Your try'));
-      return el;
-    });
-    const focusable = optionEls[answer.picked ?? 0] || optionEls[0];
-    if (focusable && !resolved) focusable.tabIndex = 0;
-
-    function pick(j) {
-      setAnswer(i, { picked: j });
-      render();
-      const el = card.querySelectorAll('.option')[j];
-      if (el) el.focus();
-    }
-
-    function check() {
-      const current = answerOf(i);
-      if (current.picked === null || current.picked === undefined) return;
-      const right = current.picked === question.answer;
-      const tries = [...current.tries, current.picked];
-      const status = right ? (tries.length === 1 ? 'right' : 'right-late') : tries.length >= QUIZ_TRIES ? 'missed' : 'retry';
-      setAnswer(i, { tries, status: status === 'right-late' ? 'missed' : status, firstTry: right && tries.length === 1, picked: right ? current.picked : null, late: status === 'right-late' });
-      render({ focus: true });
-      const chosen = card.querySelectorAll('.option')[tries[tries.length - 1]];
-      if (chosen) { if (right) pop(chosen); else shake(chosen); }
-    }
-
-    const group = h('div', {
-      class: 'options', role: 'radiogroup', 'aria-label': question.question,
-      onkeydown: (event) => {
-        if (resolved) return;
-        const move = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
-        const number = Number.parseInt(event.key, 10);
-        if (move) {
-          event.preventDefault();
-          const from = answerOf(i).picked ?? -1;
-          pick((from + move + options.length) % options.length);
-        } else if (number >= 1 && number <= options.length) {
-          event.preventDefault();
-          pick(number - 1);
-        } else if (event.key === 'Enter' && answerOf(i).picked !== null && answerOf(i).picked !== undefined) {
-          event.preventDefault();
-          check();
-        }
-      },
-    }, optionEls);
-
-    const feedback = feedbackPanel(question, answer);
-    const checkButton = !resolved && h('button', {
-      class: 'btn primary', type: 'button', disabled: answer.picked === null || answer.picked === undefined, onclick: check,
-    }, answer.status === 'retry' ? 'Check again' : 'Check');
-    const showAnswer = answer.status === 'retry' && h('button', {
-      class: 'link quiz-reveal', type: 'button',
-      onclick: () => { setAnswer(i, { status: 'missed', picked: null }); render({ focus: true }); },
-    }, 'Show answer');
-    const last = i === questions.length - 1;
-    return [
-      h('div', { class: 'quiz-top' },
-        h('span', { class: 'step-count' }, `Question ${i + 1} of ${questions.length}`),
-        h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
-      progress(i),
-      h('h3', { class: 'quiz-q', tabindex: '-1', 'data-focus': answer.status === 'open' ? '' : null }, softBreaks(question.question)),
-      group,
-      feedback,
-      h('div', { class: 'step-controls quiz-controls' },
-        h('button', { class: 'btn', type: 'button', disabled: i === 0, onclick: () => go(i - 1) }, 'Back'),
-        showAnswer,
-        resolved
-          ? h('button', { class: 'btn primary', type: 'button', onclick: () => go(i + 1) }, last ? 'See your score' : 'Continue')
-          : checkButton),
-      h('p', { class: 'kbd-hint' }, 'Tip: press ', h('kbd', null, '1'), ' to ', h('kbd', null, String(options.length)), ' to pick, ', h('kbd', null, 'Enter'), ' to check.'),
-    ];
-  }
-
-  function feedbackPanel(question, answer) {
-    const live = h('div', { class: 'quiz-live', 'aria-live': 'polite' });
-    if (answer.status === 'open') return live;
-    const correctText = list(question.options)[question.answer];
-    const explain = text(question.explain, `The answer is “${correctText}”.`);
-    const states = {
-      retry: { cls: 'is-retry', head: 'Not yet. Try again.', body: 'Pick another answer, or show the answer.' },
-      right: { cls: 'is-right', head: 'Right', body: explain },
-      missed: { cls: 'is-missed', head: answer.late ? 'Right on the second try' : 'Why', body: explain },
-    };
-    const view = states[answer.status] || states.missed;
-    live.append(h('div', { class: `feedback ${view.cls}` },
-      h('p', { class: 'feedback-head', tabindex: '-1', 'data-focus': '' }, h('span', { class: 'status-dot', 'aria-hidden': 'true' }), view.head),
-      h('p', null, softBreaks(view.body))));
-    return live;
-  }
-
-  function endScreen() {
-    const firstTry = questions.filter((_, i) => answerOf(i).status === 'right').length;
-    const missed = questions.map((q, i) => ({ q, i, a: answerOf(i) })).filter(({ a }) => a.status !== 'right');
-    return [
-      h('div', { class: 'quiz-top' }, h('span', { class: 'step-count' }, 'Your score'),
-        h('button', { class: 'link quiz-reset', type: 'button', onclick: reset }, 'Reset')),
-      progress(-1),
-      h('h3', { class: 'quiz-score', tabindex: '-1', 'data-focus': '' }, `${firstTry} of ${questions.length} on the first try`),
-      h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${firstTry / questions.length}` })),
-      missed.length
-        ? h('div', { class: 'quiz-missed' },
-          h('p', { class: 'eyebrow quiet' }, 'To revisit'),
-          h('ul', { class: 'rows' }, missed.map(({ q, i }) => {
-            const lesson = quizLesson(q, data);
-            return h('li', { class: 'quiz-missed-row' },
-              h('button', { class: 'link', type: 'button', onclick: () => go(i) }, softBreaks(`${i + 1}. ${q.question}`)),
-              lesson && h('a', { class: 'quiz-lesson', href: lesson.href }, softBreaks(`Read: ${lesson.label}`)));
-          })))
-        : h('p', { class: 'quiz-perfect' }, 'Every answer right on the first try. This chapter is done.'),
-      h('div', { class: 'step-controls quiz-controls' },
-        h('button', { class: 'btn', type: 'button', onclick: () => go(questions.length - 1) }, 'Back'),
-        h('button', { class: 'btn primary', type: 'button', onclick: reset }, 'Try again')),
-    ];
+    fill(card, ...(state.index >= questions.length ? quizEndScreen(data, questions, state, actions) : quizQuestionScreen(questions, state, state.index, actions)));
+    const head = focus && card.querySelector('[data-focus]');
+    if (head) head.focus({ preventScroll: true });
   }
 
   mount.append(h('div', { class: 'lesson quiz' }, card));
