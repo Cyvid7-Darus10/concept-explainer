@@ -99,7 +99,6 @@ function dedupe(entries) {
 export function buildSearchIndex(slug, data) {
   const d = isObject(data) ? data : {};
   const meta = isObject(d.meta) ? d.meta : {};
-  const withId = (items, key) => list(items).filter((item) => str(item[key]));
   // Only chapters the page shows (scripts/lib/chapters.mjs, the page's own rule);
   // a link into a hidden chapter would open the Overview instead.
   const shown = new Set(shownChapters(d));
@@ -109,13 +108,13 @@ export function buildSearchIndex(slug, data) {
   };
   return dedupe([
     entry(slug, 'explainer', meta.title || slug, join(meta.summary, isObject(d.context) ? d.context.problem : '', ...(Array.isArray(meta.stack) ? meta.stack : [])), ''),
-    ...withId(d.nodes, 'id').map((node) => entry(slug, 'node', node.label || node.id, join(node.summary, node.tech), route('map', node.id))),
+    ...withKey(d.nodes, 'id').map((node) => entry(slug, 'node', node.label || node.id, join(node.summary, node.tech), route('map', node.id))),
     ...flowEntries(slug, d.flows),
-    ...withId(d.changes, 'id').map((change) => changeEntry(slug, change)),
-    ...withId(d.dataModel, 'name').map((model) => entry(slug, 'entity', model.name, entityText(model), route('data', model.name))),
+    ...withKey(d.changes, 'id').map((change) => changeEntry(slug, change)),
+    ...withKey(d.dataModel, 'name').map((model) => entry(slug, 'entity', model.name, entityText(model), route('data', model.name))),
     ...indexed(d.concepts).map(([concept, i]) => entry(slug, 'concept', concept.title, join(concept.body, concept.analogy), route('concepts', i))),
-    ...withId(d.glossary, 'term').map((item) => entry(slug, 'glossary', item.term, item.definition, route('glossary', item.term))),
-    ...withId(d.tree, 'path').map((item) => entry(slug, 'file', item.path, item.note, route('tree', item.path))),
+    ...withKey(d.glossary, 'term').map((item) => entry(slug, 'glossary', item.term, item.definition, route('glossary', item.term))),
+    ...withKey(d.tree, 'path').map((item) => entry(slug, 'file', item.path, item.note, route('tree', item.path))),
     ...list(d.runbook).map((item) => entry(slug, 'run', item.label || item.command, join(item.command, item.note), 'run')),
     ...v2Entries(slug, d),
   ]).filter(visible);
