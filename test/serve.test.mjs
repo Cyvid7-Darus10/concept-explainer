@@ -89,7 +89,8 @@ test('pages get a strict CSP that hashes their inline script and style', async (
   const style = res.body.match(/<style>([\s\S]*?)<\/style>/)[1];
   const hash = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
   assert.match(csp, /default-src 'none'/);
-  assert.ok(csp.includes(`script-src ${hash(script)}`), csp);
+  assert.match(csp, /script-src 'sha256-/);
+  assert.ok(csp.includes(hash(script)), csp);
   assert.ok(csp.includes(hash(style)), csp);
   assert.doesNotMatch(csp.replace("style-src-attr 'unsafe-inline'", ''), /unsafe-inline|unsafe-eval/);
   assert.match(csp, /connect-src 'self'/);
@@ -130,6 +131,21 @@ const auth = () => ({ [TOKEN_HEADER]: served.token });
 const upload = (body, query = '', headers = {}) => send({
   method: 'POST', path: `/api/import${query}`, body,
   headers: { origin: origin(), 'content-type': 'application/json', ...auth(), ...headers },
+});
+
+test('every inline script and style block in a served page is covered by the CSP', async () => {
+  const hash = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
+  for (const path of ['/index.html', '/kit.html', '/explainers/acme-taskflow/index.html']) {
+    const res = await send({ path });
+    const csp = res.headers['content-security-policy'];
+    const scripts = [...res.body.matchAll(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
+    const styles = [...res.body.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+    assert.ok(scripts.length >= 2, path);
+    [...scripts, ...styles].forEach((block) => assert.ok(csp.includes(hash(block)), `${path}: a block is not hashed`));
+  }
+  const { pageCsp } = await import('../scripts/lib/serve.mjs');
+  const csp = pageCsp('<script data-prepaint>a()</script><script>b()</script><style media="x">p{}</style>');
+  [hash('a()'), hash('b()'), hash('p{}')].forEach((h) => assert.ok(csp.includes(h), h));
 });
 
 test('GET /api/export needs the token and returns a data-only bundle', async () => {

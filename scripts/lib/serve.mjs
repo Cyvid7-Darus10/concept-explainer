@@ -73,13 +73,15 @@ function resolveFile(root, pathname) {
 const NON_PAGE_CSP = "default-src 'none'; frame-ancestors 'none'";
 const hashOf = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
 
-// A CSP for one built page: its own inline <script> and <style> blocks by
+// A CSP for one built page: every inline <script> and <style> block by
 // hash, Google Fonts, and fetches back to this server. Style attributes set
 // by the page's own code (CSS variables, positions) cannot be hashed, so
 // style-src-attr allows them; that permits no style elements and no script.
 export function pageCsp(html) {
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => hashOf(m[1]));
-  const styles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => hashOf(m[1]));
+  // Every inline block, whatever its attributes (the pre-paint theme script
+  // has one). JSON data blocks are hashed too; that is harmless.
+  const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map((m) => hashOf(m[1]));
+  const styles = [...html.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)].map((m) => hashOf(m[1]));
   return [
     "default-src 'none'",
     `script-src ${scripts.join(' ') || "'none'"}`,
