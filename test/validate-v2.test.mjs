@@ -261,3 +261,43 @@ test('--repo checks files only for types that cite code, and skips removed diff 
   assert.deepEqual(result.errors, []);
   assert.ok(result.warnings.some((w) => w.includes('--repo') && w.includes('concept')));
 });
+
+test('v2 analogies must say where they break, in a second sentence', () => {
+  const data = concept();
+  data.concepts[0].analogy = 'A token is like a coat check ticket.';
+  assert.ok(has(warningsOf(data), 'concepts[0].analogy', 'where it breaks'));
+  data.concepts[0].analogy = 'A token is like a coat check ticket: whoever holds it gets the coat. Unlike a ticket, a token can be copied.';
+  assert.ok(!has(warningsOf(data), 'concepts[0].analogy'));
+  const v1 = structuredClone(example);
+  v1.concepts[1].analogy = 'One sentence only.';
+  assert.ok(!has(warningsOf(v1), 'concepts[1].analogy'), 'v1 files keep their old rules');
+});
+
+test('v2 captions state the takeaway, not a label', () => {
+  const data = { ...concept(), diagrams: [diagram('cycle', { caption: 'Token lifecycle' })] };
+  assert.ok(has(warningsOf(data), 'diagrams[0].caption', 'takeaway'));
+  data.diagrams[0].caption = 'Each refresh issues a new token and kills the old one.';
+  assert.ok(!has(warningsOf(data), 'diagrams[0].caption'));
+});
+
+test('v2 quiz explanations also say why the tempting wrong answer is wrong', () => {
+  const data = concept();
+  data.quiz = [{ question: 'The refresh token expired. What happens?', options: ['Sign in again', 'Nothing'], answer: 0, explain: 'The session cannot renew.' }];
+  assert.ok(has(warningsOf(data), 'quiz[0].explain', 'tempting'));
+  data.quiz[0].explain = 'The session cannot renew. Nothing is wrong because the access token also expires soon.';
+  assert.ok(!has(warningsOf(data), 'quiz[0].explain'));
+});
+
+test('types that do not cite code are not asked for file citations', () => {
+  const data = proposal();
+  data.layers = [{ id: 'app', label: 'App', color: 'blue' }];
+  data.nodes = [{ id: 'queue', label: 'Queue', layer: 'app', kind: 'queue', status: 'added' }];
+  data.flows = [{ id: 'f', title: 'Send', steps: [{ from: 'queue', to: 'queue', label: 'Sends email', kind: 'internal' }] }];
+  const warnings = warningsOf(data);
+  assert.ok(!warnings.some((w) => w.includes('cites no files')), warnings.join(' | '));
+  assert.ok(!warnings.some((w) => w.includes('no file cited')), warnings.join(' | '));
+  assert.ok(warningsOf(pr()).length >= 0);
+  const prData = pr();
+  prData.nodes[0].files = [];
+  assert.ok(has(warningsOf(prData), 'nodes[0].files', 'cites no files'));
+});
