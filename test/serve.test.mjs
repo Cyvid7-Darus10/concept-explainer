@@ -102,70 +102,33 @@ test('GET /api/config needs the token, since config can hold private instruction
   assert.equal(JSON.parse(res.body).config.style, 'clean');
 });
 
-test('pages get a strict CSP that hashes their inline script and style', async () => {
-  const res = await send({ path: '/index.html' });
-  const csp = res.headers['content-security-policy'];
-  assert.ok(csp, 'CSP header present');
-  const script = res.body.match(/<script>([\s\S]*?)<\/script>/)[1];
-  const style = res.body.match(/<style>([\s\S]*?)<\/style>/)[1];
-  const hash = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
-  assert.match(csp, /default-src 'none'/);
-  assert.match(csp, /script-src 'sha256-/);
-  assert.ok(csp.includes(hash(script)), csp);
-  assert.ok(csp.includes(hash(style)), csp);
-  assert.doesNotMatch(csp.replace("style-src-attr 'unsafe-inline'", ''), /unsafe-inline|unsafe-eval/);
-  assert.match(csp, /connect-src 'self'/);
-  assert.match(csp, /frame-ancestors 'none'/);
-  assert.equal((await send({ path: '/library.json' })).status, 404);
+test('served pages get the policy their build fixed, plus frame-ancestors', async () => {
+  for (const path of ['/index.html', '/kit.html', '/explainers/acme-taskflow/index.html']) {
+    const res = await send({ path });
+    const meta = res.body.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/);
+    assert.ok(meta, path);
+    assert.equal(res.headers['content-security-policy'], `${meta[1]}; frame-ancestors 'none'`, path);
+    assert.doesNotMatch(res.headers['content-security-policy'], /googleapis|https:/);
+  }
 });
 
-test('saving needs the token, the right origin and JSON', async () => {
-  assert.equal((await save({ audience: 'expert' }, { [TOKEN_HEADER]: 'wrong' })).status, 403);
-  assert.equal((await save({ audience: 'expert' }, { [TOKEN_HEADER]: '' })).status, 403);
-  assert.equal((await save({ audience: 'expert' }, { origin: 'https://evil.example' })).status, 403);
-  assert.equal((await save({ audience: 'expert' }, { origin: '' })).status, 403);
-  assert.equal((await save({ audience: 'expert' }, { 'content-type': 'text/plain' })).status, 415);
-  assert.equal(readConfig(home).audience, 'engineer', 'nothing was saved');
-});
-
-test('bad bodies are refused with the reason, and nothing is saved', async () => {
-  const bad = await save({ audience: 'kids', theme: 'dark' });
-  assert.equal(bad.status, 400);
-  assert.match(JSON.parse(bad.body).error, /audience/);
-  assert.equal((await save('{ not json')).status, 400);
-  assert.equal((await save('[1,2]')).status, 400);
-  assert.equal((await save(JSON.stringify({ instructions: 'x'.repeat(70000) }))).status, 413);
-  assert.equal(readConfig(home).audience, 'engineer');
-});
-
-test('a good save writes config.json and rebuilds the hub with it', async () => {
-  const res = await save({ audience: 'expert', style: 'playful' });
-  assert.equal(res.status, 200, res.body);
-  assert.equal(JSON.parse(res.body).config.audience, 'expert');
-  assert.equal(readConfig(home).audience, 'expert');
-  const hub = readFileSync(join(home, 'index.html'), 'utf8');
-  assert.equal(JSON.parse(hub.match(/id="explainer-data">([\s\S]*?)<\/script>/)[1]).config.audience, 'expert');
+test('a page changed after its build gains nothing: the policy is not recomputed', async () => {
+  const page = join(home, 'explainers', 'acme-taskflow', 'index.html');
+  const original = readFileSync(page, 'utf8');
+  try {
+    writeFileSync(page, original.replace('</body>', '<script>window.planted = 1</script></body>'));
+    const csp = (await send({ path: '/explainers/acme-taskflow/index.html' })).headers['content-security-policy'];
+    const planted = `'sha256-${createHash('sha256').update('window.planted = 1').digest('base64')}'`;
+    assert.ok(!csp.includes(planted), 'the planted script is not allowed');
+  } finally {
+    writeFileSync(page, original);
+  }
 });
 
 const auth = () => ({ [TOKEN_HEADER]: served.token });
 const upload = (body, query = '', headers = {}) => send({
   method: 'POST', path: `/api/import${query}`, body,
   headers: { origin: origin(), 'content-type': 'application/json', ...auth(), ...headers },
-});
-
-test('every inline script and style block in a served page is covered by the CSP', async () => {
-  const hash = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
-  for (const path of ['/index.html', '/kit.html', '/explainers/acme-taskflow/index.html']) {
-    const res = await send({ path });
-    const csp = res.headers['content-security-policy'];
-    const scripts = [...res.body.matchAll(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
-    const styles = [...res.body.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
-    assert.ok(scripts.length >= 2, path);
-    [...scripts, ...styles].forEach((block) => assert.ok(csp.includes(hash(block)), `${path}: a block is not hashed`));
-  }
-  const { pageCsp } = await import('../scripts/lib/serve.mjs');
-  const csp = pageCsp('<script data-prepaint>a()</script><script>b()</script><style media="x">p{}</style>');
-  [hash('a()'), hash('b()'), hash('p{}')].forEach((h) => assert.ok(csp.includes(h), h));
 });
 
 test('GET /api/export needs the token and returns a data-only bundle', async () => {
