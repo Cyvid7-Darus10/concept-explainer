@@ -25,9 +25,13 @@ function appendChildren(el, children) {
 }
 
 // replaceChildren() would stringify skipped (undefined/false) slots.
+// A re-render drops the old nodes: forget the truncation watchers among them
+// (after appending, so nodes moved back in stay watched).
 function fill(el, ...children) {
   el.replaceChildren();
-  return appendChildren(el, children);
+  appendChildren(el, children);
+  if (TRUNC.watched.size) pruneTruncation();
+  return el;
 }
 
 function h(tag, attrs, ...children) {
@@ -458,7 +462,8 @@ function middleForms(full) {
   return cuts;
 }
 
-const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, nestedWatch: null };
+const TRUNC_SWEEP_EVERY = 200;
+const TRUNC = { watched: new Set(), observer: null, tip: null, anchor: null, pinned: false, nestedWatch: null, nextSweep: TRUNC_SWEEP_EVERY };
 
 function truncTip() {
   if (TRUNC.tip) return TRUNC.tip;
@@ -582,9 +587,28 @@ function textFits(el, span) {
   return span.getBoundingClientRect().width <= room + 0.05;
 }
 
+// Stop watching an element that left the page (a re-render replaced it), so
+// the observer and the set do not keep old views alive.
+function forgetTruncation(el) {
+  TRUNC.watched.delete(el);
+  if (TRUNC.observer) TRUNC.observer.unobserve(el);
+}
+
+// Elements are made before they are attached: only one that has been on the
+// page (state.seen) and is gone now is dropped.
+function pruneTruncation() {
+  TRUNC.watched.forEach((el) => { if (el.__trunc && el.__trunc.seen && !el.isConnected) forgetTruncation(el); });
+}
+
 function checkTruncation(el) {
   const state = el.__trunc;
-  if (!state || !el.isConnected || !el.getClientRects().length) return;
+  if (!state) return;
+  if (!el.isConnected) {
+    if (state.seen) forgetTruncation(el);
+    return;
+  }
+  state.seen = true;
+  if (!el.getClientRects().length) return;
   el.classList.remove('is-truncated');
   if (state.hint) state.hint.remove();
   if (state.mode === 'middle') state.visible.textContent = state.full;
@@ -627,6 +651,11 @@ function truncatable(el, full, { mode = 'end' } = {}) {
       document.fonts.addEventListener('loadingdone', recheckTruncation);
     }
   }
+  // Sweep now and then, so long sessions of re-renders stay flat.
+  if (TRUNC.watched.size >= TRUNC.nextSweep) {
+    pruneTruncation();
+    TRUNC.nextSweep = TRUNC.watched.size + TRUNC_SWEEP_EVERY;
+  }
   TRUNC.watched.add(el);
   if (TRUNC.observer) TRUNC.observer.observe(el);
   return el;
@@ -635,8 +664,8 @@ function truncatable(el, full, { mode = 'end' } = {}) {
 // Re-check every watched element, for example after a style switch.
 function recheckTruncation() {
   TRUNC.watched.forEach((el) => {
-    if (!el.isConnected) TRUNC.watched.delete(el);
-    else checkTruncation(el);
+    if (el.isConnected) checkTruncation(el);
+    else if (el.__trunc && el.__trunc.seen) forgetTruncation(el);
   });
 }
 
