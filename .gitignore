@@ -3,7 +3,7 @@ node_modules/
 *.log
 /explainer.json
 /gallery.html
-/repo-explainer-assets/
+/concept-explainer-assets/
 /.playwright-mcp/
 coverage/
 !test/fixtures/**/node_modules/

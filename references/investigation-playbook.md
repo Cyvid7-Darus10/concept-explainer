@@ -1,5 +1,7 @@
 # Investigation playbook
 
+This playbook covers the `repo` type, and the code-tracing steps also apply to `pr` and `change`. Pick the type first with [types.md](types.md), and read [explaining.md](explaining.md) before you write concepts, visuals or quizzes.
+
 Goal: a reader who finishes the explainer can answer "where would I change X?" for the repo's core behaviour. Get there by tracing real calls, not by summarising folder names.
 
 ## 1. Orient (10 minutes)
@@ -12,7 +14,7 @@ Goal: a reader who finishes the explainer can answer "where would I change X?" f
 ## 2. Draw the map first
 
 - **Nodes are runtime responsibilities, not folders.** "Auth middleware", not `src/middleware/`.
-- **Aim for 6–14 nodes.** If you have more, group them; if fewer, you are probably hiding the interesting part.
+- **Aim for 6 to 14 nodes.** If you have more, group them; if fewer, you are probably hiding the interesting part.
 - **Edges are calls, reads/writes, or messages,** and each gets a label naming the call ("createTask()", "enqueue", "webhook").
 - **Put external services in their own layer** so readers see where the system boundary is.
 
@@ -47,6 +49,8 @@ Include the **error path** once per flow (validation failure, auth failure, retr
 Look in commit messages, PR descriptions, ADRs, and comments near unusual code, especially comments containing `because`, `workaround` or `NOTE`. Put a reason in `step.why` only when you found it or it follows directly from the code (e.g. "verifies the signature so events can't be forged"). Don't speculate.
 
 ## 5. Changes chapter
+
+For a `pr` or `change`, also run `concept-explainer diff` to draft the diff chapter (see [types.md](types.md)).
 
 1. Run `concept-explainer changes <repo> --data <file> --write`. Narrow the window with `--since` if the repo is busy; 20 merges a day means 2–3 days is plenty.
 2. For each entry, open the PR or commit and write `why` in one or two sentences. Add `risk` when the change touches money, auth, data deletion, or concurrency.
