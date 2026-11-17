@@ -129,6 +129,7 @@ function renderMap(data, mount) {
     h('div', { class: 'map-legend' },
       h('span', null, h('i'), 'Calls / reads'),
       h('span', null, h('i', { class: 'dash' }), 'Async / events'),
+      chStatusLegend(nodes),
       changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently')),
   );
   // As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto
@@ -158,9 +159,10 @@ function mapColumn(layer, nodes, changedIds, onSelect) {
   return h('div', { class: 'map-col', style: layerStyle(layer.color) },
     h('div', { class: 'map-col-head' }, truncatable(h('span', { class: 'map-col-name' }, softBreaks(layer.label)), layer.label)),
     layerNodes.map((node) => h('button', {
-      class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),
+      class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id), ...chNodeStatusAttrs(node),
     },
     changedIds.has(node.id) && h('span', { class: 'node-badge tag tag-new' }, 'New'),
+    chNodeStatus(node),
     h('span', { class: 'node-icon' }, icon(node.kind)),
     h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, softBreaks(node.label)), node.tech && truncatable(h('span', { class: 'node-tech' }, softBreaks(node.tech)), node.tech)))));
 }

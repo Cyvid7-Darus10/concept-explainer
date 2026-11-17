@@ -22,6 +22,7 @@ function renderConcepts(data, mount) {
       h('h3', null, softBreaks(concept.title)),
       h('p', { class: 'concept-body' }, softBreaks(concept.body)),
       concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, softBreaks(concept.analogy))),
+      chConceptExtras(concept),
       concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),
       controls,

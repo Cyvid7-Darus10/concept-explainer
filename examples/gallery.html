@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-tcN5k+eH09gmtbxV/dPfQ1VObS+VlmUVs8BPhpMUS1o='; style-src 'sha256-hD4UDOg23wbwwqwVqUwYMTtvarPbpcNj0vflwpW5H40=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dKjw8Ipz4S+3N83N+DF2ziKeIO5H2TlLiexgFUy9dMU=' 'sha256-5Z/7iSVjT3MO5LBMmqvq49R7XjYqtwdFXVDx2rAQghc='; style-src 'sha256-WmWloAJTFxdXUsuVxOCR6EjiZUV4Xr23yMhcrB8MVEA=' 'sha256-LmLhSVOBWPiGLyfBcRy+1sjddzJmItnOxbanLIYUh8Q='; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="generator" content="concept-explainer">
 <meta name="color-scheme" content="light dark">
@@ -230,8 +230,6 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 }
 /* Chrome still breaks at <wbr> under nowrap; single-line holders drop the break points. */
 :is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) wbr { display: none; }
-/* Narrow boxes hyphenate a long word instead of breaking off its last letter. */
-.node-label, .entity-name, .flow-pick-title, .card-title, .next-title { hyphens: auto; -webkit-hyphens: auto; }
 
 /* ---- shell.css ---- */
 /* Shell: sidebar, phone bar and Menu sheet, theme and style switches. */
@@ -1233,7 +1231,7 @@ textarea.field { width: 100%; min-height: 120px; padding: 10px 12px; line-height
 }
 .ch-code-panel { padding-block: 10px; overflow: hidden; background: var(--code-bg); box-shadow: var(--ring); }
 .ch-code { font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--code-ink); tab-size: 2; }
-.ch-code-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.ch-code-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: start; transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease); }
 .ch-code-num {
   display: block; padding: 0 12px 0 0; border: 0; background: none; font: inherit; font-size: 12px; line-height: inherit;
   color: var(--code-cm); text-align: end; user-select: none; font-variant-numeric: tabular-nums;
@@ -2685,6 +2683,7 @@ function renderMap(data, mount) {
     h('div', { class: 'map-legend' },
       h('span', null, h('i'), 'Calls / reads'),
       h('span', null, h('i', { class: 'dash' }), 'Async / events'),
+      chStatusLegend(nodes),
       changedIds.size > 0 && h('span', null, h('span', { class: 'tag tag-new' }, 'New'), 'Changed recently')),
   );
   // As many layer columns as fit at MAP_MIN_COL each; the rest wrap onto
@@ -2714,9 +2713,10 @@ function mapColumn(layer, nodes, changedIds, onSelect) {
   return h('div', { class: 'map-col', style: layerStyle(layer.color) },
     h('div', { class: 'map-col-head' }, truncatable(h('span', { class: 'map-col-name' }, softBreaks(layer.label)), layer.label)),
     layerNodes.map((node) => h('button', {
-      class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),
+      class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id), ...chNodeStatusAttrs(node),
     },
     changedIds.has(node.id) && h('span', { class: 'node-badge tag tag-new' }, 'New'),
+    chNodeStatus(node),
     h('span', { class: 'node-icon' }, icon(node.kind)),
     h('span', { class: 'node-text' }, h('span', { class: 'node-label' }, softBreaks(node.label)), node.tech && truncatable(h('span', { class: 'node-tech' }, softBreaks(node.tech)), node.tech)))));
 }
@@ -3018,7 +3018,9 @@ function renderFlows(data, mount) {
     h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title))))));
     fill(meta,
       flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
-      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)));
+      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)),
+      chPairSwitch(chFlowPair(flows, flow), flow.id, (id) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: 0, finished: false })),
+      chPairCompare(chFlowPair(flows, flow), nodeIndex, (id, n) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: n - 1, finished: false })));
     const diagram = sequenceDiagram(flow, nodeIndex, state.finished ? list(flow.steps).length : state.stepIndex, go, bodyWrap.clientWidth);
     fill(headsWrap, diagram.heads);
     fill(bodyWrap, diagram.body);
@@ -3346,6 +3348,7 @@ function renderConcepts(data, mount) {
       h('h3', null, softBreaks(concept.title)),
       h('p', { class: 'concept-body' }, softBreaks(concept.body)),
       concept.analogy && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Think of it like'), h('p', null, softBreaks(concept.analogy))),
+      chConceptExtras(concept),
       concept.file && h('div', { class: 'code-head' }, fileChip(concept.file)),
       concept.code && codeBlock(concept.code, concept.lang),
       controls,
@@ -3601,6 +3604,1856 @@ function renderQuiz(data, mount) {
       return null;
     },
   };
+}
+
+// ---- chapters/kit.js ----
+// Shared pieces for the v2 chapters (context, diff, options, risks, rollout,
+// timeline, visuals) and the visuals kit. Every module shares one function
+// scope, so names here start with ch (chapters) or viz (visuals).
+// Status is ink text plus a small marker, never a saturated chip; orange
+// (Playful: blue) only marks where the reader is.
+
+const CH_STATUS_LABELS = {
+  added: 'Added', modified: 'Modified', changed: 'Changed', removed: 'Removed', renamed: 'Renamed', unchanged: 'Unchanged',
+};
+// One glyph per status, so the marker reads without colour.
+const CH_STATUS_GLYPHS = { added: '+', modified: '~', changed: '~', removed: '−', renamed: '→', unchanged: '' };
+
+/** A small status marker (aria-hidden): the glyph in a hairline square. */
+function chStatusMark(status) {
+  const key = CH_STATUS_LABELS[status] ? status : 'unchanged';
+  return h('span', { class: `ch-mark is-${key}`, 'aria-hidden': 'true' }, CH_STATUS_GLYPHS[key]);
+}
+
+/** Status as ink text with its small marker. */
+function chStatusTag(status) {
+  const key = CH_STATUS_LABELS[status] ? status : 'unchanged';
+  return h('span', { class: `ch-status is-${key}` }, chStatusMark(key), CH_STATUS_LABELS[key]);
+}
+
+/** A 0-based index from a deep-link part, or null when it is not a valid one. */
+function chIndexPart(raw, count) {
+  if (raw === undefined || raw === null || !/^\d+$/.test(String(raw))) return null;
+  const n = Number.parseInt(raw, 10);
+  return n >= 0 && n < count ? n : null;
+}
+
+/**
+ * Roving tabindex over a list of buttons: one tab stop, arrows and Home/End
+ * move focus and call onMove(index). `axis` is "x", "y" or "both".
+ */
+function chRoving(buttons, { onMove, axis = 'both' } = {}) {
+  const keys = {
+    x: { ArrowRight: 1, ArrowLeft: -1 },
+    y: { ArrowDown: 1, ArrowUp: -1 },
+    both: { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 },
+  }[axis] || {};
+  buttons.forEach((button, index) => {
+    button.tabIndex = index === 0 ? 0 : -1;
+    button.addEventListener('keydown', (event) => {
+      let next = null;
+      if (keys[event.key]) next = (index + keys[event.key] + buttons.length) % buttons.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = buttons.length - 1;
+      if (next === null) return;
+      event.preventDefault();
+      buttons[next].focus();
+      if (onMove) onMove(next);
+    });
+  });
+  return buttons;
+}
+
+/** Mark one button current: its tab stop, aria-pressed and the is-selected class. */
+function chMarkCurrent(buttons, index) {
+  buttons.forEach((button, i) => {
+    const on = i === index;
+    button.classList.toggle('is-selected', on);
+    button.setAttribute('aria-pressed', String(on));
+    button.tabIndex = on || (index === null && i === 0) ? 0 : -1;
+  });
+}
+
+/** The tip shown in a detail panel before anything is picked. */
+function chEmptyDetail(title, body) {
+  return h('div', { class: 'ch-detail-empty' },
+    h('p', { class: 'eyebrow quiet' }, 'Tip'),
+    h('h3', null, title),
+    h('p', null, body));
+}
+
+/** Back and Next buttons for stepping through parts in a detail panel. */
+function chStepper(index, count, go, noun = 'part') {
+  return h('div', { class: 'ch-stepper' },
+    h('button', { class: 'btn small', type: 'button', disabled: index <= 0, onclick: () => { if (index > 0) go(index - 1); } }, 'Back'),
+    h('span', { class: 'ch-stepper-count' }, `${index + 1} / ${count}`),
+    h('button', { class: 'btn small', type: 'button', disabled: index >= count - 1, onclick: () => { if (index < count - 1) go(index + 1); } }, `Next ${noun}`));
+}
+
+/** A command with a Copy button (plain text, never run). */
+function chCommand(command) {
+  const copy = h('button', { class: 'btn small', type: 'button' }, 'Copy');
+  copy.addEventListener('click', () => {
+    const done = () => { copy.textContent = 'Copied'; copy.dataset.state = 'done'; };
+    try {
+      navigator.clipboard.writeText(command).then(done).catch(() => { copy.textContent = 'Select to copy'; });
+    } catch (error) {
+      copy.textContent = 'Select to copy';
+    }
+  });
+  return h('div', { class: 'ch-command' }, codeBlock(command, 'sh'), copy);
+}
+
+/** A list of short texts with one marker each (goals, pros, cons). */
+function chMarkedList(items, markClass, label) {
+  const entries = list(items).filter((item) => typeof item === 'string' && item.trim());
+  if (!entries.length) return null;
+  return h('ul', { class: 'ch-marked', 'aria-label': label },
+    entries.map((item) => h('li', null, h('span', { class: `ch-dot ${markClass}`, 'aria-hidden': 'true' }), h('span', null, softBreaks(item)))));
+}
+
+/** Count with a singular or plural noun. */
+function chCount(n, one, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/** Re-run fn when the element's width changes by more than a few pixels. */
+function chOnWidth(el, fn) {
+  let last = -1;
+  if (!('ResizeObserver' in window)) return;
+  new ResizeObserver(() => {
+    const width = el.clientWidth;
+    if (Math.abs(width - last) < 4) return;
+    last = width;
+    fn(width);
+  }).observe(el);
+}
+
+// ---- chapters/viz-core.js ----
+// The visuals kit: nine fixed kinds drawn as SVG from data (no SVG or
+// images in the data). vizMount() draws one visual, makes every part
+// selectable with a detail panel, and keeps one tab stop (arrows move).
+// Each kind lives in viz-*.js as vizDraw<Kind>(visual, width), returning
+// { nodes, height, parts, highlight? }. Parts are 0 based, in the order of
+// the Parts column in references/visuals.md.
+
+const VIZ_FONT = 13;
+// Average glyph width per font size, a little wide so Nunito fits too.
+const VIZ_CHAR = 0.6;
+const VIZ_LINE = 17;
+const VIZ_MIN_WIDTH = 260;
+const VIZ_STAGGER = 40;
+const VIZ_KIND_NAMES = {
+  layers: 'Layers', cycle: 'Cycle', state: 'States', compare: 'Comparison', hierarchy: 'Hierarchy',
+  beforeAfter: 'Before and after', quadrant: 'Quadrant', funnel: 'Funnel', venn: 'Overlap',
+};
+const VIZ = { uid: 0 };
+
+function vizDrawer(kind) {
+  const drawers = {
+    layers: vizDrawLayers, cycle: vizDrawCycle, funnel: vizDrawFunnel, state: vizDrawState, hierarchy: vizDrawHierarchy,
+    compare: vizDrawCompare, beforeAfter: vizDrawBeforeAfter, quadrant: vizDrawQuadrant, venn: vizDrawVenn,
+  };
+  return Object.prototype.hasOwnProperty.call(drawers, kind) ? drawers[kind] : null;
+}
+
+function vizUid(prefix) {
+  VIZ.uid += 1;
+  return `${prefix}-${VIZ.uid}`;
+}
+
+/** How many characters of text at `size` px fit in `width` px. */
+function vizChars(width, size = VIZ_FONT) {
+  return Math.max(3, Math.floor(width / (size * VIZ_CHAR)));
+}
+
+/** Text width estimate in px. */
+function vizTextWidth(value, size = VIZ_FONT) {
+  return String(value).length * size * VIZ_CHAR;
+}
+
+/**
+ * Wrap text into at most maxLines lines of maxChars. Words longer than a
+ * line are split; the last line ends in an ellipsis when text is left over.
+ */
+function vizWrap(value, maxChars, maxLines = 3) {
+  const room = Math.max(3, maxChars);
+  const words = String(value ?? '').trim().split(/\s+/).filter(Boolean)
+    .flatMap((word) => (word.length <= room ? [word] : word.match(new RegExp(`.{1,${room - 1}}`, 'g')).map((piece, i, all) => (i < all.length - 1 ? `${piece}-` : piece))));
+  const lines = [];
+  let current = '';
+  let rest = false;
+  words.forEach((word) => {
+    if (rest) return;
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= room) { current = next; return; }
+    if (lines.length === maxLines - 1) { rest = true; return; }
+    lines.push(current);
+    current = word;
+  });
+  if (current) lines.push(current);
+  if (rest || lines.length > maxLines) {
+    const last = lines.slice(0, maxLines);
+    const tail = last[last.length - 1];
+    last[last.length - 1] = `${tail.length >= room ? tail.slice(0, room - 1) : tail}…`;
+    return last;
+  }
+  return lines.length ? lines : [''];
+}
+
+/** An SVG text block, one tspan per line, centred on y when `middle`. */
+function vizText(lines, { x, y, cls = 'viz-label', anchor = 'start', lineHeight = VIZ_LINE, middle = true }) {
+  const top = middle ? y - ((lines.length - 1) * lineHeight) / 2 : y;
+  return s('text', { class: cls, x, y: top, 'text-anchor': anchor, 'dominant-baseline': 'central' },
+    lines.map((line, i) => s('tspan', { x, dy: i === 0 ? 0 : lineHeight }, line)));
+}
+
+/** Arrowhead markers for one SVG (ids are unique per drawing). */
+function vizMarkers(id) {
+  const marker = (suffix, cls) => s('marker', {
+    id: `${id}-${suffix}`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 8, markerHeight: 8, markerUnits: 'userSpaceOnUse', orient: 'auto-start-reverse',
+  }, s('path', { class: `viz-tip ${cls}`, d: 'M0,1 L9,5 L0,9 z' }));
+  return s('defs', null, marker('rest', 'is-rest'), marker('on', 'is-on'));
+}
+
+/** A part: a group with a hit area. The framework adds role, focus and clicks. */
+function vizPart(children, info) {
+  return { el: s('g', { class: 'viz-part' }, children), ...info };
+}
+
+function vizRoundRect(x, y, width, height, cls = 'viz-box') {
+  return s('rect', { class: cls, x: x + 0.5, y: y + 0.5, width: Math.max(0, width - 1), height: Math.max(0, height - 1) });
+}
+
+function vizFacts(facts) {
+  const rows = list(facts).filter((row) => row && row[1] !== undefined && row[1] !== null && row[1] !== '');
+  if (!rows.length) return null;
+  return h('dl', { class: 'viz-facts' }, rows.map(([label, value]) => h('div', null,
+    h('dt', null, label), h('dd', null, value instanceof Node || Array.isArray(value) ? value : softBreaks(String(value))))));
+}
+
+/**
+ * Draw one visual with its detail panel.
+ * @param {object} visual { kind, ...shape } (title and caption are shown by the caller)
+ * @param {{ label?: string, onSelect?: (index: number|null) => void, compact?: boolean }} [options]
+ * @returns {{ root: HTMLElement, select: (index: number|null, opts?: object) => HTMLElement|null, count: () => number, selected: () => number|null }}
+ */
+function vizMount(visual, { label = '', onSelect = null, compact = false } = {}) {
+  const drawer = vizDrawer(visual && visual.kind);
+  const stage = h('div', { class: 'viz-stage' });
+  const detail = h('div', { class: 'viz-detail', 'aria-live': 'polite' });
+  const root = h('div', { class: `viz viz-${drawer ? visual.kind : 'unknown'}${compact ? ' is-compact' : ''}` }, stage, detail);
+  const id = vizUid('viz');
+  let drawing = null;
+  let svg = null;
+  let selected = null;
+  let drawn = false;
+
+  if (!drawer) {
+    fill(stage, h('p', { class: 'empty' }, `This visual kind (${text(visual && visual.kind, 'none')}) is not in the kit.`));
+    return { root, select: () => null, count: () => 0, selected: () => null };
+  }
+
+  function paint() {
+    if (!drawing) return;
+    drawing.parts.forEach((part, i) => {
+      const on = i === selected;
+      part.el.classList.toggle('is-selected', on);
+      part.el.setAttribute('aria-selected', String(on));
+      part.el.setAttribute('tabindex', on || (selected === null && i === 0) ? '0' : '-1');
+    });
+    svg.classList.toggle('has-selection', selected !== null);
+    if (drawing.highlight) drawing.highlight(selected);
+  }
+
+  function renderDetail() {
+    if (selected === null || !drawing) {
+      fill(detail, chEmptyDetail('Pick any part of the drawing', 'Click a part, or Tab to the drawing and use the arrow keys. Each part shows what it does here.'));
+      return;
+    }
+    const part = drawing.parts[selected];
+    fill(detail,
+      h('p', { class: 'eyebrow quiet' }, part.kicker || `Part ${selected + 1} of ${drawing.parts.length}`),
+      h('h3', null, softBreaks(part.label)),
+      part.detail && h('p', { class: 'viz-detail-text' }, softBreaks(part.detail)),
+      vizFacts(part.facts),
+      drawing.parts.length > 1 && chStepper(selected, drawing.parts.length, (i) => select(i, { focus: false })));
+  }
+
+  function draw(width, { measured = true } = {}) {
+    const focusedIndex = drawing ? drawing.parts.findIndex((p) => p.el === document.activeElement) : -1;
+    const room = Math.max(VIZ_MIN_WIDTH, Math.floor(width));
+    drawing = drawer(visual, room, `${id}-m`);
+    svg = s('svg', {
+      class: 'viz-svg', width: room, height: Math.ceil(drawing.height), viewBox: `0 0 ${room} ${Math.ceil(drawing.height)}`,
+      role: 'listbox', 'aria-label': text(label, VIZ_KIND_NAMES[visual.kind]), 'aria-orientation': 'vertical',
+    }, vizMarkers(`${id}-m`), drawing.nodes, drawing.parts.map((p) => p.el));
+    drawing.parts.forEach((part, i) => {
+      part.el.setAttribute('role', 'option');
+      part.el.setAttribute('aria-label', part.aria || [part.label, part.detail].filter(Boolean).join('. '));
+      part.el.dataset.part = String(i);
+      part.el.prepend(s('title', null, part.label));
+      part.el.addEventListener('click', () => select(selected === i ? null : i, { focus: false }));
+    });
+    fill(stage, svg, drawing.legend || null);
+    paint();
+    if (focusedIndex >= 0 && drawing.parts[focusedIndex]) drawing.parts[focusedIndex].el.focus({ preventScroll: true });
+    // One-shot entrance, the first time the drawing is really on screen.
+    if (!drawn && measured && stage.isConnected) {
+      drawn = true;
+      drawing.parts.forEach((part, i) => motion(part.el, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: Math.min(i, 8) * VIZ_STAGGER, fill: 'backwards' }));
+    }
+  }
+
+  function select(index, { focus = false, silent = false } = {}) {
+    const count = drawing ? drawing.parts.length : 0;
+    const next = index === null || index === undefined ? null : Math.min(Math.max(index, 0), count - 1);
+    selected = count ? next : null;
+    paint();
+    renderDetail();
+    const el = selected !== null && drawing ? drawing.parts[selected].el : null;
+    if (focus && el) el.focus({ preventScroll: true });
+    if (!silent && onSelect) onSelect(selected);
+    return el;
+  }
+
+  stage.addEventListener('keydown', (event) => {
+    const host = event.target.closest && event.target.closest('[data-part]');
+    if (!host || !drawing) return;
+    const index = Number(host.dataset.part);
+    const count = drawing.parts.length;
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    let next = null;
+    if (step) next = (index + step + count) % count;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = count - 1;
+    if (event.key === 'Enter' || event.key === ' ') next = index;
+    if (event.key === 'Escape' && selected !== null) {
+      event.preventDefault();
+      select(null);
+      host.focus();
+      return;
+    }
+    if (next === null) return;
+    event.preventDefault();
+    select(next, { focus: true });
+  });
+
+  // Drawn at the width it gets, and again when that width changes.
+  draw(640, { measured: false });
+  renderDetail();
+  chOnWidth(stage, (width) => { if (width > 0) draw(width); });
+  return { root, select, count: () => (drawing ? drawing.parts.length : 0), selected: () => selected };
+}
+
+/** A visual with its title and caption (the takeaway) above the drawing. */
+function vizFigure(visual, { title, caption, onSelect, headingLevel = 'h3', compact = false } = {}) {
+  const heading = text(title || visual.title);
+  const takeaway = text(caption || visual.caption);
+  const mounted = vizMount(visual, { label: heading || takeaway, onSelect, compact });
+  const figure = h('figure', { class: `viz-figure${compact ? ' is-compact' : ''}` },
+    (heading || takeaway) && h('figcaption', { class: 'viz-cap' },
+      h('span', { class: 'eyebrow quiet' }, VIZ_KIND_NAMES[visual.kind] || 'Visual'),
+      heading && h(headingLevel, { class: 'viz-title' }, softBreaks(heading)),
+      takeaway && h('p', { class: 'viz-caption' }, softBreaks(takeaway))),
+    mounted.root);
+  return { ...mounted, root: figure };
+}
+
+// ---- chapters/viz-linear.js ----
+// Visual kinds in one line of parts: layers (a stack), cycle (a loop) and
+// funnel (narrowing stages). See viz-core.js for the drawer contract.
+
+const VIZ_LAYER = { index: 30, gap: 18, pad: 14 };
+
+function vizItemLabel(item) {
+  return typeof item === 'string' ? item : text(item && item.label);
+}
+
+function vizItemDetail(item) {
+  return item && typeof item === 'object' ? text(item.detail) : '';
+}
+
+// A short downward connector with an arrowhead, from (x, y1) to (x, y2).
+function vizArrow(x1, y1, x2, y2, marker, cls = 'viz-link') {
+  return s('path', { class: cls, d: `M${x1},${y1} L${x2},${y2}`, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker });
+}
+
+// Swap a link's arrowhead between rest and on, to follow its class.
+function vizLinkOn(path, on) {
+  path.classList.toggle('is-on', on);
+  const marker = path.dataset.marker;
+  if (marker) path.setAttribute('marker-end', `url(#${marker}-${on ? 'on' : 'rest'})`);
+}
+
+/** layers: a stack, top to bottom. Each layer uses the one below it. */
+function vizDrawLayers(visual, width, marker) {
+  const items = list(visual.items);
+  const boxX = VIZ_LAYER.index;
+  // A stack reads as a stack, not as full-width rows.
+  const boxW = Math.min(width - boxX - 1, 560);
+  const chars = vizChars(boxW - VIZ_LAYER.pad * 2);
+  let y = 1;
+  const nodes = [];
+  const links = [];
+  const parts = items.map((item, i) => {
+    const lines = vizWrap(vizItemLabel(item), chars, 2);
+    const boxH = Math.max(44, lines.length * VIZ_LINE + 22);
+    const top = y;
+    y += boxH;
+    if (i < items.length - 1) {
+      const link = vizArrow(boxX + boxW / 2, y + 2, boxX + boxW / 2, y + VIZ_LAYER.gap - 3, marker);
+      links.push(link);
+      nodes.push(link);
+      y += VIZ_LAYER.gap;
+    }
+    const below = items[i + 1];
+    const above = items[i - 1];
+    return vizPart([
+      vizRoundRect(boxX, top, boxW, boxH),
+      s('text', { class: 'viz-index', x: 0, y: top + boxH / 2, 'dominant-baseline': 'central' }, String(i + 1).padStart(2, '0')),
+      vizText(lines, { x: boxX + VIZ_LAYER.pad, y: top + boxH / 2 }),
+    ], {
+      label: vizItemLabel(item),
+      detail: vizItemDetail(item),
+      kicker: `Layer ${i + 1} of ${items.length}${i === 0 ? ', the top' : i === items.length - 1 ? ', the bottom' : ''}`,
+      facts: [['Uses', below && vizItemLabel(below)], ['Used by', above && vizItemLabel(above)]],
+    });
+  });
+  return {
+    nodes, parts, height: y + 1,
+    highlight(index) {
+      parts.forEach((part, i) => part.el.classList.toggle('is-related', index !== null && i === index + 1));
+      links.forEach((link, i) => vizLinkOn(link, index === i));
+    },
+  };
+}
+
+const VIZ_CYCLE = { boxH: 48, pad: 10, wideAt: 480, gutter: 36 };
+
+// The first point along the circle (from the node outward) outside its box.
+function vizCycleExit(cx, cy, r, angle, dir, half) {
+  for (let t = 0; t < Math.PI; t += 0.01) {
+    const a = angle + dir * t;
+    const x = cx + r * Math.cos(a);
+    const y = cy + r * Math.sin(a);
+    const nodeX = cx + r * Math.cos(angle);
+    const nodeY = cy + r * Math.sin(angle);
+    if (Math.abs(x - nodeX) > half.w + 6 || Math.abs(y - nodeY) > half.h + 6) return a;
+  }
+  return angle + dir * 0.3;
+}
+
+/** cycle: a loop. Wide: nodes on a circle; narrow: a column with a return line. */
+function vizDrawCycle(visual, width, marker) {
+  const items = list(visual.items);
+  const n = Math.max(items.length, 1);
+  const wide = width >= VIZ_CYCLE.wideAt;
+  const nodes = [];
+  const links = [];
+  const boxes = [];
+  let height;
+  if (wide) {
+    const boxW = Math.min(160, Math.round(width * 0.28));
+    const r = Math.min(width / 2 - boxW / 2 - 8, 60 + n * 22);
+    const cx = width / 2;
+    const cy = r + VIZ_CYCLE.boxH / 2 + VIZ_CYCLE.pad;
+    const angleOf = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const half = { w: boxW / 2, h: VIZ_CYCLE.boxH / 2 };
+    items.forEach((_, i) => {
+      const a1 = vizCycleExit(cx, cy, r, angleOf(i), 1, half);
+      const a2 = vizCycleExit(cx, cy, r, angleOf(i + 1), -1, half);
+      const p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+      const p2 = [cx + r * Math.cos(a2), cy + r * Math.sin(a2)];
+      const link = s('path', { class: 'viz-link', d: `M${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker });
+      links.push(link);
+      nodes.push(link);
+      boxes.push({ x: cx + r * Math.cos(angleOf(i)) - boxW / 2, y: cy + r * Math.sin(angleOf(i)) - VIZ_CYCLE.boxH / 2, w: boxW, h: VIZ_CYCLE.boxH });
+    });
+    height = cy * 2;
+  } else {
+    const boxW = width - VIZ_CYCLE.gutter;
+    let y = 1;
+    items.forEach((_, i) => {
+      boxes.push({ x: 0, y, w: boxW, h: VIZ_CYCLE.boxH });
+      y += VIZ_CYCLE.boxH;
+      if (i < items.length - 1) {
+        const link = vizArrow(boxW / 2, y + 2, boxW / 2, y + 15, marker);
+        links.push(link);
+        nodes.push(link);
+        y += 18;
+      }
+    });
+    // The loop closes on the right: from the last box back up to the first.
+    const first = boxes[0];
+    const last = boxes[boxes.length - 1];
+    const lane = boxW + VIZ_CYCLE.gutter / 2;
+    const back = s('path', {
+      class: 'viz-link', 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker,
+      d: `M${boxW + 2},${last.y + last.h / 2} H${lane - 6} Q${lane},${last.y + last.h / 2} ${lane},${last.y + last.h / 2 - 6} V${first.y + first.h / 2 + 6} Q${lane},${first.y + first.h / 2} ${lane - 6},${first.y + first.h / 2} H${boxW + 5}`,
+    });
+    links.push(back);
+    nodes.push(back);
+    height = y + 2;
+  }
+  const parts = items.map((item, i) => {
+    const box = boxes[i];
+    const lines = vizWrap(vizItemLabel(item), vizChars(box.w - 20), 2);
+    const next = items[(i + 1) % items.length];
+    const prev = items[(i - 1 + items.length) % items.length];
+    return vizPart([
+      vizRoundRect(box.x, box.y, box.w, box.h),
+      vizText(lines, { x: box.x + box.w / 2, y: box.y + box.h / 2, anchor: 'middle' }),
+    ], {
+      label: vizItemLabel(item),
+      detail: vizItemDetail(item),
+      kicker: `Step ${i + 1} of ${items.length} in the loop`,
+      facts: [['Comes after', vizItemLabel(prev)], ['Leads to', vizItemLabel(next)]],
+    });
+  });
+  return {
+    nodes, parts, height,
+    highlight(index) {
+      links.forEach((link, i) => vizLinkOn(link, index === i));
+      parts.forEach((part, i) => part.el.classList.toggle('is-related', index !== null && i === (index + 1) % parts.length));
+    },
+  };
+}
+
+const VIZ_FUNNEL = { row: 50, gap: 6, min: 0.3 };
+
+/** funnel: centred stages that narrow; widths follow the values when every stage has one. */
+function vizDrawFunnel(visual, width) {
+  const items = list(visual.items);
+  const values = items.map((item) => (item && typeof item.value === 'number' ? item.value : null));
+  const numeric = values.length > 0 && values.every((v) => v !== null);
+  const max = numeric ? Math.max(...values, 1) : 1;
+  const share = (i) => {
+    if (i >= items.length) return null;
+    if (numeric) return Math.max(VIZ_FUNNEL.min, values[i] / max);
+    return 1 - (i * (1 - 0.45)) / Math.max(items.length - 1, 1);
+  };
+  const cx = width / 2;
+  const parts = items.map((item, i) => {
+    const top = 1 + i * (VIZ_FUNNEL.row + VIZ_FUNNEL.gap);
+    const wTop = share(i) * (width - 2);
+    const nextShare = share(i + 1);
+    const wBottom = (nextShare === null ? share(i) * 0.9 : Math.min(share(i), nextShare)) * (width - 2);
+    const shape = s('path', {
+      class: 'viz-box',
+      d: `M${cx - wTop / 2},${top} H${cx + wTop / 2} L${cx + wBottom / 2},${top + VIZ_FUNNEL.row} H${cx - wBottom / 2} Z`,
+    });
+    const hasValue = values[i] !== null;
+    const lines = vizWrap(vizItemLabel(item), vizChars(wBottom - 20), hasValue ? 1 : 2);
+    const prev = i > 0 ? values[i - 1] : null;
+    const kept = hasValue && typeof prev === 'number' && prev > 0 ? `${Math.round((values[i] / prev) * 100)}% of the stage before` : null;
+    return vizPart([
+      shape,
+      vizText(lines, { x: cx, y: top + VIZ_FUNNEL.row / 2 - (hasValue ? 8 : 0), anchor: 'middle' }),
+      hasValue && s('text', { class: 'viz-value', x: cx, y: top + VIZ_FUNNEL.row / 2 + 11, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, values[i].toLocaleString('en')),
+    ], {
+      label: vizItemLabel(item),
+      detail: vizItemDetail(item),
+      kicker: `Stage ${i + 1} of ${items.length}`,
+      facts: [['Value', hasValue ? values[i].toLocaleString('en') : null], ['Kept', kept]],
+    });
+  });
+  return { nodes: [], parts, height: items.length * (VIZ_FUNNEL.row + VIZ_FUNNEL.gap) };
+}
+
+// ---- chapters/viz-graph.js ----
+// Visual kinds with links between parts: state (a state machine) and
+// hierarchy (a tree). See viz-core.js for the drawer contract.
+
+const VIZ_STATE = { boxH: 46, rowSlot: 128, level: 22, label: 11.5, vGap: 34 };
+
+// States in reading order: from the first state along its transitions,
+// then any the walk did not reach, in data order.
+function vizStateOrder(states, transitions) {
+  const ids = states.map((st) => st.id);
+  if (!ids.length) return [];
+  const seen = new Set([ids[0]]);
+  const queue = [ids[0]];
+  while (queue.length) {
+    const id = queue.shift();
+    transitions.filter((t) => t.from === id && ids.includes(t.to) && !seen.has(t.to)).forEach((t) => {
+      seen.add(t.to);
+      queue.push(t.to);
+    });
+  }
+  return [...ids.filter((id) => seen.has(id)), ...ids.filter((id) => !seen.has(id))];
+}
+
+// Levels for arcs over [from, to] positions: the shortest arcs sit lowest,
+// and two arcs whose spans overlap never share a level.
+function vizArcLevels(spans) {
+  const order = spans.map((sp, i) => ({ i, lo: Math.min(sp[0], sp[1]), hi: Math.max(sp[0], sp[1]) }))
+    .sort((a, b) => (a.hi - a.lo) - (b.hi - b.lo) || a.lo - b.lo);
+  const levels = new Array(spans.length).fill(1);
+  const taken = [];
+  order.forEach((arc) => {
+    let level = Math.max(1, arc.hi - arc.lo);
+    const clash = (l) => taken.some((o) => o.level === l && arc.lo <= o.hi && o.lo <= arc.hi && !(arc.lo === o.hi || o.lo === arc.hi));
+    while (clash(level)) level += 1;
+    taken.push({ ...arc, level });
+    levels[arc.i] = level;
+  });
+  return levels;
+}
+
+function vizLinkLabel(value, x, y, chars, anchor = 'middle') {
+  if (!value) return null;
+  return s('text', { class: 'viz-edge-label', x, y, 'text-anchor': anchor, 'dominant-baseline': 'central' }, vizWrap(value, chars, 1)[0]);
+}
+
+function vizRelationList(items) {
+  if (!items.length) return null;
+  return h('ul', { class: 'viz-rel' }, items.map((item) => h('li', null, softBreaks(item))));
+}
+
+/** state: boxes in a row (wide) or a column (narrow); transitions as arcs. */
+function vizDrawState(visual, width, marker) {
+  const states = list(visual.states).filter((st) => st && st.id !== undefined);
+  const transitions = list(visual.transitions).filter((t) => t && states.some((st) => st.id === t.from) && states.some((st) => st.id === t.to));
+  const order = vizStateOrder(states, transitions);
+  const pos = new Map(order.map((id, i) => [id, i]));
+  const row = width / Math.max(order.length, 1) >= VIZ_STATE.rowSlot;
+  const label = (id) => text((states.find((st) => st.id === id) || {}).label, String(id));
+  const boxes = new Map();
+  const links = [];
+  let height;
+  let keyList = null;
+
+  const span = (tr) => Math.abs(pos.get(tr.to) - pos.get(tr.from));
+  const ahead = (tr) => pos.get(tr.to) > pos.get(tr.from);
+  if (row) {
+    const slot = width / order.length;
+    const boxW = Math.min(slot - 28, 170);
+    // Forward arcs go above the boxes, backward ones below; each side stacks its own levels.
+    const above = transitions.filter((tr) => tr.from !== tr.to && ahead(tr));
+    const below = transitions.filter((tr) => tr.from !== tr.to && !ahead(tr));
+    const levelsAbove = vizArcLevels(above.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+    const levelsBelow = vizArcLevels(below.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+    const selfs = transitions.some((tr) => tr.from === tr.to);
+    const up = Math.max(selfs ? 1 : 0, ...levelsAbove, 0);
+    const down = Math.max(...levelsBelow, 0);
+    const top = up ? 30 + up * VIZ_STATE.level : 6;
+    order.forEach((id, i) => boxes.set(id, { x: i * slot + (slot - boxW) / 2, y: top, w: boxW, h: VIZ_STATE.boxH }));
+    const chars = vizChars(Math.max(slot * 0.9, 70), VIZ_STATE.label);
+    transitions.forEach((tr) => {
+      const a = boxes.get(tr.from);
+      const b = boxes.get(tr.to);
+      let d;
+      let lx;
+      let ly;
+      if (tr.from === tr.to) {
+        const x = a.x + a.w - 18;
+        d = `M${x - 10},${a.y} C${x - 14},${a.y - 30} ${x + 22},${a.y - 30} ${x + 10},${a.y - 2}`;
+        lx = x + 6;
+        ly = a.y - 34;
+      } else {
+        const forward = ahead(tr);
+        const level = forward ? levelsAbove[above.indexOf(tr)] : levelsBelow[below.indexOf(tr)];
+        const lift = (12 + level * VIZ_STATE.level) * 1.33;
+        const x1 = a.x + a.w / 2 + (forward ? a.w * 0.18 : -a.w * 0.18);
+        const x2 = b.x + b.w / 2 + (forward ? -b.w * 0.18 : b.w * 0.18);
+        const y = forward ? a.y : a.y + a.h;
+        const cy = forward ? y - lift : y + lift;
+        d = `M${x1},${y} C${x1},${cy} ${x2},${cy} ${x2},${y + (forward ? -3 : 3)}`;
+        lx = (x1 + x2) / 2;
+        // The label sits just outside the arc's apex, so the line never crosses it.
+        ly = forward ? y - lift * 0.75 - 9 : y + lift * 0.75 + 9;
+      }
+      links.push({ t: tr, path: s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: vizLinkLabel(tr.label, lx, ly, chars) });
+    });
+    height = top + VIZ_STATE.boxH + (down ? 24 + down * VIZ_STATE.level : 6);
+  } else {
+    const boxW = Math.min(200, Math.max(120, Math.round(width * 0.42)));
+    order.forEach((id, i) => boxes.set(id, { x: 1, y: 1 + i * (VIZ_STATE.boxH + VIZ_STATE.vGap), w: boxW, h: VIZ_STATE.boxH }));
+    const right = boxW + 1;
+    // Every transition that is not a next-door step down bends out to the right, on its own level.
+    const bends = transitions.filter((tr) => !(ahead(tr) && span(tr) === 1));
+    const levels = vizArcLevels(bends.map((tr) => [pos.get(tr.from), pos.get(tr.to)]));
+    const maxLevel = Math.max(1, ...levels);
+    const step = Math.min(VIZ_STATE.level, Math.max(10, (width - right - 24) / maxLevel));
+    // Labels would cross the arcs here, so each arc gets a numbered badge and
+    // the key under the drawing spells it out.
+    transitions.forEach((tr, k) => {
+      const a = boxes.get(tr.from);
+      const b = boxes.get(tr.to);
+      let d;
+      let bx;
+      let by;
+      if (ahead(tr) && span(tr) === 1) {
+        d = `M${a.x + a.w / 2},${a.y + a.h} L${b.x + b.w / 2},${b.y - 3}`;
+        bx = a.x + a.w / 2;
+        by = (a.y + a.h + b.y) / 2;
+      } else {
+        const bulge = right + 8 + levels[bends.indexOf(tr)] * step;
+        const y1 = tr.from === tr.to ? a.y + 12 : a.y + a.h / 2 + (ahead(tr) ? 8 : -8);
+        const y2 = tr.from === tr.to ? a.y + a.h - 12 : b.y + b.h / 2 + (ahead(tr) ? -8 : 8);
+        const reach = right + (bulge - right) * 1.33;
+        d = `M${right},${y1} C${reach},${y1} ${reach},${y2} ${right + 3},${y2}`;
+        bx = bulge;
+        by = (y1 + y2) / 2;
+      }
+      const badge = s('g', { class: 'viz-badge' }, s('circle', { cx: bx, cy: by, r: 8 }),
+        s('text', { x: bx, y: by, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, String(k + 1)));
+      links.push({ t: tr, path: s('path', { class: 'viz-link', d, 'marker-end': `url(#${marker}-rest)`, 'data-marker': marker }), label: badge });
+    });
+    keyList = h('ol', { class: 'viz-key-list', 'aria-label': 'Transitions' }, transitions.map((tr, k) => h('li', null,
+      h('span', { class: 'viz-key-n', 'aria-hidden': 'true' }, String(k + 1)),
+      h('span', null, tr.label ? `${tr.label}: ` : '', softBreaks(`${label(tr.from)} \u2192 ${label(tr.to)}`)))));
+    height = order.length * (VIZ_STATE.boxH + VIZ_STATE.vGap) - VIZ_STATE.vGap + 2;
+  }
+
+  const parts = states.map((st, i) => {
+    const box = boxes.get(st.id);
+    const out = transitions.filter((t) => t.from === st.id);
+    const into = transitions.filter((t) => t.to === st.id && t.from !== st.id);
+    const describe = (t, other) => `${t.label ? `${t.label}: ` : ''}${label(other)}`;
+    return vizPart([
+      vizRoundRect(box.x, box.y, box.w, box.h),
+      vizText(vizWrap(text(st.label, String(st.id)), vizChars(box.w - 18), 2), { x: box.x + box.w / 2, y: box.y + box.h / 2, anchor: 'middle' }),
+    ], {
+      label: text(st.label, String(st.id)),
+      kicker: `State ${i + 1} of ${states.length}${out.length ? '' : ', an end state'}`,
+      detail: out.length ? '' : 'Nothing leaves this state.',
+      facts: [
+        ['Can go to', vizRelationList(out.map((t) => describe(t, t.to)))],
+        ['Reached from', vizRelationList(into.map((t) => describe(t, t.from)))],
+      ],
+      id: st.id,
+    });
+  });
+  return {
+    nodes: [links.map((l) => l.path), links.map((l) => l.label)],
+    parts,
+    height,
+    legend: keyList,
+    highlight(index) {
+      const id = index === null ? null : parts[index].id;
+      links.forEach((l) => {
+        const on = id !== null && (l.t.from === id || l.t.to === id);
+        vizLinkOn(l.path, on);
+        if (l.label) l.label.classList.toggle('is-on', on);
+      });
+      parts.forEach((part, i) => part.el.classList.toggle('is-related', id !== null && i !== index
+        && links.some((l) => (l.t.from === id && l.t.to === part.id) || (l.t.to === id && l.t.from === part.id))));
+    },
+  };
+}
+
+const VIZ_TREE = { boxH: 44, level: 40, slot: 112, row: 40, rowGap: 8, indent: 22 };
+
+/** hierarchy: a top-down tree when its leaves fit, else an indented outline. */
+function vizDrawHierarchy(visual, width, marker) {
+  const nodes = list(visual.nodes).filter((n) => n && n.id !== undefined);
+  const ids = new Set(nodes.map((n) => n.id));
+  const parentOf = (n) => (n.parent !== undefined && ids.has(n.parent) && n.parent !== n.id ? n.parent : null);
+  const children = (id) => nodes.filter((n) => parentOf(n) === id);
+  const roots = nodes.filter((n) => parentOf(n) === null);
+  const boxes = new Map();
+  const depth = new Map();
+  const seen = new Set();
+  const walk = (n, d, visit) => {
+    if (seen.has(n.id)) return;
+    seen.add(n.id);
+    depth.set(n.id, d);
+    visit(n, d);
+    children(n.id).forEach((c) => walk(c, d + 1, visit));
+  };
+  const leaves = [];
+  roots.forEach((r) => walk(r, 0, (n) => { if (!children(n.id).length) leaves.push(n.id); }));
+  const maxDepth = Math.max(0, ...depth.values());
+  const topDown = width / Math.max(leaves.length, 1) >= VIZ_TREE.slot;
+  const links = [];
+  let height;
+
+  if (topDown) {
+    const slot = width / leaves.length;
+    const boxW = Math.min(slot - 10, 180);
+    const centre = new Map();
+    const place = (n) => {
+      const kids = children(n.id).filter((c) => depth.get(c.id) === depth.get(n.id) + 1);
+      if (!kids.length) centre.set(n.id, (leaves.indexOf(n.id) + 0.5) * slot);
+      else {
+        kids.forEach(place);
+        centre.set(n.id, (centre.get(kids[0].id) + centre.get(kids[kids.length - 1].id)) / 2);
+      }
+    };
+    roots.forEach(place);
+    nodes.forEach((n) => {
+      const cx = centre.get(n.id) ?? width / 2;
+      boxes.set(n.id, { x: cx - boxW / 2, y: 1 + depth.get(n.id) * (VIZ_TREE.boxH + VIZ_TREE.level), w: boxW, h: VIZ_TREE.boxH });
+    });
+    nodes.forEach((n) => {
+      const p = parentOf(n);
+      if (p === null) return;
+      const a = boxes.get(p);
+      const b = boxes.get(n.id);
+      const mid = a.y + a.h + VIZ_TREE.level / 2;
+      links.push({ from: p, to: n.id, path: s('path', { class: 'viz-link', d: `M${a.x + a.w / 2},${a.y + a.h} V${mid} H${b.x + b.w / 2} V${b.y}` }) });
+    });
+    height = (maxDepth + 1) * (VIZ_TREE.boxH + VIZ_TREE.level) - VIZ_TREE.level + 2;
+  } else {
+    let y = 1;
+    seen.clear();
+    roots.forEach((r) => walk(r, 0, (n, d) => {
+      const x = 1 + d * VIZ_TREE.indent;
+      boxes.set(n.id, { x, y, w: width - x - 1, h: VIZ_TREE.row });
+      y += VIZ_TREE.row + VIZ_TREE.rowGap;
+    }));
+    nodes.forEach((n) => {
+      const p = parentOf(n);
+      if (p === null || !boxes.has(n.id)) return;
+      const a = boxes.get(p);
+      const b = boxes.get(n.id);
+      links.push({ from: p, to: n.id, path: s('path', { class: 'viz-link', d: `M${a.x + 11},${a.y + a.h} V${b.y + b.h / 2} H${b.x}` }) });
+    });
+    height = y - VIZ_TREE.rowGap + 1;
+  }
+
+  const labelOf = (id) => text((nodes.find((n) => n.id === id) || {}).label, String(id));
+  const parts = nodes.filter((n) => boxes.has(n.id)).map((n) => {
+    const box = boxes.get(n.id);
+    const kids = children(n.id);
+    const p = parentOf(n);
+    const lines = vizWrap(text(n.label, String(n.id)), vizChars(box.w - 20), topDown ? 2 : 1);
+    return vizPart([
+      vizRoundRect(box.x, box.y, box.w, box.h),
+      vizText(lines, { x: topDown ? box.x + box.w / 2 : box.x + 12, y: box.y + box.h / 2, anchor: topDown ? 'middle' : 'start' }),
+    ], {
+      label: text(n.label, String(n.id)),
+      kicker: p === null ? 'The whole' : `Level ${depth.get(n.id) + 1}`,
+      facts: [['Part of', p !== null ? labelOf(p) : null], ['Made of', vizRelationList(kids.map((k) => labelOf(k.id)))]],
+      id: n.id,
+    });
+  });
+  return {
+    nodes: links.map((l) => l.path),
+    parts,
+    height,
+    highlight(index) {
+      const id = index === null ? null : parts[index].id;
+      const line = new Set();
+      for (let at = id; at !== null && at !== undefined;) {
+        const node = nodes.find((n) => n.id === at);
+        const up = node ? parentOf(node) : null;
+        if (up === null) break;
+        line.add(`${up}>${at}`);
+        at = up;
+      }
+      links.forEach((l) => l.path.classList.toggle('is-on', line.has(`${l.from}>${l.to}`) || (id !== null && l.from === id)));
+      parts.forEach((part) => part.el.classList.toggle('is-related', id !== null && part.id !== id
+        && (links.some((l) => l.from === id && l.to === part.id) || [...line].some((key) => key.startsWith(`${part.id}>`)))));
+    },
+  };
+}
+
+// ---- chapters/viz-grid.js ----
+// Visual kinds laid out on a plane: compare (a grid of marks), beforeAfter
+// (two panels), quadrant (a 2x2) and venn (2 or 3 overlapping sets).
+// See viz-core.js for the drawer contract.
+
+const VIZ_COMPARE = { minCol: 84, row: 40, mark: 5.5, head: 15 };
+
+function vizIsPartial(value) {
+  return typeof value === 'string' && value.trim().toLowerCase() === 'partial';
+}
+
+function vizValueText(value) {
+  if (value === true) return 'Yes';
+  if (value === false) return 'No';
+  if (typeof value === 'number') return value.toLocaleString('en');
+  return text(value, 'Not given');
+}
+
+// One cell mark: a filled dot (yes), a ring (no), a half dot (partial), or the value as text.
+function vizMark(value, x, y, room) {
+  const r = VIZ_COMPARE.mark;
+  if (value === true) return s('circle', { class: 'viz-yes', cx: x, cy: y, r });
+  if (value === false) return s('circle', { class: 'viz-no', cx: x, cy: y, r: r - 0.5 });
+  if (vizIsPartial(value)) {
+    return s('g', { class: 'viz-half' }, s('circle', { class: 'viz-no', cx: x, cy: y, r: r - 0.5 }),
+      s('path', { class: 'viz-yes', d: `M${x},${y - r} A${r},${r} 0 0 0 ${x},${y + r} Z` }));
+  }
+  return s('text', { class: 'viz-cell', x, y, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, vizWrap(vizValueText(value), vizChars(room, 12), 1)[0]);
+}
+
+function vizCompareLegend(rows) {
+  const values = rows.flatMap((row) => list(row.values));
+  const keys = [
+    values.includes(true) && ['is-yes', 'Yes'],
+    values.includes(false) && ['is-no', 'No'],
+    values.some(vizIsPartial) && ['is-half', 'Partly'],
+  ].filter(Boolean);
+  if (!keys.length) return null;
+  return h('p', { class: 'viz-legend' }, keys.map(([cls, label]) => h('span', null, h('i', { class: `viz-key ${cls}`, 'aria-hidden': 'true' }), label)));
+}
+
+/** compare: columns across, one row of marks per criterion. Narrow: the label sits above its marks. */
+function vizDrawCompare(visual, width) {
+  const columns = list(visual.columns).map((c) => text(c, '?'));
+  const rows = list(visual.rows).filter((row) => row && typeof row === 'object');
+  const cols = Math.max(columns.length, 1);
+  const labelW = Math.min(260, Math.max(120, Math.round(width * 0.34)));
+  const wide = (width - labelW) / cols >= VIZ_COMPARE.minCol;
+  const gridX = wide ? labelW : 0;
+  const colW = (width - gridX) / cols;
+  const colX = (j) => gridX + colW * (j + 0.5);
+  const heads = columns.map((c) => vizWrap(c, vizChars(colW - 8, 12), 3));
+  const headH = Math.max(...heads.map((l) => l.length), 1) * VIZ_COMPARE.head + 14;
+  const nodes = heads.map((lines, j) => vizText(lines, { x: colX(j), y: 4, cls: 'viz-col-head', anchor: 'middle', lineHeight: VIZ_COMPARE.head, middle: false }));
+  nodes.push(s('line', { class: 'viz-rule', x1: 0, x2: width, y1: headH - 4.5, y2: headH - 4.5 }));
+  let y = headH;
+  const parts = rows.map((row, i) => {
+    const labelLines = vizWrap(text(row.label), vizChars((wide ? labelW : width) - 16), 2);
+    const labelH = labelLines.length * VIZ_LINE;
+    const height = wide ? Math.max(VIZ_COMPARE.row, labelH + 16) : labelH + 44;
+    const top = y;
+    y += height + 2;
+    const markY = wide ? top + height / 2 : top + labelH + 24;
+    const values = list(row.values);
+    return vizPart([
+      s('rect', { class: 'viz-row-hit', x: 0.5, y: top + 0.5, width: width - 1, height: height - 1 }),
+      vizText(labelLines, { x: 10, y: wide ? top + height / 2 : top + 10 + (labelH - VIZ_LINE) / 2 }),
+      columns.map((_, j) => vizMark(values[j], colX(j), markY, colW - 8)),
+    ], {
+      label: text(row.label),
+      kicker: `Row ${i + 1} of ${rows.length}`,
+      facts: columns.map((c, j) => [c, vizValueText(values[j])]),
+    });
+  });
+  return { nodes, parts, height: y + 1, legend: vizCompareLegend(rows) };
+}
+
+const VIZ_PANEL = { head: 34, item: 40, gap: 6, pad: 10, between: 44, wideAt: 560 };
+
+/** beforeAfter: two panels with what moved; items in one side only get + or −. */
+function vizDrawBeforeAfter(visual, width, marker) {
+  const sides = [['before', 'Before'], ['after', 'After']].map(([key, name]) => ({
+    key, name, items: list(visual[key] && visual[key].items).filter((item) => vizItemLabel(item)),
+  }));
+  const wide = width >= VIZ_PANEL.wideAt;
+  const panelW = wide ? (width - VIZ_PANEL.between) / 2 : width;
+  const labelsOf = (side) => new Set(side.items.map((item) => vizItemLabel(item).trim().toLowerCase()));
+  const sets = sides.map(labelsOf);
+  const nodes = [];
+  const parts = [];
+  let bottom = 0;
+  let nextTop = 1;
+  const panelBottoms = [];
+  sides.forEach((side, sideIndex) => {
+    const x = wide ? sideIndex * (panelW + VIZ_PANEL.between) : 0;
+    const top = wide ? 1 : nextTop;
+    const other = sets[1 - sideIndex];
+    let y = top + VIZ_PANEL.head;
+    side.items.forEach((item, i) => {
+      const label = vizItemLabel(item);
+      const shared = other.has(label.trim().toLowerCase());
+      const glyph = shared ? '' : sideIndex === 0 ? '−' : '+';
+      const lines = vizWrap(label, vizChars(panelW - VIZ_PANEL.pad * 2 - 34), 2);
+      const itemH = Math.max(VIZ_PANEL.item, lines.length * VIZ_LINE + 14);
+      const boxTop = y;
+      y += itemH + VIZ_PANEL.gap;
+      parts.push(vizPart([
+        vizRoundRect(x + VIZ_PANEL.pad, boxTop, panelW - VIZ_PANEL.pad * 2, itemH),
+        glyph && s('text', { class: 'viz-glyph', x: x + VIZ_PANEL.pad + 14, y: boxTop + itemH / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, glyph),
+        vizText(lines, { x: x + VIZ_PANEL.pad + 28, y: boxTop + itemH / 2 }),
+      ], {
+        label,
+        detail: vizItemDetail(item),
+        kicker: `${side.name}, ${i + 1} of ${side.items.length}`,
+        facts: [['Change', shared ? 'Stays the same' : sideIndex === 0 ? 'Gone after the change' : 'New after the change']],
+      }));
+    });
+    const panelBottom = y - VIZ_PANEL.gap + VIZ_PANEL.pad;
+    nodes.push(vizRoundRect(x, top, panelW, panelBottom - top, 'viz-panel'),
+      s('text', { class: 'viz-panel-head', x: x + VIZ_PANEL.pad + 2, y: top + VIZ_PANEL.head / 2 + 2, 'dominant-baseline': 'central' }, side.name.toUpperCase()));
+    bottom = Math.max(bottom, panelBottom);
+    panelBottoms.push(panelBottom);
+    nextTop = panelBottom + VIZ_PANEL.between;
+  });
+  const arrow = wide
+    ? s('path', { class: 'viz-link is-flow', d: `M${panelW + 10},${Math.min(bottom, 120) / 2 + 10} H${panelW + VIZ_PANEL.between - 10}`, 'marker-end': `url(#${marker}-rest)` })
+    : s('path', { class: 'viz-link is-flow', d: `M${width / 2},${panelBottoms[0] + 8} V${panelBottoms[0] + VIZ_PANEL.between - 10}`, 'marker-end': `url(#${marker}-rest)` });
+  nodes.push(arrow);
+  const notes = list(visual.notes).filter((note) => typeof note === 'string' && note.trim());
+  const glyphs = parts.some((p) => p.facts[0][1] !== 'Stays the same');
+  const legend = (notes.length || glyphs) && h('div', { class: 'viz-notes' },
+    glyphs && h('p', { class: 'viz-legend' }, h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '+'), 'New'), h('span', null, h('b', { class: 'viz-key-glyph', 'aria-hidden': 'true' }, '−'), 'Gone')),
+    notes.length > 0 && h('ul', { class: 'viz-note-list', 'aria-label': 'Notes' }, notes.map((note) => h('li', null, softBreaks(note)))));
+  return { nodes, parts, height: (wide ? bottom : nextTop - VIZ_PANEL.between) + 1, legend };
+}
+
+const VIZ_QUAD = { axis: 30, foot: 38, dot: 6, label: 12.5 };
+
+function vizLevel(value) {
+  if (value < 0.34) return 'low';
+  if (value > 0.66) return 'high';
+  return 'middle';
+}
+
+/** quadrant: points on two axes from 0 (low, left, bottom) to 1. */
+function vizDrawQuadrant(visual, width) {
+  const axes = visual.axes && typeof visual.axes === 'object' ? visual.axes : {};
+  const xName = text(axes.x, 'x');
+  const yName = text(axes.y, 'y');
+  const plotW = Math.min(width - VIZ_QUAD.axis - 2, 640);
+  const plotH = Math.round(Math.min(Math.max(plotW * 0.72, 220), 440));
+  const x0 = VIZ_QUAD.axis;
+  const y0 = 8;
+  const clamp = (v) => Math.min(Math.max(typeof v === 'number' ? v : 0.5, 0), 1);
+  const nodes = [
+    s('rect', { class: 'viz-plot', x: x0 + 0.5, y: y0 + 0.5, width: plotW - 1, height: plotH - 1 }),
+    s('line', { class: 'viz-mid', x1: x0 + plotW / 2, x2: x0 + plotW / 2, y1: y0, y2: y0 + plotH }),
+    s('line', { class: 'viz-mid', x1: x0, x2: x0 + plotW, y1: y0 + plotH / 2, y2: y0 + plotH / 2 }),
+    s('text', { class: 'viz-axis', x: x0 + plotW / 2, y: y0 + plotH + 22, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, `${vizWrap(xName, vizChars(plotW - 120, 12), 1)[0]} →`),
+    s('text', { class: 'viz-axis-end', x: x0 + 2, y: y0 + plotH + 22, 'dominant-baseline': 'central' }, 'low'),
+    s('text', { class: 'viz-axis-end', x: x0 + plotW - 2, y: y0 + plotH + 22, 'text-anchor': 'end', 'dominant-baseline': 'central' }, 'high'),
+    s('text', { class: 'viz-axis', x: 0, y: 0, 'text-anchor': 'middle', 'dominant-baseline': 'central', transform: `translate(${x0 / 2 - 2} ${y0 + plotH / 2}) rotate(-90)` }, `${vizWrap(yName, vizChars(plotH - 40, 12), 1)[0]} →`),
+  ];
+  const points = list(visual.points).filter((p) => p && typeof p === 'object');
+  // Labels go right of the dot, or left near the right edge; overlapping ones are nudged apart.
+  const placed = points.map((p, i) => {
+    const cx = x0 + clamp(p.x) * plotW;
+    const cy = y0 + (1 - clamp(p.y)) * plotH;
+    const right = clamp(p.x) < 0.6;
+    const room = right ? x0 + plotW - cx - 14 : cx - x0 - 14;
+    const label = vizWrap(text(p.label), vizChars(room, VIZ_QUAD.label), 1)[0];
+    return { i, p, cx, cy, right, label, ly: cy, w: vizTextWidth(label, VIZ_QUAD.label) };
+  });
+  [...placed].sort((a, b) => a.ly - b.ly).forEach((a, k, sorted) => {
+    sorted.slice(0, k).forEach((b) => {
+      const ax = a.right ? [a.cx, a.cx + a.w + 12] : [a.cx - a.w - 12, a.cx];
+      const bx = b.right ? [b.cx, b.cx + b.w + 12] : [b.cx - b.w - 12, b.cx];
+      if (ax[0] < bx[1] && bx[0] < ax[1] && Math.abs(a.ly - b.ly) < 17) a.ly = Math.min(b.ly + 17, y0 + plotH - 8);
+    });
+  });
+  const parts = placed.map(({ i, p, cx, cy, right, label, ly }) => vizPart([
+    s('circle', { class: 'viz-dot', cx, cy, r: VIZ_QUAD.dot }),
+    s('text', { class: 'viz-point-label', x: right ? cx + 11 : cx - 11, y: ly, 'text-anchor': right ? 'start' : 'end', 'dominant-baseline': 'central' }, label),
+  ], {
+    label: text(p.label),
+    kicker: `Point ${i + 1} of ${points.length}`,
+    facts: [[xName, `${vizLevel(clamp(p.x))} (${clamp(p.x).toFixed(2)})`], [yName, `${vizLevel(clamp(p.y))} (${clamp(p.y).toFixed(2)})`]],
+  }));
+  return { nodes, parts, height: y0 + plotH + VIZ_QUAD.foot + 2 };
+}
+
+const VIZ_VENN = { top: 26, label: 12 };
+
+// Circle centres and radius for 2 or 3 sets.
+function vizVennLayout(count, width) {
+  if (count >= 3) {
+    const r = Math.min((width - 12) / 3.1, 128);
+    const cy = r + VIZ_VENN.top;
+    return { r, centres: [[width / 2 - 0.58 * r, cy], [width / 2 + 0.58 * r, cy], [width / 2, cy + 0.98 * r]], height: cy + 1.98 * r + VIZ_VENN.top };
+  }
+  const r = Math.min((width - 12) / 3.2, 140);
+  const cy = r + VIZ_VENN.top;
+  return { r, centres: [[width / 2 - 0.6 * r, cy], [width / 2 + 0.6 * r, cy]], height: cy + r + 6 };
+}
+
+// The middle of the region for the sets in `inside` (indexes): the mean of
+// those centres, pushed away from the centre of the whole drawing.
+function vizRegionCentre(layout, inside) {
+  const mean = (pts) => pts.reduce((acc, p) => [acc[0] + p[0] / pts.length, acc[1] + p[1] / pts.length], [0, 0]);
+  const all = mean(layout.centres);
+  if (inside.length === layout.centres.length) return all;
+  const own = mean(inside.map((i) => layout.centres[i]));
+  const push = inside.length === 1 ? 0.95 : layout.centres.length === 2 ? 0 : 0.85;
+  return [own[0] + (own[0] - all[0]) * push, own[1] + (own[1] - all[1]) * push];
+}
+
+/** venn: 2 or 3 circles; each item sits in the region of the sets it belongs to. */
+function vizDrawVenn(visual, width) {
+  const sets = list(visual.sets).filter((set) => set && set.id !== undefined).slice(0, 3);
+  const layout = vizVennLayout(sets.length, width);
+  const circles = sets.map((set, i) => s('circle', { class: 'viz-set', cx: layout.centres[i][0], cy: layout.centres[i][1], r: layout.r }));
+  const setLabels = sets.map((set, i) => {
+    const [cx, cy] = layout.centres[i];
+    const below = i === 2;
+    return s('text', { class: 'viz-set-label', x: cx, y: below ? cy + layout.r + 14 : cy - layout.r - 12, 'text-anchor': 'middle', 'dominant-baseline': 'central' },
+      vizWrap(text(set.label, String(set.id)), vizChars(sets.length === 2 ? layout.r * 1.6 : layout.r * 1.3, VIZ_VENN.label), 1)[0]);
+  });
+  const items = list(visual.items).filter((item) => item && typeof item === 'object');
+  const regionOf = (item) => sets.map((set, i) => (list(item.in).includes(set.id) ? i : -1)).filter((i) => i >= 0);
+  const groups = new Map();
+  items.forEach((item, i) => {
+    const key = regionOf(item).join(',');
+    groups.set(key, [...(groups.get(key) || []), i]);
+  });
+  const roomFor = (inside) => layout.r * (inside.length === 1 ? 0.92 : inside.length === sets.length ? 0.66 : 0.8);
+  // Up to two lines per item; a region's items stack around its centre.
+  const LINE = 14;
+  const wrapped = items.map((item) => vizWrap(text(item.label), vizChars(roomFor(regionOf(item)), VIZ_VENN.label), 2));
+  const heightOf = (i) => wrapped[i].length * LINE + 4;
+  const parts = items.map((item, i) => {
+    const inside = regionOf(item);
+    const group = groups.get(inside.join(','));
+    const total = group.reduce((sum, j) => sum + heightOf(j) + 3, -3);
+    const before = group.slice(0, group.indexOf(i)).reduce((sum, j) => sum + heightOf(j) + 3, 0);
+    const [cx, ry] = inside.length ? vizRegionCentre(layout, inside) : [width / 2, layout.height - 10];
+    const top = ry - total / 2 + before;
+    const lines = wrapped[i];
+    const w = Math.min(width - 2, Math.max(...lines.map((line) => vizTextWidth(line, VIZ_VENN.label))) + 12);
+    // Kept inside the drawing when a region sits near its edge.
+    const rx = Math.min(Math.max(cx, w / 2 + 1), width - w / 2 - 1);
+    const y = top + heightOf(i) / 2;
+    return vizPart([
+      s('rect', { class: 'viz-chip', x: rx - w / 2, y: top, width: w, height: heightOf(i) }),
+      vizText(lines, { x: rx, y, cls: 'viz-item-label', anchor: 'middle', lineHeight: LINE }),
+    ], {
+      label: text(item.label),
+      kicker: inside.length > 1 ? `In ${inside.length} groups` : 'In one group',
+      facts: [
+        ['In', sets.filter((_, j) => inside.includes(j)).map((set) => text(set.label, String(set.id))).join(', ')],
+        ['Not in', sets.filter((_, j) => !inside.includes(j)).map((set) => text(set.label, String(set.id))).join(', ')],
+      ],
+      inside,
+    });
+  });
+  return {
+    nodes: [circles, setLabels],
+    parts,
+    height: layout.height,
+    highlight(index) {
+      const inside = index === null ? [] : parts[index].inside;
+      circles.forEach((c, j) => c.classList.toggle('is-on', inside.includes(j)));
+      setLabels.forEach((t, j) => t.classList.toggle('is-on', inside.includes(j)));
+    },
+  };
+}
+
+// ---- chapters/visuals.js ----
+// Chapter: visuals (diagrams[]). Pick a diagram, then pick its parts.
+// Deep links: #visuals/<diagramId> and #visuals/<diagramId>/<part>, parts
+// counted from 0 in the order of references/visuals.md.
+
+function chDiagramId(diagram, index) {
+  return text(diagram && typeof diagram.id === 'string' ? diagram.id : '', String(index));
+}
+
+/**
+ * @param {object} data explainer data (reads data.diagrams)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: (parts: string[]) => Element|null }|null}
+ */
+function chRenderVisuals(data, mount) {
+  const diagrams = list(data.diagrams).filter((d) => d && typeof d === 'object');
+  if (!diagrams.length) {
+    mount.append(h('p', { class: 'empty' }, 'No diagrams in this explainer.'));
+    return null;
+  }
+  const figures = new Map();
+  const stage = h('div', { class: 'ch-viz-stage' });
+  let current = 0;
+
+  const picks = diagrams.map((diagram, i) => h('button', {
+    class: 'ch-pick', type: 'button', 'aria-pressed': 'false', onclick: () => show(i),
+  },
+  h('span', { class: 'ch-pick-top' }, h('span', null, String(i + 1).padStart(2, '0')), h('span', null, VIZ_KIND_NAMES[diagram.kind] || text(diagram.kind, 'Visual'))),
+  h('span', { class: 'ch-pick-title' }, softBreaks(text(diagram.title, chDiagramId(diagram, i))))));
+  chRoving(picks, { onMove: (i) => show(i) });
+
+  function figureFor(i) {
+    if (!figures.has(i)) {
+      const diagram = diagrams[i];
+      const id = chDiagramId(diagram, i);
+      const figure = vizFigure(diagram, {
+        headingLevel: 'h2',
+        onSelect: (part) => { if (current === i) setDeepLink(part === null ? `visuals/${linkPart(id)}` : `visuals/${linkPart(id)}/${part}`); },
+      });
+      figures.set(i, figure);
+      stage.append(figure.root);
+    }
+    return figures.get(i);
+  }
+
+  function show(i, { link = true } = {}) {
+    current = i;
+    const figure = figureFor(i);
+    figures.forEach((f, j) => { f.root.hidden = j !== i; });
+    chMarkCurrent(picks, i);
+    if (link) setDeepLink(`visuals/${linkPart(chDiagramId(diagrams[i], i))}`);
+    return figure;
+  }
+
+  show(0, { link: false });
+  mount.append(h('div', { class: 'ch-visuals' },
+    diagrams.length > 1 && h('div', { class: 'ch-pick-list', role: 'group', 'aria-label': 'Diagrams' }, picks),
+    stage));
+  return {
+    open([id, part] = []) {
+      if (id === undefined) return null;
+      const index = diagrams.findIndex((d, i) => chDiagramId(d, i) === id);
+      if (index < 0) return null;
+      const figure = show(index, { link: false });
+      const wanted = chIndexPart(part, figure.count());
+      return figure.select(wanted, { silent: true }) || figure.root;
+    },
+  };
+}
+
+// ---- chapters/context.js ----
+// Chapter: context. The problem leads to the goals; the non goals sit
+// outside the scope line. A picture of the brief, not paragraphs.
+// Deep link: #context.
+
+/**
+ * @param {object} data explainer data (reads data.context)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: () => Element|null }|null}
+ */
+function chRenderContext(data, mount) {
+  const context = data.context && typeof data.context === 'object' ? data.context : null;
+  if (!context || !text(context.problem)) {
+    mount.append(h('p', { class: 'empty' }, 'No context given.'));
+    return null;
+  }
+  const goals = list(context.goals).filter((g) => typeof g === 'string' && g.trim());
+  const nonGoals = list(context.nonGoals).filter((g) => typeof g === 'string' && g.trim());
+  const meta = data.meta || {};
+  const status = text(meta.status);
+
+  const numbered = (items, cls) => h('ol', { class: `ch-ctx-list ${cls}` }, items.map((item, i) => h('li', null,
+    h('span', { class: 'ch-ctx-n', 'aria-hidden': 'true' }, String(i + 1)),
+    h('span', null, softBreaks(item)))));
+
+  const problem = h('section', { class: 'panel ch-ctx-box ch-ctx-problem', 'aria-labelledby': 'ch-ctx-problem' },
+    h('p', { class: 'eyebrow quiet', id: 'ch-ctx-problem' }, h('span', { class: 'ch-ctx-icon is-problem', 'aria-hidden': 'true' }), 'The problem'),
+    h('p', { class: 'ch-ctx-problem-text' }, softBreaks(context.problem)),
+    text(context.background) && h('div', { class: 'why' }, h('p', { class: 'eyebrow quiet' }, 'Background'), h('p', null, softBreaks(context.background))));
+
+  const scope = h('div', { class: 'ch-ctx-scope' },
+    h('section', { class: 'panel ch-ctx-box ch-ctx-goals', 'aria-labelledby': 'ch-ctx-goals' },
+      h('p', { class: 'eyebrow quiet', id: 'ch-ctx-goals' }, h('span', { class: 'ch-ctx-icon is-goal', 'aria-hidden': 'true' }), `Goals · ${goals.length}`),
+      goals.length ? numbered(goals, 'is-goals') : h('p', { class: 'ch-ctx-none' }, 'No goals listed.')),
+    nonGoals.length > 0 && h('section', { class: 'ch-ctx-box ch-ctx-out', 'aria-labelledby': 'ch-ctx-out' },
+      h('p', { class: 'eyebrow quiet', id: 'ch-ctx-out' }, h('span', { class: 'ch-ctx-icon is-out', 'aria-hidden': 'true' }), `Out of scope · ${nonGoals.length}`),
+      numbered(nonGoals, 'is-out')));
+
+  const diagram = h('div', { class: 'ch-context', role: 'group', 'aria-label': 'Problem, goals and what is out of scope' },
+    problem,
+    h('div', { class: 'ch-ctx-arrow', 'aria-hidden': 'true' }, h('span', null, 'so we aim for')),
+    scope);
+  mount.append(h('div', { class: 'ch-cq' }, diagram),
+    status && h('p', { class: 'ch-ctx-status' }, h('span', { class: 'eyebrow quiet' }, 'Status'), chStatusWord(status)));
+  riseIn(problem);
+  riseIn(scope, 120);
+  return { open: () => null };
+}
+
+const CH_STATUS_WORDS = {
+  draft: 'Draft', proposed: 'Proposed, not decided', accepted: 'Accepted', rejected: 'Rejected', 'in-progress': 'In progress', merged: 'Merged', done: 'Done',
+};
+
+/** meta.status as ink text with a small marker: filled when settled, a ring while open. */
+function chStatusWord(status) {
+  const settled = ['accepted', 'merged', 'done', 'rejected'].includes(status);
+  return h('span', { class: `ch-state${settled ? ' is-settled' : ''}` },
+    h('span', { class: 'ch-state-mark', 'aria-hidden': 'true' }), CH_STATUS_WORDS[status] || status);
+}
+
+// ---- chapters/diff.js ----
+// Chapter: diff. A bar chart of the files a change touches: one row per
+// file with its status marker and +/- lines, linked to the map nodes it
+// belongs to. Deep link: #diff/<path> (the path as one encoded segment).
+
+const CH_LINES = /^\+(\d+) -(\d+)$/;
+
+function chParseLines(value) {
+  const match = typeof value === 'string' ? value.trim().match(CH_LINES) : null;
+  return match ? { add: Number(match[1]), del: Number(match[2]) } : null;
+}
+
+function chDiffTotals(entries) {
+  return entries.reduce((acc, entry) => {
+    const lines = chParseLines(entry.lines);
+    return { add: acc.add + (lines ? lines.add : 0), del: acc.del + (lines ? lines.del : 0) };
+  }, { add: 0, del: 0 });
+}
+
+function chDiffBar(lines, max) {
+  if (!lines) return h('span', { class: 'ch-bar is-empty' }, h('span', { class: 'ch-bar-none' }, 'lines not given'));
+  const share = (n) => (max ? Math.max(n ? 0.02 : 0, n / max) : 0);
+  return h('span', { class: 'ch-bar', 'aria-hidden': 'true' },
+    h('span', { class: 'ch-bar-track' },
+      h('i', { class: 'ch-bar-add', style: `--share:${share(lines.add)}` }),
+      h('i', { class: 'ch-bar-del', style: `--share:${share(lines.del)}` })),
+    h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`));
+}
+
+/**
+ * @param {object} data explainer data (reads data.diff, data.nodes)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: (parts: string[]) => Element|null }|null}
+ */
+function chRenderDiff(data, mount) {
+  const entries = list(data.diff).filter((entry) => entry && typeof entry === 'object' && text(entry.path));
+  if (!entries.length) {
+    mount.append(h('p', { class: 'empty' }, 'No files in this change.'));
+    return null;
+  }
+  const nodeIndex = byId(data.nodes);
+  const totals = chDiffTotals(entries);
+  const max = Math.max(1, ...entries.map((e) => { const l = chParseLines(e.lines); return l ? l.add + l.del : 0; }));
+  const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
+  let selected = null;
+
+  const rows = entries.map((entry, i) => {
+    const lines = chParseLines(entry.lines);
+    const share = lines ? (lines.add + lines.del) / max : 0;
+    return h('button', {
+      class: `ch-file is-${CH_STATUS_LABELS[entry.status] ? entry.status : 'modified'}`, type: 'button', 'aria-pressed': 'false', 'data-path': entry.path,
+      'aria-label': `${entry.path}, ${CH_STATUS_LABELS[entry.status] || 'Changed'}${lines ? `, ${lines.add} added and ${lines.del} removed lines` : ''}${entry.key ? ', key file' : ''}`,
+      style: `--size:${share}`, onclick: () => select(selected === i ? null : i),
+    },
+    chStatusMark(entry.status),
+    h('span', { class: 'ch-file-name' }, truncatable(h('span', { class: 'ch-file-path' }), entry.path, { mode: 'middle' }),
+      entry.key && h('span', { class: 'tag tag-key' }, 'Key')),
+    chDiffBar(lines, max));
+  });
+  chRoving(rows, { axis: 'y', onMove: (i) => select(i) });
+
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(rows, index);
+    renderDetail();
+    if (link) setDeepLink(index === null ? 'diff' : `diff/${linkPart(entries[index].path)}`);
+    return index === null ? null : rows[index];
+  }
+
+  function nodeLink(id) {
+    const node = nodeIndex.get(id);
+    return h('li', null, h('a', { class: 'ch-node-link', href: `#map/${linkPart(id)}` },
+      node && node.status && node.status !== 'unchanged' ? chStatusMark(node.status) : null,
+      softBreaks(text(node && node.label, String(id)))));
+  }
+
+  function renderDetail() {
+    if (selected === null) {
+      fill(detail, chEmptyDetail('Pick a file', 'Each bar is one file, as long as its changed lines. Key files are the ones a reviewer must read.'));
+      return;
+    }
+    const entry = entries[selected];
+    const lines = chParseLines(entry.lines);
+    fill(detail,
+      h('div', { class: 'step-top' }, chStatusTag(entry.status), entry.key && tag('Key file', 'tag-key'), lines && h('span', { class: 'ch-bar-num' }, `+${lines.add} −${lines.del}`)),
+      h('h3', { class: 'ch-detail-path' }, breakablePath(entry.path)),
+      entry.status === 'renamed' && text(entry.from) && h('p', { class: 'ch-from' }, 'Was ', h('code', null, breakablePath(entry.from))),
+      h('p', null, softBreaks(text(entry.summary, 'No summary yet.'))),
+      list(entry.nodes).length > 0 && [h('div', { class: 'detail-label' }, 'Part of'), h('ul', { class: 'ch-node-links' }, list(entry.nodes).map(nodeLink))],
+      chStepper(selected, entries.length, (i) => { select(i); rows[i].focus(); }, 'file'));
+  }
+
+  const counts = Object.keys(CH_STATUS_LABELS).filter((key) => key !== 'changed' && key !== 'unchanged')
+    .map((key) => [key, entries.filter((e) => e.status === key).length]).filter(([, n]) => n > 0);
+  const summary = h('div', { class: 'ch-diff-summary' },
+    h('p', { class: 'ch-diff-total' }, h('b', null, chCount(entries.length, 'file')), h('span', { class: 'ch-bar-num' }, `+${totals.add} −${totals.del}`)),
+    h('ul', { class: 'ch-legend', 'aria-label': 'Files by status' }, counts.map(([key, n]) => h('li', null, chStatusMark(key), `${n} ${CH_STATUS_LABELS[key].toLowerCase()}`))),
+    h('p', { class: 'ch-legend ch-legend-bars', 'aria-hidden': 'true' }, h('span', null, h('i', { class: 'ch-swatch is-add' }), 'Added lines'), h('span', null, h('i', { class: 'ch-swatch is-del' }), 'Removed lines')));
+
+  select(null, { link: false });
+  mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-split' },
+    h('div', { class: 'panel ch-diff' }, summary, h('div', { class: 'ch-file-list', role: 'group', 'aria-label': 'Changed files' }, rows)),
+    detail)));
+  rows.forEach((row, i) => riseIn(row, Math.min(i, 8) * 30));
+  return {
+    open(parts = []) {
+      if (!parts.length) return null;
+      const want = parts.join('/');
+      const index = entries.findIndex((e) => e.path === want);
+      return index >= 0 ? select(index, { link: false }) : null;
+    },
+  };
+}
+
+// ---- chapters/options.js ----
+// Chapter: options. A comparison matrix: one column per option, rows for
+// summary, pros, cons and why, the chosen column marked. A score strip on
+// top draws pros and cons as marks; on phones it picks the one column shown.
+// Deep link: #options/<index> (from 0).
+
+function chMarks(count, cls) {
+  return h('span', { class: `ch-marks ${cls}`, 'aria-hidden': 'true' }, Array.from({ length: Math.min(count, 5) }, () => h('i')));
+}
+
+/**
+ * @param {object} data explainer data (reads data.options, data.meta.status)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: (parts: string[]) => Element|null }|null}
+ */
+function chRenderOptions(data, mount) {
+  const options = list(data.options).filter((o) => o && typeof o === 'object');
+  if (!options.length) {
+    mount.append(h('p', { class: 'empty' }, 'No options listed.'));
+    return null;
+  }
+  const status = text(data.meta && data.meta.status);
+  const chosen = options.findIndex((o) => o.chosen === true);
+  let selected = chosen >= 0 ? chosen : 0;
+
+  const strip = options.map((option, i) => {
+    const pros = list(option.pros).length;
+    const cons = list(option.cons).length;
+    return h('button', {
+      class: `ch-score${option.chosen === true ? ' is-chosen' : ''}`, type: 'button', 'aria-pressed': 'false',
+      'aria-label': `${text(option.title)}: ${chCount(pros, 'pro')}, ${chCount(cons, 'con')}${option.chosen === true ? ', chosen' : ''}`,
+      onclick: () => select(i),
+    },
+    h('span', { class: 'ch-score-title' }, softBreaks(text(option.title, `Option ${i + 1}`))),
+    h('span', { class: 'ch-score-marks' }, chMarks(pros, 'is-pro'), h('span', { class: 'ch-score-axis' }), chMarks(cons, 'is-con')),
+    option.chosen === true && h('span', { class: 'ch-chosen' }, 'Chosen'));
+  });
+  chRoving(strip, { axis: 'y', onMove: (i) => select(i) });
+
+  const section = (label, body) => h('div', { class: 'ch-opt-cell' }, h('p', { class: 'detail-label' }, label), body);
+  const columns = options.map((option, i) => h('article', {
+    class: `ch-opt-col${option.chosen === true ? ' is-chosen' : ''}`, 'aria-label': text(option.title, `Option ${i + 1}`),
+  },
+  h('header', { class: 'ch-opt-head' },
+    h('span', { class: 'step-count' }, `Option ${i + 1}`),
+    h('h3', null, softBreaks(text(option.title))),
+    option.chosen === true && h('span', { class: 'ch-chosen' }, 'Chosen')),
+  section('In short', h('p', null, softBreaks(text(option.summary)))),
+  section(`Pros · ${list(option.pros).length}`, chMarkedList(option.pros, 'is-pro', 'Pros') || h('p', { class: 'ch-ctx-none' }, 'None listed.')),
+  section(`Cons · ${list(option.cons).length}`, chMarkedList(option.cons, 'is-con', 'Cons') || h('p', { class: 'ch-ctx-none' }, 'None listed.')),
+  h('div', { class: 'ch-opt-cell' }, text(option.why) && [h('p', { class: 'detail-label' }, 'Why this one'), h('p', null, softBreaks(option.why))],
+    safeUrl(option.url) && h('a', { class: 'link', href: safeUrl(option.url), rel: 'noopener noreferrer', target: '_blank' }, 'Read more'))));
+
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(strip, index);
+    columns.forEach((col, i) => col.classList.toggle('is-selected', i === index));
+    if (link) setDeepLink(`options/${index}`);
+    return columns[index];
+  }
+
+  const decision = chosen >= 0
+    ? h('p', { class: 'ch-decision' }, h('span', { class: 'ch-chosen' }, 'Chosen'), softBreaks(text(options[chosen].title)))
+    : h('p', { class: 'ch-decision' }, chStatusWord(status || 'proposed'), 'No option is chosen yet.');
+
+  mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-options' },
+    h('div', { class: 'panel ch-strip' },
+      h('div', { class: 'ch-strip-head' }, decision,
+        h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, h('span', null, chMarks(1, 'is-pro'), 'Pro'), h('span', null, chMarks(1, 'is-con'), 'Con'))),
+      h('div', { class: 'ch-strip-rows', role: 'group', 'aria-label': 'Options' }, strip)),
+    h('div', { class: 'ch-matrix', style: `--opts:${options.length}` }, columns))));
+  select(selected, { link: false });
+  return {
+    open([raw] = []) {
+      const index = chIndexPart(raw, options.length);
+      return index === null ? null : select(index, { link: false });
+    },
+  };
+}
+
+// ---- chapters/risks.js ----
+// Chapter: risks. An impact grid: high, medium and low rows, each risk a
+// card in its row. Picking one shows its mitigation and owner.
+// Deep link: #risks/<index> (from 0, in data order).
+
+const CH_IMPACTS = [['high', 'High', 3], ['medium', 'Medium', 2], ['low', 'Low', 1]];
+
+function chImpactMeter(level) {
+  return h('span', { class: 'ch-meter', 'aria-hidden': 'true' }, [1, 2, 3].map((n) => h('i', { class: n <= level ? 'is-on' : '' })));
+}
+
+/**
+ * @param {object} data explainer data (reads data.risks)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: (parts: string[]) => Element|null }|null}
+ */
+function chRenderRisks(data, mount) {
+  const risks = list(data.risks).filter((r) => r && typeof r === 'object');
+  if (!risks.length) {
+    mount.append(h('p', { class: 'empty' }, 'No risks listed.'));
+    return null;
+  }
+  const impactOf = (risk) => (CH_IMPACTS.some(([key]) => key === risk.impact) ? risk.impact : 'medium');
+  const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
+  const cards = new Map();
+  let selected = null;
+
+  // Visual order: high first; the deep-link index stays the data index.
+  const order = CH_IMPACTS.flatMap(([key]) => risks.map((risk, i) => [risk, i]).filter(([risk]) => impactOf(risk) === key).map(([, i]) => i));
+  order.forEach((i) => {
+    const risk = risks[i];
+    cards.set(i, h('button', {
+      class: 'ch-risk', type: 'button', 'aria-pressed': 'false', onclick: () => select(selected === i ? null : i),
+    }, h('span', { class: 'ch-risk-text' }, softBreaks(text(risk.risk))), text(risk.owner) && h('span', { class: 'ch-risk-owner' }, softBreaks(risk.owner))));
+  });
+  const buttons = order.map((i) => cards.get(i));
+  chRoving(buttons, { onMove: (k) => select(order[k]) });
+
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(buttons, index === null ? null : order.indexOf(index));
+    renderDetail();
+    if (link) setDeepLink(index === null ? 'risks' : `risks/${index}`);
+    return index === null ? null : cards.get(index);
+  }
+
+  function renderDetail() {
+    if (selected === null) {
+      fill(detail, chEmptyDetail('Pick a risk', 'Risks sit in rows by impact, the worst at the top. Each one shows how it is handled.'));
+      return;
+    }
+    const risk = risks[selected];
+    const [, label, level] = CH_IMPACTS.find(([key]) => key === impactOf(risk));
+    const at = order.indexOf(selected);
+    fill(detail,
+      h('div', { class: 'step-top' }, h('span', { class: 'ch-impact' }, chImpactMeter(level), `${label} impact`)),
+      h('h3', null, softBreaks(text(risk.risk))),
+      h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'How it is handled'), h('p', null, softBreaks(text(risk.mitigation, 'No mitigation recorded.')))),
+      text(risk.owner) && h('p', { class: 'ch-owner' }, h('span', { class: 'detail-label' }, 'Owner'), softBreaks(risk.owner)),
+      chStepper(at, order.length, (k) => { select(order[k]); buttons[k].focus(); }, 'risk'));
+  }
+
+  const grid = h('div', { class: 'panel ch-impact-grid', role: 'group', 'aria-label': 'Risks by impact' }, CH_IMPACTS.map(([key, label, level]) => {
+    const inRow = order.filter((i) => impactOf(risks[i]) === key);
+    return h('div', { class: `ch-impact-row is-${key}` },
+      h('div', { class: 'ch-impact-head' }, chImpactMeter(level), h('span', { class: 'ch-impact-name' }, label), h('span', { class: 'ch-impact-count' }, String(inRow.length))),
+      h('div', { class: 'ch-impact-cells' }, inRow.length ? inRow.map((i) => cards.get(i)) : h('span', { class: 'ch-ctx-none' }, 'None')));
+  }));
+  select(null, { link: false });
+  mount.append(h('div', { class: 'ch-cq' }, h('div', { class: 'ch-split' }, grid, detail)));
+  buttons.forEach((card, k) => riseIn(card, Math.min(k, 8) * 30));
+  return {
+    open([raw] = []) {
+      const index = chIndexPart(raw, risks.length);
+      return index === null ? null : select(index, { link: false });
+    },
+  };
+}
+
+// ---- chapters/rollout.js ----
+// Chapter: rollout. A stepped track: done steps filled, the next step ringed,
+// the rest hollow. Across when the steps fit, down otherwise.
+// Deep link: #rollout/<index> (from 0).
+
+const CH_TRACK_STEP = 132;
+
+/**
+ * @param {object} data explainer data (reads data.rollout)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: (parts: string[]) => Element|null }|null}
+ */
+function chRenderRollout(data, mount) {
+  const steps = list(data.rollout).filter((st) => st && typeof st === 'object');
+  if (!steps.length) {
+    mount.append(h('p', { class: 'empty' }, 'No rollout steps listed.'));
+    return null;
+  }
+  const done = steps.filter((st) => st.done === true).length;
+  const next = steps.findIndex((st) => st.done !== true);
+  const stateOf = (i) => (steps[i].done === true ? 'done' : i === next ? 'next' : 'todo');
+  const stateWord = { done: 'Done', next: 'Next up', todo: 'Not started' };
+  const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
+  let selected = null;
+
+  const buttons = steps.map((step, i) => h('button', {
+    class: `ch-step is-${stateOf(i)}`, type: 'button', 'aria-pressed': 'false',
+    'aria-label': `Step ${i + 1}: ${text(step.label)}, ${stateWord[stateOf(i)]}`,
+    onclick: () => select(selected === i ? null : i),
+  },
+  h('span', { class: 'ch-step-node', 'aria-hidden': 'true' }, stateOf(i) === 'done' ? '✓' : String(i + 1)),
+  h('span', { class: 'ch-step-text' },
+    h('span', { class: 'ch-step-state' }, stateWord[stateOf(i)]),
+    h('span', { class: 'ch-step-label' }, softBreaks(text(step.label))))));
+  const track = h('ol', { class: 'ch-track', style: `--steps:${steps.length}` }, buttons.map((b, i) => h('li', { class: `is-${stateOf(i)}` }, b)));
+  chRoving(buttons, { onMove: (i) => select(i) });
+
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(buttons, index);
+    renderDetail();
+    if (link) setDeepLink(index === null ? 'rollout' : `rollout/${index}`);
+    return index === null ? null : buttons[index];
+  }
+
+  function renderDetail() {
+    if (selected === null) {
+      fill(detail, chEmptyDetail(next >= 0 ? `Next: ${text(steps[next].label)}` : 'Every step is done', 'Pick a step on the track to see what it involves and how to run it.'));
+      return;
+    }
+    const step = steps[selected];
+    const state = stateOf(selected);
+    fill(detail,
+      h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Step ${selected + 1} of ${steps.length}`),
+        h('span', { class: `ch-state${state === 'done' ? ' is-settled' : ''}${state === 'next' ? ' is-next' : ''}` }, h('span', { class: 'ch-state-mark', 'aria-hidden': 'true' }), stateWord[state])),
+      h('h3', null, softBreaks(text(step.label))),
+      text(step.detail) && h('p', null, softBreaks(step.detail)),
+      text(step.command) && chCommand(step.command),
+      chStepper(selected, steps.length, (i) => { select(i); buttons[i].focus(); }, 'step'));
+  }
+
+  const progress = h('div', { class: 'ch-progress' },
+    h('p', null, h('b', null, `${done} of ${steps.length}`), ' steps done'),
+    h('div', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `--share:${done / steps.length}` })));
+  const panel = h('div', { class: 'panel ch-track-panel' }, progress, track);
+  // Across only when every step gets CH_TRACK_STEP pixels.
+  chOnWidth(panel, (width) => track.classList.toggle('is-across', width - 48 >= steps.length * CH_TRACK_STEP));
+  select(null, { link: false });
+  mount.append(h('div', { class: 'ch-stack' }, panel, detail));
+  buttons.forEach((b, i) => riseIn(b, Math.min(i, 8) * 40));
+  return {
+    open([raw] = []) {
+      const index = chIndexPart(raw, steps.length);
+      return index === null ? null : select(index, { link: false });
+    },
+  };
+}
+
+// ---- chapters/timeline.js ----
+// Chapter: timeline (incidents). A time axis with one marker per event,
+// shaped by kind: detect, act, fix, learn. Across when the events fit,
+// down on phones. Events are evenly spaced in record order: `at` is the time
+// as written in the record, so it is shown, never parsed.
+// Deep link: #timeline/<index> (from 0).
+
+const CH_EVENT_KINDS = {
+  detect: { label: 'Detect', shape: () => s('circle', { cx: 7, cy: 7, r: 5 }) },
+  act: { label: 'Act', shape: () => s('rect', { x: 2.5, y: 2.5, width: 9, height: 9 }) },
+  fix: { label: 'Fix', shape: () => s('path', { d: 'M7 1.5 L12.5 7 L7 12.5 L1.5 7 Z' }) },
+  learn: { label: 'Learn', shape: () => s('path', { d: 'M7 2 L12.5 12 H1.5 Z' }) },
+};
+const CH_EVENT_SLOT = 84;
+
+function chEventMark(kind) {
+  const entry = CH_EVENT_KINDS[kind];
+  return s('svg', { class: `ch-event-mark is-${entry ? kind : 'none'}`, viewBox: '0 0 14 14', width: 14, height: 14, 'aria-hidden': 'true' },
+    entry ? entry.shape() : s('circle', { cx: 7, cy: 7, r: 3 }));
+}
+
+/**
+ * @param {object} data explainer data (reads data.timeline)
+ * @param {HTMLElement} mount the chapter body
+ * @returns {{ open: (parts: string[]) => Element|null }|null}
+ */
+function chRenderTimeline(data, mount) {
+  const events = list(data.timeline).filter((ev) => ev && typeof ev === 'object');
+  if (!events.length) {
+    mount.append(h('p', { class: 'empty' }, 'No events recorded.'));
+    return null;
+  }
+  const detail = h('aside', { class: 'panel ch-detail', 'aria-live': 'polite' });
+  let selected = null;
+
+  const buttons = events.map((ev, i) => h('button', {
+    class: 'ch-event', type: 'button', 'aria-pressed': 'false',
+    'aria-label': `${text(ev.at)}: ${text(ev.label)}${CH_EVENT_KINDS[ev.kind] ? `, ${CH_EVENT_KINDS[ev.kind].label}` : ''}`,
+    onclick: () => select(selected === i ? null : i),
+  },
+  h('span', { class: 'ch-event-dot' }, chEventMark(ev.kind)),
+  h('span', { class: 'ch-event-text' },
+    h('span', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
+    truncatable(h('span', { class: 'ch-event-label' }, softBreaks(text(ev.label))), text(ev.label)))));
+  const axis = h('ol', { class: 'ch-axis', style: `--events:${events.length}` }, buttons.map((b, i) => h('li', { class: i % 2 ? 'is-low' : 'is-high' }, b)));
+  chRoving(buttons, { onMove: (i) => select(i) });
+
+  function select(index, { link = true } = {}) {
+    selected = index;
+    chMarkCurrent(buttons, index);
+    renderDetail();
+    if (link) setDeepLink(index === null ? 'timeline' : `timeline/${index}`);
+    return index === null ? null : buttons[index];
+  }
+
+  function renderDetail() {
+    if (selected === null) {
+      fill(detail, chEmptyDetail('Pick an event', 'Events run in the order of the record. The marker shape says what kind of moment it was.'));
+      return;
+    }
+    const ev = events[selected];
+    const kind = CH_EVENT_KINDS[ev.kind];
+    fill(detail,
+      h('div', { class: 'step-top' }, h('span', { class: 'step-count' }, `Event ${selected + 1} of ${events.length}`),
+        kind && h('span', { class: 'ch-impact' }, chEventMark(ev.kind), kind.label)),
+      h('p', { class: 'ch-event-at' }, softBreaks(text(ev.at))),
+      h('h3', null, softBreaks(text(ev.label))),
+      text(ev.detail) && h('p', null, softBreaks(ev.detail)),
+      chStepper(selected, events.length, (i) => { select(i); buttons[i].focus(); }, 'event'));
+  }
+
+  const used = Object.keys(CH_EVENT_KINDS).filter((k) => events.some((ev) => ev.kind === k));
+  const panel = h('div', { class: 'panel ch-timeline' },
+    used.length > 0 && h('p', { class: 'ch-legend', 'aria-hidden': 'true' }, used.map((k) => h('span', null, chEventMark(k), CH_EVENT_KINDS[k].label))),
+    axis);
+  chOnWidth(panel, (width) => axis.classList.toggle('is-across', width - 48 >= events.length * CH_EVENT_SLOT));
+  select(null, { link: false });
+  mount.append(h('div', { class: 'ch-stack' }, panel, detail));
+  buttons.forEach((b, i) => riseIn(b, Math.min(i, 10) * 30));
+  return {
+    open([raw] = []) {
+      const index = chIndexPart(raw, events.length);
+      return index === null ? null : select(index, { link: false });
+    },
+  };
+}
+
+// ---- chapters/hooks.js ----
+// Helpers the existing chapters call for v2 data: node status markers on the
+// map, before/after flow pairs, and concept parts with a concept visual.
+// Each returns an element (or null when the data has nothing to show), so a
+// caller can drop it into an h() children list as is.
+
+// ---------- Map: node status (added, changed, removed, unchanged) ----------
+const CH_NODE_STATUSES = ['added', 'changed', 'removed'];
+
+/** The small marker for a map node with a status; null for unchanged or none. */
+function chNodeStatus(node) {
+  const status = node && node.status;
+  if (!CH_NODE_STATUSES.includes(status)) return null;
+  return h('span', { class: `ch-node-status is-${status}` }, chStatusMark(status), h('span', { class: 'sr-only' }, `, ${CH_STATUS_LABELS[status].toLowerCase()}`));
+}
+
+/** Attributes for a node button: data-status drives the ring (dashed when removed). */
+function chNodeStatusAttrs(node) {
+  const status = node && node.status;
+  return CH_NODE_STATUSES.includes(status) ? { 'data-status': status } : {};
+}
+
+/** The status line for the map detail panel. */
+function chNodeStatusTag(node) {
+  const status = node && node.status;
+  return CH_NODE_STATUSES.includes(status) || status === 'unchanged' ? chStatusTag(status) : null;
+}
+
+/** Legend entries for the statuses the map uses, or null when none. */
+function chStatusLegend(nodes) {
+  const used = CH_NODE_STATUSES.filter((status) => list(nodes).some((n) => n && n.status === status));
+  if (!used.length) return null;
+  return used.map((status) => h('span', { class: 'ch-legend-status' }, chStatusMark(status), CH_STATUS_LABELS[status]));
+}
+
+// ---------- Flows: before/after pairs ----------
+
+/** The before and after flows sharing this flow's pair id, or null. */
+function chFlowPair(flows, flow) {
+  if (!flow || typeof flow.pair !== 'string' || !flow.pair) return null;
+  const same = list(flows).filter((f) => f && f.pair === flow.pair);
+  const before = same.find((f) => f.variant === 'before') || null;
+  const after = same.find((f) => f.variant === 'after') || null;
+  return before && after ? { pair: flow.pair, before, after } : null;
+}
+
+/** Flows grouped for a picker: a pair becomes one entry { pair, before, after }; others { flow }. */
+function chFlowGroups(flows) {
+  const seen = new Set();
+  return list(flows).flatMap((flow) => {
+    const pair = chFlowPair(flows, flow);
+    if (!pair) return [{ flow }];
+    if (seen.has(pair.pair)) return [];
+    seen.add(pair.pair);
+    return [pair];
+  });
+}
+
+/** "Before" or "After" as a small tag for a flow with a variant, else null. */
+function chVariantTag(flow) {
+  if (!flow || (flow.variant !== 'before' && flow.variant !== 'after')) return null;
+  return tag(flow.variant === 'before' ? 'Before' : 'After', `ch-variant is-${flow.variant}`);
+}
+
+/**
+ * A Before | After switch for a pair (uses the .seg control from diagrams.css).
+ * onPick(flowId) is called with the picked flow's id.
+ */
+function chPairSwitch(pair, currentId, onPick) {
+  if (!pair) return null;
+  const sides = [['Before', pair.before], ['After', pair.after]];
+  const buttons = sides.map(([label, flow]) => h('button', {
+    class: 'seg-option', type: 'button', 'aria-pressed': String(flow.id === currentId), onclick: () => onPick(flow.id),
+  }, label));
+  chRoving(buttons, { axis: 'x', onMove: (i) => onPick(sides[i][1].id) });
+  buttons.forEach((b, i) => { b.tabIndex = sides[i][1].id === currentId ? 0 : -1; });
+  return h('div', { class: 'seg ch-pair-switch', role: 'group', 'aria-label': 'Before or after' }, buttons);
+}
+
+function chFlowActors(flow) {
+  return [...new Set(list(flow && flow.steps).flatMap((st) => [st.from, st.to]))];
+}
+
+/**
+ * Before and after side by side: each flow's hops in order, with the parts
+ * only one side uses marked + (new) or − (gone).
+ * @param {{ before: object, after: object }} pair from chFlowPair
+ * @param {Map<string, object>} nodeIndex byId(data.nodes)
+ * @param {(flowId: string, step: number) => void} [onOpen] called with a flow id and a 1-based step
+ */
+function chPairCompare(pair, nodeIndex, onOpen) {
+  if (!pair) return null;
+  const actors = { before: new Set(chFlowActors(pair.before)), after: new Set(chFlowActors(pair.after)) };
+  const name = (id) => text(nodeIndex && nodeIndex.get(id) && nodeIndex.get(id).label, String(id));
+  const side = (key, label) => {
+    const flow = pair[key];
+    const other = actors[key === 'before' ? 'after' : 'before'];
+    const only = [...actors[key]].filter((id) => !other.has(id));
+    return h('section', { class: `ch-pair-side is-${key}`, 'aria-label': `${label}: ${text(flow.title)}` },
+      h('p', { class: 'eyebrow quiet' }, label, h('span', { class: 'ch-pair-count' }, chCount(list(flow.steps).length, 'step'))),
+      h('p', { class: 'ch-pair-title' }, softBreaks(text(flow.title))),
+      only.length > 0 && h('p', { class: 'ch-pair-only' }, only.map((id) => h('span', { class: 'ch-status' }, chStatusMark(key === 'after' ? 'added' : 'removed'), softBreaks(name(id))))),
+      h('ol', { class: 'ch-pair-steps' }, list(flow.steps).map((st, i) => h('li', null,
+        h('button', { class: 'ch-pair-step', type: 'button', disabled: !onOpen, onclick: () => onOpen && onOpen(flow.id, i + 1) },
+          h('span', { class: 'ch-pair-n' }, String(i + 1)),
+          h('span', { class: 'ch-pair-hop' },
+            h('span', { class: 'ch-pair-route' }, softBreaks(name(st.from)), st.from !== st.to && [' → ', softBreaks(name(st.to))]),
+            h('span', { class: 'ch-pair-label' }, softBreaks(text(st.label)))))))));
+  };
+  return h('div', { class: 'ch-cq' }, h('div', { class: 'ch-pair' }, side('before', 'Before'), h('div', { class: 'ch-pair-arrow', 'aria-hidden': 'true' }), side('after', 'After')));
+}
+
+// ---------- Concepts: parts and a visual ----------
+
+/**
+ * A concept broken into parts: a chain of named pieces, each selectable,
+ * with its detail beside the chain. Returns null without parts.
+ */
+function chConceptParts(concept) {
+  const parts = list(concept && concept.parts).filter((p) => p && typeof p === 'object' && text(p.label));
+  if (!parts.length) return null;
+  const detail = h('div', { class: 'ch-parts-detail', 'aria-live': 'polite' });
+  let selected = null;
+  const buttons = parts.map((part, i) => h('button', {
+    class: 'ch-part', type: 'button', 'aria-pressed': 'false', onclick: () => select(selected === i ? null : i),
+  }, h('span', { class: 'ch-part-n', 'aria-hidden': 'true' }, String(i + 1)), h('span', { class: 'ch-part-label' }, softBreaks(part.label))));
+  chRoving(buttons, { onMove: (i) => select(i) });
+
+  function select(index) {
+    selected = index;
+    chMarkCurrent(buttons, index);
+    if (index === null) {
+      fill(detail, h('p', { class: 'ch-parts-tip' }, `${chCount(parts.length, 'part')}. Pick one to see what it does.`));
+      return;
+    }
+    const part = parts[index];
+    fill(detail, h('p', { class: 'eyebrow quiet' }, `Part ${index + 1} of ${parts.length}`),
+      h('p', { class: 'ch-parts-label' }, softBreaks(part.label)),
+      text(part.detail) && h('p', null, softBreaks(part.detail)));
+  }
+  select(null);
+  return h('div', { class: 'ch-parts' },
+    h('ol', { class: 'ch-part-chain', 'aria-label': 'Parts' }, buttons.map((b) => h('li', null, b))),
+    detail);
+}
+
+/** The concept's visual (one of the nine kinds) with its own detail panel, or null. */
+function chConceptVisual(concept) {
+  const visual = concept && concept.visual;
+  if (!visual || typeof visual !== 'object' || !vizDrawer(visual.kind)) return null;
+  return vizFigure(visual, { title: visual.title, caption: visual.caption, headingLevel: 'h4', compact: true }).root;
+}
+
+/** Both, in teaching order: the parts first, then the picture that joins them. */
+function chConceptExtras(concept) {
+  const parts = chConceptParts(concept);
+  const visual = chConceptVisual(concept);
+  if (!parts && !visual) return null;
+  return h('div', { class: 'ch-concept-extras' }, parts, visual);
 }
 
 // ---- picker.js ----

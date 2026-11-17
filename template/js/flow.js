@@ -69,7 +69,9 @@ function renderFlows(data, mount) {
     h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, softBreaks(f.title))))));
     fill(meta,
       flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, softBreaks(flow.trigger))),
-      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)));
+      flow.summary && h('p', { class: 'flow-summary' }, softBreaks(flow.summary)),
+      chPairSwitch(chFlowPair(flows, flow), flow.id, (id) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: 0, finished: false })),
+      chPairCompare(chFlowPair(flows, flow), nodeIndex, (id, n) => setState({ flowIndex: flows.findIndex((f) => f.id === id), stepIndex: n - 1, finished: false })));
     const diagram = sequenceDiagram(flow, nodeIndex, state.finished ? list(flow.steps).length : state.stepIndex, go, bodyWrap.clientWidth);
     fill(headsWrap, diagram.heads);
     fill(bodyWrap, diagram.body);

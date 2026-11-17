@@ -2,6 +2,13 @@
 // shell (sidebar, phone bar, menu sheet) and show one view per hash.
 const DESIGN_CREDIT = 'Lesson pacing inspired by Brilliant. Type and greys from Geist by Vercel. Not affiliated with either.';
 const CHAPTERS = [
+  { key: 'context', nav: 'Context', title: 'Why this exists', lead: 'The problem first, then what this aims for and what it leaves out.', count: (d) => list(d.context && d.context.goals).length, unit: 'goals', has: (d) => Boolean(d.context && d.context.problem), render: chRenderContext },
+  { key: 'diff', nav: 'Files changed', title: 'What the change touches', lead: 'Each bar is one file, as long as its changed lines. Pick one to read what changed and which part it belongs to.', count: (d) => list(d.diff).length, unit: 'files', has: (d) => list(d.diff).length > 0, render: chRenderDiff },
+  { key: 'options', nav: 'Options', title: 'The options, side by side', lead: 'Every option on the same rows, pros and cons drawn as marks. The chosen one is marked.', count: (d) => list(d.options).length, unit: 'options', has: (d) => list(d.options).length > 0, render: chRenderOptions },
+  { key: 'risks', nav: 'Risks', title: 'What could go wrong', lead: 'Risks in rows by impact, the worst at the top. Pick one to see how it is handled.', count: (d) => list(d.risks).length, unit: 'risks', has: (d) => list(d.risks).length > 0, render: chRenderRisks },
+  { key: 'rollout', nav: 'Rollout', title: 'How it ships', lead: 'The steps in order. Filled steps are done; the ringed one is next.', count: (d) => list(d.rollout).length, unit: 'steps', has: (d) => list(d.rollout).length > 0, render: chRenderRollout },
+  { key: 'timeline', nav: 'Timeline', title: 'What happened, when', lead: 'Events in the order of the record. The marker shape says what kind of moment it was.', count: (d) => list(d.timeline).length, unit: 'events', has: (d) => list(d.timeline).length > 0, render: chRenderTimeline },
+  { key: 'visuals', nav: 'Diagrams', title: 'The idea, drawn', lead: 'Each diagram answers one question. Pick a part to see what it does.', count: (d) => list(d.diagrams).length, unit: 'diagrams', has: (d) => list(d.diagrams).length > 0, render: chRenderVisuals },
   { key: 'map', nav: 'Architecture', title: 'The big picture', lead: 'Every box is one part of the system. Pick one to see what it does and who it talks to.', count: (d) => list(d.nodes).length, unit: 'parts', has: (d) => list(d.nodes).length > 0, render: renderMap },
   { key: 'flows', nav: 'Flows', title: 'Follow it end to end', lead: 'Pick a flow and press Continue. Each step is one hop, with the exact file that does the work.', count: (d) => list(d.flows).length, unit: 'flows', has: (d) => list(d.flows).length > 0, render: renderFlows },
   { key: 'changes', nav: 'Changes', title: 'What changed, and why', lead: 'Recent merges from people and agents, each with its reason. Show them on the map to see which parts moved.', count: (d) => list(d.changes).length, unit: 'changes', has: (d) => list(d.changes).length > 0, render: renderChanges },
@@ -13,9 +20,24 @@ const CHAPTERS = [
   { key: 'run', nav: 'Run it', title: 'Run it yourself', lead: 'Commands to get it running on your machine.', count: (d) => list(d.runbook).length, unit: 'commands', has: (d) => list(d.runbook).length > 0, render: renderRunbook },
 ];
 
+// Default chapter order per explainer type, copied from presets/types/*.json
+// (and TYPE_RULES.repo); test/type-chapters.test.mjs keeps them in step.
+const TYPE_CHAPTERS = {
+  repo: ['map', 'flows', 'changes', 'tree', 'data', 'concepts', 'quiz', 'glossary', 'run'],
+  pr: ['context', 'diff', 'map', 'flows', 'risks', 'rollout', 'quiz'],
+  change: ['context', 'diff', 'flows', 'risks', 'quiz'],
+  proposal: ['context', 'options', 'map', 'flows', 'risks', 'rollout', 'quiz'],
+  migration: ['context', 'options', 'map', 'flows', 'rollout', 'risks', 'quiz'],
+  incident: ['context', 'timeline', 'flows', 'risks', 'rollout', 'quiz'],
+  concept: ['concepts', 'map', 'flows', 'glossary', 'quiz'],
+};
+
+// meta.chapters wins. Without it, the type's default order comes first and
+// any other chapter that has data follows, so nothing written is hidden.
 function chooseChapters(data) {
   const requested = list(data.meta && data.meta.chapters);
-  const order = requested.length ? requested : CHAPTERS.map((c) => c.key);
+  const typeOrder = TYPE_CHAPTERS[data.meta && data.meta.type] || TYPE_CHAPTERS.repo;
+  const order = requested.length ? requested : [...typeOrder, ...CHAPTERS.map((c) => c.key).filter((key) => !typeOrder.includes(key))];
   return order
     .map((key) => CHAPTERS.find((c) => c.key === key))
     .filter((chapter) => chapter && chapter.has(data))

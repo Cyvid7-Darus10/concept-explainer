@@ -205,5 +205,3 @@ button.trunc-hint:focus-visible { outline-offset: 1px; }
 }
 /* Chrome still breaks at <wbr> under nowrap; single-line holders drop the break points. */
 :is(.facet-text, .tag, .chip-text, .nav-label, .node-tech, .map-col-name, .result-group-title, .side-stamp, .name) wbr { display: none; }
-/* Narrow boxes hyphenate a long word instead of breaking off its last letter. */
-.node-label, .entity-name, .flow-pick-title, .card-title, .next-title { hyphens: auto; -webkit-hyphens: auto; }

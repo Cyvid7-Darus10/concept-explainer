@@ -18,7 +18,8 @@ const stripComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, '').replac
 // Every module, including template/js/chapters/*.js, follows the same rules.
 const jsFiles = readdirSync(jsDir, { recursive: true }).filter((f) => String(f).endsWith('.js')).map(String);
 const jsSource = jsFiles.map((f) => readFileSync(new URL(f, jsDir), 'utf8')).join('\n');
-const js = stripComments(jsSource);
+// Strip per file, so an unusual "/*" in one module cannot swallow the next.
+const js = jsFiles.map((f) => stripComments(readFileSync(new URL(f, jsDir), 'utf8'))).join('\n');
 const cssCode = stripComments(css);
 
 // Geist greys, the one orange (marks, fills, text), quiz right/wrong, and
