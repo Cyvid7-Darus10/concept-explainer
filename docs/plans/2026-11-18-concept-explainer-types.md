@@ -166,3 +166,32 @@ Two groups, clearly labelled:
   directory listing outside the library), Settings saves directly and the hub regenerates.
 - SKILL.md: step 0 runs `config --json` and applies it; `instructions` never override truth rules or
   the never-edit-template rules.
+
+## 7. Export and import (owner request)
+
+Share one explainer, a topic (filter), or the whole library with someone else, who imports it into
+their own library.
+
+- **Bundle format** (`*.explainers.json`): `{ format: "concept-explainer-bundle", version: 1,
+  exportedAt, exportedBy?: null, explainers: [{ slug, data }] }` where `data` is the explainer JSON.
+  Data only: no HTML, no scripts, no config, no local paths (`sourcePath`/`repoPath` are dropped). The
+  importer rebuilds pages with its own template, so a bundle can never inject markup or code.
+- **CLI:** `concept-explainer export [<slug>...] [--type <t>] [--tag <tag>] [--stack <s>] [--search <q>]
+  [--out <file>]` (no selector = whole library; prints what went in). `concept-explainer import <file>
+  [--on-conflict skip|replace|rename] [--dry-run]` (default rename: `-2` suffix; replace only for an
+  entry with the same source). Import treats the file as untrusted: size cap (10 MB), JSON parse
+  errors named, format/version checked, every explainer validated (errors reject that explainer,
+  warnings allowed), slugs re-derived and sanitised, ids/URLs go through the same allowlists, a
+  summary of added / replaced / skipped / rejected with reasons.
+- **Settings > Share** (hub and explainer pages):
+  - Explainer page: "Export this explainer" downloads a one-explainer bundle from its embedded data
+    (works from file://), and "Save as page" downloads the self-contained HTML.
+  - Hub: pick explainers (checkboxes on cards or the current filter: type, tag, stack, search) and
+    export. From file:// the hub has no full data, so it shows the matching `concept-explainer export`
+    command to copy; under `library serve` it downloads the bundle via `GET /api/export?slugs=...`.
+  - Import: under `library serve`, a file picker / drop zone uploads to `POST /api/import` (token +
+    origin checks, size cap, same validation), shows the dry-run summary first, then "Import". From
+    file://, it shows `concept-explainer import <file>` to copy.
+- Tests: round trip (export then import into an empty home gives equal data), conflict modes,
+  malicious bundles (markup in strings stays text, `javascript:` URLs dropped, `../` slugs
+  sanitised, oversize, wrong format, prototype pollution keys like `__proto__` ignored).
