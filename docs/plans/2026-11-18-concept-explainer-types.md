@@ -129,3 +129,40 @@ gave a budget the estimate fits).
   "Proposals", "Migrations", "Incidents", "Concepts") with counts, plus tag and stack filters.
 - Cards show a mono type tag and `status` when present. Search results show the type.
 - Deep link `#type/<type>`.
+
+## 6. Settings (owner request)
+
+Theme controls move out of the sidebar footer into a **Settings** view (sidebar footer keeps one
+"Settings" item with a gear icon; deep link `#settings`), in the hub and in every explainer page.
+Two groups, clearly labelled:
+
+**Reading (this browser only, localStorage in try/catch):** theme (light/dark/system), style
+(clean/playful), motion (system/reduced), text size (default/large), density (comfortable/compact).
+
+**Explainer defaults (the skill reads these, stored in `<home>/config.json`):**
+| key | values | used by |
+|---|---|---|
+| `style` | clean, playful | build default |
+| `defaultType` | auto, repo, pr, change, proposal, migration, incident, concept | skill step 0 (auto = identify) |
+| `audience` | newcomer, engineer, expert | tone, depth, glossary size |
+| `depth` | overview, standard, deep | flows/steps/parts counts |
+| `language` | BCP 47 tag, default `en` | all prose |
+| `visuals` | preferred visual kinds (multi) | skill picks these first |
+| `chapters` | per type: on/off list | which chapters the skill fills |
+| `quiz`, `analogies` | on/off | |
+| `model` | recommended model id for estimates | estimate default |
+| `budgetUsd` | number or null | skip the go-ahead wait when the estimate fits |
+| `confirmBeforeStart` | true/false (default true) | estimate step |
+| `instructions` | free text, at most 2,000 chars | appended guidance for the skill (house style, terms) |
+
+- CLI: `concept-explainer config` (print), `config get <key>`, `config set <key> <value>`,
+  `config reset`, `config --json` (the skill runs this first). Validated with clear errors; unknown
+  keys rejected; `instructions` is plain text, never executed, shown back to the user before use.
+- Saving from the page: a page opened from file:// cannot write files, so Settings shows the
+  current values (embedded at build/rebuild time) and, on change, gives a ready `config set` command
+  to copy plus "Download config.json". When opened through `concept-explainer library serve`
+  (binds 127.0.0.1 only, random port, a random per-run token required on every write via header,
+  Origin/Host checked, JSON body validated with the same schema, no other write endpoints, no
+  directory listing outside the library), Settings saves directly and the hub regenerates.
+- SKILL.md: step 0 runs `config --json` and applies it; `instructions` never override truth rules or
+  the never-edit-template rules.
