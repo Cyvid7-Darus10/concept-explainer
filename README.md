@@ -61,6 +61,13 @@ The agent works out what you gave it, then fills the same format. Your library c
 | `incident` | A post-mortem | A timeline from the record, how the failure flowed, every contributing cause, follow ups |
 | `concept` | An idea like OAuth or CRDTs | The idea broken into 2 to 6 parts, a diagram for each, a worked case, a quiz that tests transfer |
 
+See one of each, built from the files in [`examples/`](examples/):
+
+- [Taskflow, a repo](https://cyvid7-darus10.github.io/repo-explainer/examples/taskflow.html): the map, request flows, the data model and a code walkthrough.
+- [Cursor paging, a PR](https://cyvid7-darus10.github.io/repo-explainer/examples/pr-cursor-paging.html): the diff file by file, the parts that moved, risks and rollout.
+- [Live task updates, a proposal](https://cyvid7-darus10.github.io/repo-explainer/examples/proposal-live-updates.html): options side by side, before and after, the rollout.
+- [Idempotency keys, a concept](https://cyvid7-darus10.github.io/repo-explainer/examples/concept-idempotency-keys.html): the idea in parts, a diagram for each, a transfer quiz.
+
 ## Show it, don't tell it
 
 Every chapter is a picture first and text second.
