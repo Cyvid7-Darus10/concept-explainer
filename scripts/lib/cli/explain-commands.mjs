@@ -10,7 +10,7 @@ import { collectDiff, mergeDiff } from '../diff.mjs';
 import {
   createStarter, createTypedStarter, listPatterns, listPresets, listTypePresets,
 } from '../init.mjs';
-import { exportIcons, exportLogos } from '../assets.mjs';
+import { exportAllSvgs } from '../assets.mjs';
 import { PRICING, estimateRun, formatEstimate, sizeOf } from '../estimate.mjs';
 import { measureDiff, measureSource } from '../estimate-input.mjs';
 import { readConfig, resolveHome } from '../library.mjs';
@@ -165,7 +165,6 @@ export const EXPLAIN_COMMANDS = {
 
   assets(_positionals, opts) {
     const out = opts.out || 'concept-explainer-assets';
-    exportIcons().forEach(({ name, svg }) => writeFile(join(out, 'icons', `${name}.svg`), svg));
-    exportLogos().forEach(({ name, svg }) => writeFile(join(out, 'logo', `${name}.svg`), svg));
+    exportAllSvgs().forEach(({ path, svg }) => writeFile(join(out, path), svg));
   },
 };

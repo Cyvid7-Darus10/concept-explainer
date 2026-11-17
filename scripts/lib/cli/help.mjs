@@ -17,7 +17,7 @@ Look things up
   concept-explainer presets                            Repo presets and one preset per type
   concept-explainer patterns [id]                      Reusable flow patterns, or print one
   concept-explainer gallery [--out file]               The kit page: icons, visuals, components, patterns
-  concept-explainer assets [--out dir]                 Export logo and icon SVGs
+  concept-explainer assets [--out dir]                 Export the logo, icon and launcher icon SVGs
 
 Library (home: $CONCEPT_EXPLAINER_HOME, else ~/.concept-explainer)
   library [list]                   List published explainers
