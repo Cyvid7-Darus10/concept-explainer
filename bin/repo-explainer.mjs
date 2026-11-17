@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { execFileSync } from 'node:child_process';
+import { openPath } from '../scripts/lib/open.mjs';
 import { buildExplainer, buildGallery } from '../scripts/lib/build.mjs';
 import { NODE_KINDS } from '../scripts/lib/schema.mjs';
 import { validateExplainer } from '../scripts/lib/validate.mjs';
@@ -97,11 +97,6 @@ function report({ errors, warnings }, strict) {
   const failed = errors.length > 0 || (strict && warnings.length > 0);
   process.stderr.write(`${failed ? '✖' : '✔'} ${errors.length} error(s), ${warnings.length} warning(s)\n`);
   return !failed;
-}
-
-function openPath(path) {
-  if (process.platform === 'win32') execFileSync('cmd', ['/c', 'start', '', path]);
-  else execFileSync(process.platform === 'darwin' ? 'open' : 'xdg-open', [path]);
 }
 
 function publish(data, file, opts) {
