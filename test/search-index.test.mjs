@@ -1,0 +1,104 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { buildSearchIndex, explainerHref, SEARCH_TYPES, TEXT_LIMIT } from '../scripts/lib/search-index.mjs';
+
+const example = JSON.parse(readFileSync(new URL('../examples/taskflow.explainer.json', import.meta.url), 'utf8'));
+const index = buildSearchIndex('acme-taskflow', example);
+const ofType = (type) => index.filter((entry) => entry.type === type);
+const PAGE = 'explainers/acme-taskflow/index.html';
+
+test('explainerHref points at the page inside the library, relative to the hub', () => {
+  assert.equal(explainerHref('acme-taskflow'), PAGE);
+  assert.equal(explainerHref('acme-taskflow', 'flows/create-task/3'), `${PAGE}#flows/create-task/3`);
+});
+
+test('every entry has the documented shape and a known type', () => {
+  assert.ok(index.length > 20);
+  index.forEach((entry) => {
+    assert.deepEqual(Object.keys(entry).filter((k) => !['date', 'kind', 'authorType'].includes(k)).sort(), ['href', 'slug', 'text', 'title', 'type']);
+    assert.equal(entry.slug, 'acme-taskflow');
+    assert.ok(SEARCH_TYPES.includes(entry.type), entry.type);
+    assert.ok(entry.href.startsWith(PAGE), entry.href);
+    assert.equal(typeof entry.title, 'string');
+    assert.ok(entry.text.length <= TEXT_LIMIT);
+  });
+});
+
+test('the explainer itself is one entry that opens the overview', () => {
+  const [entry] = ofType('explainer');
+  assert.equal(ofType('explainer').length, 1);
+  assert.equal(entry.title, example.meta.title);
+  assert.equal(entry.href, PAGE);
+});
+
+test('hrefs follow the deep-link contract for every type', () => {
+  const first = (type) => ofType(type)[0];
+  assert.equal(first('node').href, `${PAGE}#map/${example.nodes[0].id}`);
+  assert.equal(first('flow').href, `${PAGE}#flows/${example.flows[0].id}`);
+  assert.equal(first('step').href, `${PAGE}#flows/${example.flows[0].id}/1`);
+  assert.equal(first('change').href, `${PAGE}#changes/${example.changes[0].id}`);
+  assert.equal(first('entity').href, `${PAGE}#data/${encodeURIComponent(example.dataModel[0].name)}`);
+  assert.equal(first('concept').href, `${PAGE}#concepts/0`);
+  assert.equal(first('glossary').href, `${PAGE}#glossary/${encodeURIComponent(example.glossary[0].term)}`);
+  assert.equal(first('file').href, `${PAGE}#tree/${encodeURIComponent(example.tree[0].path)}`);
+  assert.equal(first('run').href, `${PAGE}#run`);
+});
+
+test('steps are numbered from 1 within their flow', () => {
+  const flow = example.flows[1];
+  const steps = ofType('step').filter((e) => e.href.includes(`#flows/${flow.id}/`));
+  assert.equal(steps.length, flow.steps.length);
+  assert.equal(steps.at(-1).href, `${PAGE}#flows/${flow.id}/${flow.steps.length}`);
+});
+
+test('counts match the data, one entry per item', () => {
+  assert.equal(ofType('node').length, example.nodes.length);
+  assert.equal(ofType('flow').length, example.flows.length);
+  assert.equal(ofType('change').length, example.changes.length);
+  assert.equal(ofType('concept').length, example.concepts.length);
+  assert.equal(ofType('file').length, example.tree.length);
+  assert.equal(ofType('run').length, example.runbook.length);
+});
+
+test('change entries carry date, kind and authorType for a merged timeline', () => {
+  const entry = ofType('change')[0];
+  assert.equal(entry.date, example.changes[0].date);
+  assert.equal(entry.authorType, example.changes[0].authorType);
+  assert.equal(entry.kind, example.changes[0].kind);
+});
+
+test('ids with spaces, slashes and hashes are URI-encoded as one segment', () => {
+  const data = {
+    meta: { title: 'X', summary: 'y' },
+    tree: [{ path: 'src/a b/#x.js', note: 'n' }],
+    glossary: [{ term: 'A/B test', definition: 'd' }],
+  };
+  const hrefs = buildSearchIndex('x', data).map((e) => e.href);
+  assert.ok(hrefs.includes('explainers/x/index.html#tree/src%2Fa%20b%2F%23x.js'));
+  assert.ok(hrefs.includes('explainers/x/index.html#glossary/A%2FB%20test'));
+});
+
+test('long text is clipped and whitespace collapsed', () => {
+  const data = { meta: { title: 'X', summary: `a\n\n  b ${'word '.repeat(200)}` } };
+  const [entry] = buildSearchIndex('x', data);
+  assert.ok(entry.text.length <= TEXT_LIMIT);
+  assert.ok(entry.text.startsWith('a b word'));
+  assert.ok(entry.text.endsWith('…'));
+});
+
+test('duplicates collapse and items missing their id are skipped', () => {
+  const data = {
+    meta: { title: 'X', summary: 'y' },
+    nodes: [{ id: 'api', label: 'API' }, { id: 'api', label: 'API' }, { label: 'no id' }],
+    flows: [{ title: 'no id', steps: [{ label: 'a' }] }],
+    glossary: [{ term: 'Same', definition: 'd' }, { term: 'Same', definition: 'd' }],
+  };
+  const types = buildSearchIndex('x', data).map((e) => e.type);
+  assert.deepEqual(types, ['explainer', 'node', 'glossary']);
+});
+
+test('malformed data never throws', () => {
+  assert.deepEqual(buildSearchIndex('x', {}).map((e) => e.type), ['explainer']);
+  assert.doesNotThrow(() => buildSearchIndex('x', { meta: null, nodes: 'nope', flows: [null, { id: 'f', steps: null }] }));
+});

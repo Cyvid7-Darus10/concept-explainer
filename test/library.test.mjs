@@ -1,0 +1,161 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { tmpdir, homedir } from 'node:os';
+import { join } from 'node:path';
+import {
+  resolveHome, libraryPaths, readManifest, publishExplainer, removeExplainer, rebuildLibrary, listExplainers, ensureHub,
+} from '../scripts/lib/library.mjs';
+
+const example = JSON.parse(readFileSync(new URL('../examples/taskflow.explainer.json', import.meta.url), 'utf8'));
+const tempHome = () => mkdtempSync(join(tmpdir(), 'rx-lib-'));
+const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
+
+function embedded(html, id) {
+  const match = html.match(new RegExp(`<script type="application/json" id="${id}">([\\s\\S]*?)</script>`));
+  assert.ok(match, `${id} script tag present`);
+  return JSON.parse(match[1]);
+}
+
+test('home comes from REPO_EXPLAINER_HOME, else ~/.repo-explainer', () => {
+  assert.equal(resolveHome({ REPO_EXPLAINER_HOME: '/tmp/x' }), '/tmp/x');
+  assert.equal(resolveHome({}), join(homedir(), '.repo-explainer'));
+  assert.equal(resolveHome({ REPO_EXPLAINER_HOME: '' }), join(homedir(), '.repo-explainer'));
+});
+
+test('publish writes the data, the page, the manifest and the hub', () => {
+  const home = tempHome();
+  const result = publishExplainer(example, { home, sourcePath: '/w/taskflow/.explainer/explainer.json', repoPath: '/w/taskflow' });
+  const paths = libraryPaths(home);
+  assert.equal(result.slug, 'acme-taskflow');
+  assert.equal(result.updated, false);
+  assert.equal(result.hubPath, paths.hub);
+  assert.equal(result.pagePath, join(home, 'explainers', 'acme-taskflow', 'index.html'));
+  assert.deepEqual(readJson(join(home, 'explainers', 'acme-taskflow', 'explainer.json')), example);
+
+  const page = readFileSync(result.pagePath, 'utf8');
+  assert.deepEqual(embedded(page, 'explainer-data'), example);
+
+  const manifest = readJson(paths.manifest);
+  assert.equal(manifest.version, 1);
+  assert.equal(manifest.explainers.length, 1);
+  assert.equal(manifest.explainers[0].sourcePath, '/w/taskflow/.explainer/explainer.json');
+  assert.equal(manifest.explainers[0].repoPath, '/w/taskflow');
+
+  const hub = embedded(readFileSync(paths.hub, 'utf8'), 'explainer-data');
+  assert.deepEqual(hub.manifest, manifest);
+  assert.ok(hub.index.some((e) => e.href === 'explainers/acme-taskflow/index.html#flows/create-task/1'));
+  assert.deepEqual(readdirSync(home).sort(), ['explainers', 'index.html', 'library.json'], 'no temp files left behind');
+});
+
+test('publishing the same source again updates in place', () => {
+  const home = tempHome();
+  publishExplainer(example, { home, sourcePath: '/a.json' });
+  const changed = { ...example, meta: { ...example.meta, title: 'Taskflow v2' } };
+  const result = publishExplainer(changed, { home, sourcePath: '/b.json' });
+  assert.equal(result.slug, 'acme-taskflow');
+  assert.equal(result.updated, true);
+  const { manifest } = readManifest(home);
+  assert.equal(manifest.explainers.length, 1);
+  assert.equal(manifest.explainers[0].title, 'Taskflow v2');
+});
+
+test('a different repo with the same name gets a suffixed slug', () => {
+  const home = tempHome();
+  const data = (repoPath) => ({ meta: { title: repoPath, summary: 's' } });
+  assert.equal(publishExplainer(data('a'), { home, repoPath: '/one/shop' }).slug, 'shop');
+  assert.equal(publishExplainer(data('b'), { home, repoPath: '/two/shop' }).slug, 'shop-2');
+  assert.equal(publishExplainer(data('a2'), { home, repoPath: '/one/shop' }).slug, 'shop');
+  assert.deepEqual(listExplainers({ home }).map((e) => e.slug).sort(), ['shop', 'shop-2']);
+});
+
+test('pages built into the library carry the library context', () => {
+  // The shipped template may not have the context tag yet; use a copy that does.
+  const home = tempHome();
+  const templateDir = mkdtempSync(join(tmpdir(), 'rx-tpl-'));
+  const source = new URL('../template/', import.meta.url);
+  mkdirSync(join(templateDir, 'js'));
+  readdirSync(new URL('js/', source)).forEach((f) => writeFileSync(join(templateDir, 'js', f), readFileSync(new URL(`js/${f}`, source))));
+  ['styles.css', 'library.html'].forEach((f) => writeFileSync(join(templateDir, f), readFileSync(new URL(f, source))));
+  const html = readFileSync(new URL('explainer.html', source), 'utf8')
+    .replace(/<\/body>/, '<script type="application/json" id="explainer-context">__CONTEXT__</script>\n</body>');
+  writeFileSync(join(templateDir, 'explainer.html'), html);
+
+  const { pagePath } = publishExplainer(example, { home, templateDir });
+  assert.deepEqual(embedded(readFileSync(pagePath, 'utf8'), 'explainer-context'), { libraryHref: '../../index.html', slug: 'acme-taskflow' });
+});
+
+test('remove deletes the folder and the entry, and refuses unknown or unsafe slugs', () => {
+  const home = tempHome();
+  publishExplainer(example, { home });
+  publishExplainer({ meta: { title: 'Other', summary: 's', repo: 'o/other' } }, { home });
+  removeExplainer('acme-taskflow', { home });
+  assert.ok(!existsSync(join(home, 'explainers', 'acme-taskflow')));
+  assert.deepEqual(listExplainers({ home }).map((e) => e.slug), ['o-other']);
+  const hub = embedded(readFileSync(libraryPaths(home).hub, 'utf8'), 'explainer-data');
+  assert.ok(hub.index.every((e) => e.slug === 'o-other'));
+  assert.throws(() => removeExplainer('acme-taskflow', { home }), /no explainer "acme-taskflow"/);
+  assert.throws(() => removeExplainer('../..', { home }), /invalid slug/);
+});
+
+test('rebuild re-renders every page, drops entries whose data is gone and adopts orphans', () => {
+  const home = tempHome();
+  publishExplainer(example, { home });
+  publishExplainer({ meta: { title: 'Gone', summary: 's', repo: 'o/gone' } }, { home });
+  const page = join(home, 'explainers', 'acme-taskflow', 'index.html');
+  writeFileSync(page, 'stale');
+  // Break the stored data for one entry, and add an orphan folder.
+  writeFileSync(join(home, 'explainers', 'o-gone', 'explainer.json'), 'not json');
+  mkdirSync(join(home, 'explainers', 'orphan'));
+  writeFileSync(join(home, 'explainers', 'orphan', 'explainer.json'), JSON.stringify({ meta: { title: 'Orphan', summary: 's' } }));
+
+  const result = rebuildLibrary({ home });
+  assert.deepEqual(result.rebuilt.sort(), ['acme-taskflow', 'orphan']);
+  assert.deepEqual(result.skipped, ['o-gone']);
+  assert.match(readFileSync(page, 'utf8'), /^<!doctype html>/);
+  assert.deepEqual(listExplainers({ home }).map((e) => e.slug).sort(), ['acme-taskflow', 'orphan']);
+});
+
+test('a corrupt manifest is backed up and rebuilt from the stored data', () => {
+  const home = tempHome();
+  publishExplainer(example, { home, sourcePath: '/src.json' });
+  writeFileSync(libraryPaths(home).manifest, '{ broken');
+  const { manifest, recovered, backupPath } = readManifest(home);
+  assert.equal(recovered, true);
+  assert.equal(readFileSync(backupPath, 'utf8'), '{ broken');
+  assert.deepEqual(manifest.explainers.map((e) => e.slug), ['acme-taskflow']);
+  assert.equal(manifest.explainers[0].title, example.meta.title);
+  // A later publish works on top of the recovered manifest.
+  publishExplainer({ meta: { title: 'Next', summary: 's', repo: 'o/next' } }, { home });
+  assert.equal(listExplainers({ home }).length, 2);
+});
+
+test('a manifest with the wrong shape counts as corrupt', () => {
+  const home = tempHome();
+  publishExplainer(example, { home });
+  writeFileSync(libraryPaths(home).manifest, JSON.stringify({ explainers: 'nope' }));
+  assert.equal(readManifest(home).recovered, true);
+});
+
+test('an empty home lists nothing and ensureHub writes an empty hub', () => {
+  const home = join(tempHome(), 'nested', 'lib');
+  assert.deepEqual(listExplainers({ home }), []);
+  const hub = ensureHub({ home });
+  const data = embedded(readFileSync(hub, 'utf8'), 'explainer-data');
+  assert.deepEqual(data.manifest.explainers, []);
+  assert.deepEqual(data.index, []);
+});
+
+test('publish refuses data without a meta object', () => {
+  assert.throws(() => publishExplainer({}, { home: tempHome() }), /publish explainer: data has no meta/);
+});
+
+test('hostile titles stay inert in the hub', () => {
+  const home = tempHome();
+  const title = '</script><script>alert(1)</script><!--';
+  publishExplainer({ meta: { title, summary: '<img src=x onerror=alert(1)>', repo: 'evil/x' } }, { home });
+  const html = readFileSync(libraryPaths(home).hub, 'utf8');
+  assert.equal((html.match(/<\/script>/gi) || []).length, 2, 'only the two real closing tags');
+  assert.doesNotMatch(html, /<img src=x/);
+  assert.equal(embedded(html, 'explainer-data').manifest.explainers[0].title, title);
+});

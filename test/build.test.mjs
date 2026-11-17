@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { buildExplainer, buildGallery, escapeHtml, serializeForScript } from '../scripts/lib/build.mjs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { buildExplainer, buildGallery, buildLibrary, escapeHtml, serializeForScript, TEMPLATE_DIR } from '../scripts/lib/build.mjs';
 import { NODE_KINDS } from '../scripts/lib/schema.mjs';
 import { listPatterns } from '../scripts/lib/init.mjs';
 
@@ -61,4 +63,57 @@ test('placeholder names inside data are never expanded a second time', () => {
   assert.match(html, /<meta name="description" content="__TITLE__ &quot;quoted&quot;">/);
   assert.equal((html.match(/<script>/g) || []).length, 1, 'no second script block injected');
   assert.deepEqual(embeddedJson(html), data);
+});
+
+// Library context: a separate JSON tag the explainer reads to show a "Library" link.
+function templateWithContextTag() {
+  const dir = mkdtempSync(join(tmpdir(), 'rx-tpl-'));
+  cpSync(TEMPLATE_DIR, dir, { recursive: true });
+  const html = readFileSync(join(dir, 'explainer.html'), 'utf8');
+  if (!html.includes('__CONTEXT__')) {
+    writeFileSync(join(dir, 'explainer.html'), html.replace('</body>', '<script type="application/json" id="explainer-context">__CONTEXT__</script>\n</body>'));
+  }
+  return dir;
+}
+
+function contextJson(html) {
+  const match = html.match(/<script type="application\/json" id="explainer-context">([\s\S]*?)<\/script>/);
+  assert.ok(match, 'context script tag present');
+  return JSON.parse(match[1]);
+}
+
+test('standalone builds get an empty context, library builds get theirs', () => {
+  const templateDir = templateWithContextTag();
+  assert.deepEqual(contextJson(buildExplainer(example, { templateDir })), {});
+  const context = { libraryHref: '../../index.html', slug: 'acme-taskflow' };
+  const html = buildExplainer(example, { templateDir, context });
+  assert.deepEqual(contextJson(html), context);
+  assert.doesNotMatch(html, /id="explainer-context">__CONTEXT__</, 'the tag itself is filled');
+});
+
+test('context is escaped like the data', () => {
+  const templateDir = templateWithContextTag();
+  const html = buildExplainer(example, { templateDir, context: { slug: '</script><script>alert(1)</script>' } });
+  assert.equal(contextJson(html).slug, '</script><script>alert(1)</script>');
+  assert.doesNotMatch(html, /<\/script><script>alert/);
+});
+
+test('a template without the context tag still builds', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'rx-tpl-'));
+  cpSync(TEMPLATE_DIR, dir, { recursive: true });
+  const html = readFileSync(join(dir, 'explainer.html'), 'utf8').replace(/<script type="application\/json" id="explainer-context">__CONTEXT__<\/script>\n?/, '');
+  writeFileSync(join(dir, 'explainer.html'), html);
+  assert.deepEqual(embeddedJson(buildExplainer(example, { templateDir: dir, context: { slug: 'x' } })), example);
+});
+
+test('buildLibrary embeds the manifest and index and boots the hub', () => {
+  const manifest = { version: 1, updatedAt: 't', explainers: [{ slug: 'a', title: '</script>' }] };
+  const index = [{ slug: 'a', type: 'explainer', title: '</script>', text: '', href: 'explainers/a/index.html' }];
+  const html = buildLibrary(manifest, index);
+  assert.match(html, /^<!doctype html>/);
+  assert.match(html, /bootLibrary\(\);/);
+  assert.doesNotMatch(html, /\nboot\(\);/);
+  assert.doesNotMatch(html, /__TITLE__|__EXPLAINER_DATA__|__CONTEXT__|\/\*__STYLES__\*\/|\/\*__SCRIPTS__\*\//);
+  assert.deepEqual(embeddedJson(html), { manifest, index });
+  assert.equal((html.match(/<\/script>/g) || []).length, 2);
 });
