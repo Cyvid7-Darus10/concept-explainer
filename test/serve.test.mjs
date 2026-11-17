@@ -126,7 +126,59 @@ test('a good save writes config.json and rebuilds the hub with it', async () => 
   assert.equal(JSON.parse(hub.match(/id="explainer-data">([\s\S]*?)<\/script>/)[1]).config.audience, 'expert');
 });
 
-test('only GET, HEAD and the one POST are allowed', async () => {
+const auth = () => ({ [TOKEN_HEADER]: served.token });
+const upload = (body, query = '', headers = {}) => send({
+  method: 'POST', path: `/api/import${query}`, body,
+  headers: { origin: origin(), 'content-type': 'application/json', ...auth(), ...headers },
+});
+
+test('GET /api/export needs the token and returns a data-only bundle', async () => {
+  assert.equal((await send({ path: '/api/export' })).status, 403);
+  assert.equal((await send({ path: '/api/export', headers: { [TOKEN_HEADER]: 'wrong' } })).status, 403);
+  const res = await send({ path: '/api/export?type=repo', headers: auth() });
+  assert.equal(res.status, 200, res.body);
+  assert.match(res.headers['content-disposition'], /attachment; filename="explainers-.*\.explainers\.json"/);
+  const bundle = JSON.parse(res.body);
+  assert.equal(bundle.format, 'concept-explainer-bundle');
+  assert.equal(bundle.explainers[0].slug, 'acme-taskflow');
+  assert.doesNotMatch(res.body, /sourcePath|repoPath/);
+  assert.equal(JSON.parse((await send({ path: '/api/export?slugs=acme-taskflow', headers: auth() })).body).explainers.length, 1);
+  const missing = await send({ path: '/api/export?slugs=acme-taskflow,nope', headers: auth() });
+  assert.equal(missing.status, 400);
+  assert.match(JSON.parse(missing.body).error, /no explainer "nope"/);
+  assert.equal((await send({ method: 'POST', path: '/api/export', headers: { origin: origin(), ...auth() } })).status, 405);
+});
+
+test('POST /api/import plans with ?dryRun=1, applies without it, and checks token, origin and size', async () => {
+  const bundle = (await send({ path: '/api/export', headers: auth() })).body;
+  const dry = await upload(bundle, '?dryRun=1');
+  assert.equal(dry.status, 200, dry.body);
+  const plan = JSON.parse(dry.body).summary;
+  assert.equal(plan.dryRun, true);
+  assert.deepEqual(Object.keys(plan).sort(), ['added', 'dryRun', 'rejected', 'replaced', 'skipped']);
+  assert.equal(plan.added[0].slug, 'acme-taskflow-2');
+  assert.ok(!existsSync(join(home, 'explainers', 'acme-taskflow-2')), 'dry run wrote nothing');
+  const skip = JSON.parse((await upload(bundle, '?dryRun=1&onConflict=skip')).body).summary;
+  assert.equal(skip.skipped.length, 1);
+  const applied = await upload(bundle);
+  assert.equal(applied.status, 200, applied.body);
+  assert.equal(JSON.parse(applied.body).summary.dryRun, false);
+  assert.ok(existsSync(join(home, 'explainers', 'acme-taskflow-2', 'index.html')));
+  assert.match(readFileSync(join(home, 'index.html'), 'utf8'), /acme-taskflow-2/, 'the hub was rebuilt');
+  assert.equal((await upload(bundle, '?dryRun=1', { [TOKEN_HEADER]: 'wrong' })).status, 403);
+  assert.equal((await upload(bundle, '?dryRun=1', { origin: 'https://evil.example' })).status, 403);
+  assert.equal((await upload(bundle, '?dryRun=1', { 'content-type': 'text/plain' })).status, 415);
+  assert.equal((await upload('{ nope')).status, 400);
+  assert.match(JSON.parse((await upload('{"format":"zip"}')).body).error, /not a concept-explainer bundle/);
+  assert.equal((await upload(bundle, '?dryRun=1&onConflict=merge')).status, 400);
+  assert.equal((await upload('x'.repeat(10 * 1024 * 1024 + 10))).status, 413);
+  const hostile = JSON.stringify({ format: 'concept-explainer-bundle', version: 1, explainers: [{ slug: '../../x', data: { __proto__: { polluted: 1 } } }] });
+  const rejected = JSON.parse((await upload(hostile, '?dryRun=1')).body).summary;
+  assert.equal(rejected.rejected.length, 1);
+  assert.equal(({}).polluted, undefined);
+});
+
+test('only GET, HEAD and the API methods are allowed', async () => {
   assert.equal((await send({ method: 'POST', path: '/index.html', headers: { origin: origin(), [TOKEN_HEADER]: served.token } })).status, 405);
   assert.equal((await send({ method: 'DELETE', path: '/api/config' })).status, 405);
   assert.equal((await send({ method: 'PUT', path: '/library.json' })).status, 405);
