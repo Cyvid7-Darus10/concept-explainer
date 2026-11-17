@@ -20,7 +20,7 @@ const css = stripComments(Object.values(cssFiles).join('\n'));
 const ALLOWED_RADII = new Set(['6px', 'var(--radius)', 'var(--radius-sm)', '4px', '8px', '12px', '9999px', '0', '50%', '1px', '2px']);
 
 test('the chapter modules exist', () => {
-  ['kit.js', 'viz-core.js', 'viz-linear.js', 'viz-graph.js', 'viz-grid.js', 'visuals.js', 'context.js', 'diff.js', 'options.js', 'risks.js', 'rollout.js', 'timeline.js', 'hooks.js']
+  ['kit.js', 'viz-core.js', 'viz-linear.js', 'viz-graph.js', 'viz-grid.js', 'visuals.js', 'context.js', 'diff.js', 'options.js', 'risks.js', 'rollout.js', 'timeline.js', 'code.js', 'hooks.js']
     .forEach((f) => assert.ok(chapterFiles.includes(f), f));
 });
 

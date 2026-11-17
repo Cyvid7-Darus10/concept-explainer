@@ -194,7 +194,7 @@ function makeDocument(created) {
   return { doc, FakeElement };
 }
 
-const ORDER = ['kit', 'viz-core', 'viz-linear', 'viz-graph', 'viz-grid', 'visuals', 'context', 'diff', 'options', 'risks', 'rollout', 'timeline', 'hooks'];
+const ORDER = ['kit', 'viz-core', 'viz-linear', 'viz-graph', 'viz-grid', 'visuals', 'context', 'diff', 'options', 'risks', 'rollout', 'timeline', 'code', 'hooks'];
 
 /**
  * Load dom.js and every chapter module into a fresh vm context.
