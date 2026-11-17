@@ -67,6 +67,14 @@ TODO before release: the GitHub repository is still `Cyvid7-Darus10/repo-explain
 ### Fixed
 
 - The search index links only into chapters the page shows, by the same rule as the page (`scripts/lib/chapters.mjs`).
+- An import plans its slugs inside the same hold of the library lock that writes them, so a publish in between is never overwritten. A planned slug taken anyway refuses with `slug "x" was taken since the plan`.
+- Two processes clearing one stale lock can no longer both take it: the lock holds a pid and a nonce, a dead lock is moved to a unique tombstone before removal, and a writer releases only its own lock.
+- `library serve` no longer blocks while the library is busy: writes retry for 2 seconds, then answer `503 library is busy`.
+- `library list` and export file names show the local calendar day, not the UTC one (a page published in the Manila evening no longer shows yesterday).
+- A chapter listed twice in `meta.chapters` is an error. Pages get their shown chapters and the Settings choices from the build (`context.chapters`, `context.enums`), so the template keeps no copy that can drift.
+- `install` on Windows links the skill as a junction (no admin rights needed), and a relink renames the new link over the old one instead of removing it first. CI runs the unit tests on Windows.
+- Only a writer holding the lock moves a corrupt `library.json` aside; readers recover it in memory.
+- A bad `chapters.<type>.<chapter>` value names that setting in the error.
 - A PR, proposal or concept explainer for the same repo as a repo explainer no longer overwrites it in the library.
 - Template code containing `</script>` can no longer end the inlined script block.
 - `--open` on Windows used `cmd /c start`, which ran shell metacharacters in a path. It now uses `explorer.exe` with the path as one argument.
