@@ -28,10 +28,10 @@ const ALLOWED_COLORS = new Set([
   '#fafafa', '#ffffff', '#fff', '#ebebeb', '#171717', '#4d4d4d', '#666666', '#8f8f8f', '#c9c9c9',
   '#fc5e32', '#d2430e', '#b83a0b', '#c2410c', '#297a3a', '#cb2a2f',
   '#111111', '#1a1a1a', '#2c2c2c', '#ededed', '#c4c4c4', '#a3a3a3', '#8c8c8c', '#5a5a5a',
-  '#ff7043', '#c8410e', '#e0521c', '#ff8a5c', '#62c073', '#ff6166',
+  '#ff7043', '#c8410e', '#ff8a5c', '#62c073', '#ff6166',
   '#5b9a6e', '#5b86c4', '#4a5d8a', '#76739a', '#c39a3d', '#c0689a',
   // Playful, light: Duolingo-inspired greens, blues, greys, and the AA text variants.
-  '#ffffff', '#e5e5e5', '#3c3c3c', '#4b4b4b', '#757575', '#afafaf', '#58cc02', '#61e002', '#58a700', '#3c7d00',
+  '#ffffff', '#e5e5e5', '#3c3c3c', '#4b4b4b', '#757575', '#afafaf', '#58cc02', '#3e8500', '#367400', '#2e6400', '#58a700', '#3c7d00',
   '#cc3333', '#d7ffb8', '#ffdfe0', '#042c60', '#1479b8', '#1cb0f6', '#ddf4ff', '#000437', '#e8ecff', '#a5ed6e',
   '#8a90c2', '#ffd66b', '#ffc800', '#ff86d0',
   // Playful, dark.
@@ -127,6 +127,42 @@ test('both skins exist, each with light and dark tokens', () => {
   assert.match(js, /'concept-explainer:style'/);
   assert.doesNotMatch(js.replace(/LEGACY_PREFIX = 'repo-explainer:'/, ''), /'repo-explainer:/, 'storage keys use concept-explainer:*');
   assert.doesNotMatch(js, /Duolingo/, 'the UI says Clean and Playful, never the brand');
+});
+
+// WCAG 2 contrast between two hex colours.
+function contrast(a, b) {
+  const lum = (hex) => {
+    const full = hex.length === 4 ? hex.replace(/^#(.)(.)(.)$/, '#$1$1$2$2$3$3') : hex;
+    return [1, 3, 5].map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+      .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+test('button text meets AA on the primary fill and its hover, in both styles and themes', () => {
+  const block = (selector) => {
+    const at = cssCode.indexOf(selector);
+    assert.ok(at >= 0, `missing ${selector}`);
+    return cssCode.slice(at, cssCode.indexOf('}', at));
+  };
+  const token = (text, name, fallback) => (text.match(new RegExp(`--${name}: (#[0-9a-fA-F]{3,6})`)) || [])[1] || fallback;
+  const cleanLight = block(':root {');
+  const looks = {
+    'clean light': cleanLight,
+    'clean dark': block(':root[data-theme="dark"] {'),
+    'playful light': block(':root[data-style="playful"] {'),
+    'playful dark': block(':root[data-style="playful"][data-theme="dark"] {'),
+  };
+  Object.entries(looks).forEach(([look, text]) => {
+    const ink = token(text, 'on-accent', token(cleanLight, 'on-accent'));
+    ['accent-fill', 'accent-hover'].forEach((name) => {
+      const fill = token(text, name, token(cleanLight, name));
+      const ratio = contrast(ink, fill);
+      assert.ok(ratio >= 4.5, `${look}: button text ${ink} on --${name} ${fill} is ${ratio.toFixed(2)}:1, needs 4.5:1`);
+    });
+  });
 });
 
 test('border radii stay on the scale', () => {

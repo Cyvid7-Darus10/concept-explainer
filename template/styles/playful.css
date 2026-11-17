@@ -7,7 +7,7 @@
   color-scheme: light;
   --canvas: #ffffff; --surface: #ffffff; --line: #e5e5e5; --ink: #3c3c3c; --body: #4b4b4b;
   --muted: #757575; --quiet: #afafaf; --faint: #afafaf;
-  --accent: #58cc02; --accent-fill: #58cc02; --accent-hover: #61e002; --accent-edge: #58a700; --accent-text: #3c7d00;
+  --accent: #58cc02; --accent-fill: #3e8500; --accent-hover: #367400; --accent-edge: #2e6400; --accent-text: #3c7d00;
   --on-accent: #ffffff; --good: #3c7d00; --bad: #cc3333; --good-wash: #d7ffb8; --bad-wash: #ffdfe0;
   --heading: #042c60; --display: #58a700; --link: #1479b8;
   --select: #1cb0f6; --select-wash: #ddf4ff; --nav-current-bg: #ddf4ff;

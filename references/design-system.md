@@ -23,7 +23,7 @@ The style is a token skin: `data-style="clean|playful"` on `<html>`. Both styles
 | `--ink` / `--body` | `#171717` / `#4d4d4d` | `#ededed` / `#c4c4c4` | Headings, body text |
 | `--muted` / `--quiet` / `--faint` | `#666666` / `#8f8f8f` / `#c9c9c9` | `#a3a3a3` / `#8c8c8c` / `#4d4d4d` | Captions, comments, idle lines |
 | `--accent` | `#fc5e32` | `#ff7043` | **Marks and lines only**: current item, rings, progress |
-| `--accent-fill` / `--accent-text` | `#d2430e` / `#c2410c` | `#c8410e` / `#ff8a5c` | Primary buttons under white text; orange text (AA) |
+| `--accent-fill` / `--accent-hover` / `--accent-text` | `#d2430e` / `#b83a0b` / `#c2410c` | `#c8410e` / `#b83a0b` / `#ff8a5c` | Primary buttons under white text (4.62:1 light, 4.98:1 dark; hover 5.76:1); orange text (AA) |
 | `--good` / `--bad` | `#297a3a` / `#cb2a2f` | `#62c073` / `#ff6166` | Quiz markers only |
 
 Type: Geist 400 to 600, Geist Mono for labels, paths and code. Labels are mono, uppercase, 11 to 12px, tracking `0.071em`. Shape: 6px radius, 4px for tags and tooltips. Depth: 1px hairline rings. Orange means "where you are, what is done, the primary action".
@@ -36,14 +36,15 @@ Type: Geist 400 to 600, Geist Mono for labels, paths and code. Labels are mono, 
 | `--line` | `#e5e5e5` | `#37464f` | 2px borders |
 | `--heading` / `--ink` / `--body` | `#042c60` / `#3c3c3c` / `#4b4b4b` | `#f1f7fb` / `#f1f7fb` / `#dce6ec` | Headings, strong text, body |
 | `--muted` | `#757575` | `#a7bac4` | Captions (AA) |
-| `--accent` / `--accent-edge` | `#58cc02` / `#58a700` | `#93d333` / `#79b933` | Progress, primary fill and its press edge |
+| `--accent` | `#58cc02` | `#93d333` | Brand green for marks, rings, progress and the done state, never under text |
+| `--accent-fill` / `--accent-hover` / `--accent-edge` | `#3e8500` / `#367400` / `#2e6400` | `#93d333` / `#a5ed6e` / `#79b933` | Primary buttons, their hover and their 4px press edge. Light: white text at 4.61:1 (hover 5.75:1). Dark: `#131f24` text at 9.29:1 (hover 11.96:1) |
 | `--display` | `#58a700` | `#93d333` | Page titles (large text, 3:1) |
 | `--select` / `--select-wash` | `#1cb0f6` / `#ddf4ff` | `#49c0f8` / `#1a3a4a` | Where you are, selected answers |
 | `--link` | `#1479b8` | `#49c0f8` | Links (AA) |
 | `--good` / `--bad` | `#3c7d00` / `#cc3333` | `#93d333` / `#ff7878` | Quiz markers only (AA) |
 | Code | `#000437` with `#e8ecff`, `#a5ed6e`, `#8a90c2`, `#ffd66b` | `#0b1418` | Code blocks |
 
-Type: Nunito 500 to 900 and JetBrains Mono, headings weight 800, page titles 900. Shape: 12px radius, 8px for tags. Depth: a 2px border with a 4px bottom, drawn as unblurred rings, that collapses to 2px on press. Green means progress and the primary action; blue means where you are. Primary buttons in light Playful keep the original white text on `#58cc02` (2.1:1), a known exception kept for fidelity to the original look; in dark Playful the fill is `#93d333` with dark text (9.3:1).
+Type: Nunito 500 to 900 and JetBrains Mono, headings weight 800, page titles 900. Shape: 12px radius, 8px for tags. Depth: a 2px border with a 4px bottom, drawn as unblurred rings, that collapses to 2px on press. Green means progress and the primary action; blue means where you are. There is no contrast exception: button text meets 4.5:1 on the fill and on its hover in both styles and both themes, and `test/brand.test.mjs` computes it from the tokens.
 
 **Layer markers.** The six layer colours in the data contract render as a small square before the layer name and a thin bar on each box, never as fills. Clean: `#5b9a6e #5b86c4 #4a5d8a #76739a #c39a3d #c0689a`. Playful: the original `#58cc02 #1cb0f6 #042c60 #000437 #ffc800 #ff86d0`.
 
