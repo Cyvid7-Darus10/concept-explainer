@@ -270,3 +270,107 @@ files per platform with paths containing spaces, `'`, `$`, `%`; valid plist; .de
 PowerShell argument arrays; uninstall removes exactly recorded files. `sw.js` in `node:vm` with fake
 caches/fetch: no `/api/*` or POST cached, offline fallback, old cache cleanup. Browser: Chrome install on
 127.0.0.1:4747, offline reading after idle stop, pairing, Safari Add to Dock, a real macOS launcher click.
+
+## 9. Code walkthrough (owner request, 2026-11-18)
+
+Owner: "there should be a part where we break down the important code line by line so we understand
+it". A walkthrough takes one real snippet and annotates its important lines in reading order, one
+step at a time, the way the flow player steps through hops.
+
+### 9.1 Purpose, and when it appears
+- **Optional, always.** No type requires it and its absence is never a validator error or warning.
+  It is a chapter the skill adds only when code carries the root of the idea (the root card in
+  `references/explaining.md`: the mechanism or the invariant lives in a few lines a reader should
+  see), or when the user asks for it.
+- **2 to 5 snippets** per explainer, each 5 to 40 lines. More is a warning: a walkthrough of
+  everything is a code listing, not an explanation.
+- Config key `codeWalkthrough: "auto" | "always" | "never"` (default `auto`) in `<home>/config.json`,
+  read by the skill in step 0. `auto` = add one when code carries the root; `always` = add at least
+  one when the type cites code; `never` = skip. Presets list `code` under `optionalChapters`, never
+  in `chapters`, so `init` never adds an empty walkthrough.
+- **Hook for reader signals (planned separately).** When a future "Explain more" signal flags a flow
+  step, a concept or a map node, the next run treats that as a reason to go deeper; if the flagged
+  item has code (`step.file`/`step.code`, `concept.file`, `node.files`), adding a walkthrough of that
+  code is one of the ways to go deeper, even under `auto`. A walkthrough's `refs` point back at the
+  item it deepens, so the page can link both ways. Nothing in the data format depends on the signal.
+
+### 9.2 Data: top-level `walkthroughs[]`
+```json
+{ "id": "create-task-route", "title": "Creating a task", "file": "apps/web/app/api/tasks/route.ts:12-31",
+  "lang": "ts", "why": "Every write goes through this handler, so its order of checks is the contract.",
+  "code": "<the exact lines 12 to 31>",
+  "steps": [ { "lines": "14-15", "note": "Reads the session.", "why": "...", "kind": "input",
+               "refs": { "node": "api", "flow": "create-task", "step": 2, "concept": 0, "glossary": "session" } } ],
+  "takeaway": "The route only checks and hands over; the service owns the rules." }
+```
+- `id` unique, `title` short, `why` one sentence (why this code matters), `takeaway` one sentence.
+- `file` is `path:start-end` (1-based, inclusive, file line numbers). `lang` optional, detected from
+  the extension otherwise. `code` is the exact lines start..end joined by `\n`, 5 to 40 lines.
+- **Steps** (2 to 12) cover the important lines in reading order, not every line; boilerplate may be
+  one grouped step. `lines` is `"N"` or `"N-M"` in **file line numbers**, so what the reader sees in
+  the gutter is what their editor shows. `note` ≤ 2 sentences in plain words (what the lines do);
+  `why` optional design reason (choice, constraint, cost of the alternative, from a source);
+  `kind` optional: `what`, `why`, `gotcha`, `input`, `output`. `refs` optional links: `node` id,
+  `flow` id plus `step` (1-based, as flows count steps), `concept` index (0-based, as #concepts),
+  `glossary` term.
+- **Illustrative code** (`illustrative: true`, `file` omitted, lines counted from 1): pseudo-code for a
+  concept not tied to a repo. Shown with the tag "Illustrative, not from a repo". Allowed for every
+  type; a warning for types that cite code (repo, pr, change, migration), which should show real code.
+
+### 9.3 Truth rules
+- Code is never retyped from memory: `concept-explainer snippet <repo> <path:start-end> [--lang x]`
+  prints `{ file, lang, start, end, code }` as JSON for the agent to paste.
+- With `--repo`, the validator re-reads each cited file: `code` must equal lines start..end
+  (trailing whitespace per line and a final newline ignored, CRLF read as LF). A mismatch is a
+  warning, so it fails `--strict`; a range past the end of the file is an error.
+- Every step's lines are inside the snippet's range (error), steps run in order and do not overlap
+  (warnings).
+- **Secrets.** `snippet` refuses `.env*` (except `.env.example`, `.env.sample`, `.env.template`),
+  key and certificate files (`*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`,
+  `.npmrc`, `.netrc`, `credentials*.json`) and any range with a line that looks like a credential
+  (private key blocks, AWS access keys, GitHub, Slack, Stripe and OpenAI style tokens, and
+  `password|secret|token|api_key = "<8+ chars>"`). The validator applies the same line patterns to
+  every walkthrough's `code` (error), with or without `--repo`.
+- Control characters: `snippet` refuses files with C0/C1 controls other than tab, bidi overrides or
+  zero-width marks (Trojan Source); the validator's hidden-character check already covers `code`.
+- Paths: no absolute paths, no `..` segments, no symlinks out of the repo (resolved with realpath).
+
+### 9.4 Rendering (chapter key `code`)
+Nav "Code walkthrough", title "The code, line by line", lead "The few lines that carry the idea,
+one step at a time. Each step says what the lines do and why."
+- A picker when there are several walkthroughs. A header with title, `why`, the file citation
+  (middle-truncated path with its range), the language and, when illustrative, the tag.
+- Code panel: one row per line with its file line number; the current step's lines get an orange
+  left bar and a faint orange wash in Clean (Playful: the select blue), the other lines are dimmed;
+  lines that some step covers have a clickable number that jumps to that step. Long lines wrap; no
+  inner scroll in either direction. Syntax highlighting is a tiny dependency-free tokenizer
+  (comments, strings, keywords for the C, Python, shell, SQL, Ruby and Go families) using the code
+  tokens only: comments muted, keywords heavier ink, no rainbow.
+- Annotation card beside the code (≥ 900px of chapter width), above it on phones so Back and
+  Continue stay in place, as in the flow player: step count, kind tag, the line range, `note`,
+  `why` ("Why it is written this way"), and links from `refs` (map node, flow step, key idea,
+  glossary term). Segmented progress, Back / Continue, then a Takeaway screen with Replay and
+  Next walkthrough.
+- Keyboard: ArrowRight / `j` next, ArrowLeft / `k` back; Tab reaches line numbers and buttons.
+- Deep links: `#code/<id>` (first step), `#code/<id>/<n>` with **steps counted from 1** (they are
+  steps, like `#flows/<id>/<n>`; parts in visuals and indexes in options are counted from 0), and
+  `#code/<id>/done` for the takeaway.
+- Flow steps with `code` and concepts with `file` get "Walk through this code" when a walkthrough
+  covers the same file and line (helper `chWalkthroughFor(data, fileRef)` returns the href).
+- One-shot motion only (the card slides like the flow card), reduced motion respected.
+
+### 9.5 Validation, search, library
+- `scripts/lib/validate-code.mjs`: shape, limits (`LIMITS.walkthroughs`), refs resolve to real
+  node, flow, flow step, concept and glossary entries, secret patterns, and with `--repo` the exact
+  code match. Never required by `TYPE_RULES`.
+- Search: type `code`, one entry per walkthrough (`#code/<id>`) and one per step (`#code/<id>/<n>`).
+- Manifest counts gain `walkthroughs`.
+- `CHAPTER_KEYS` gains `code`; `TYPE_RULES[type].optional` lists `code` for every type, and config
+  `chapters.<type>.code` may switch it.
+
+### 9.6 Skill
+After "Find the root": if code carries the root (or the user asked, or config says `always`, or a
+reader flagged the item "explain more"), pick 2 to 5 snippets, 5 to 40 lines each, that carry the
+mechanism or the invariant; extract each with `concept-explainer snippet`; annotate the important
+lines in reading order (what, then why, with the gotcha called out); link steps to nodes, flow steps,
+concepts and terms; end with a one-sentence takeaway. Skip it when `codeWalkthrough` is `never`.
