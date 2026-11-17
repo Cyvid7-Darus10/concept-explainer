@@ -50,8 +50,9 @@ function truncate(value, max) {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
+// The device setting, or the reader's own Motion choice in Settings.
 function reducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return document.documentElement.dataset.motion === 'reduce' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function byId(items) {
@@ -451,15 +452,18 @@ function truncHint(el, full) {
 }
 
 function isCut(el) {
-  return el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+  return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight + 1;
 }
 
 // Exact width of the visible text against the content box: CSS ellipsis
 // appears at any sub-pixel overflow, which rounded scrollWidth can miss.
 function textFits(el, span) {
   const style = getComputedStyle(el);
-  const room = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-  return span.getBoundingClientRect().width <= room - 0.5;
+  // Fractional widths: clientWidth rounds and would call an exact fit a cut.
+  const room = el.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
+  // Ellipsis shows on any real overflow; a box sized to its text is equal.
+  return span.getBoundingClientRect().width <= room + 0.05;
 }
 
 function checkTruncation(el) {
