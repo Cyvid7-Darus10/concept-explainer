@@ -5,7 +5,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { buildExplainer, buildGallery, buildLibrary } from './build.mjs';
+import { FONTS_DIR, buildExplainer, buildGallery, buildLibrary } from './build.mjs';
 import { listPatterns } from './init.mjs';
 import { NODE_KINDS } from './schema.mjs';
 import { buildSearchIndex } from './search-index.mjs';
@@ -250,24 +250,36 @@ function packageVersion() {
   }
 }
 
-/** Rewrite the hub page and the kit page beside it. */
+// The fonts library pages load: every woff2 in fonts.json and the OFL text,
+// copied when missing or changed. fonts.json itself stays behind.
+function copyFonts(home) {
+  const { fonts } = JSON.parse(readFileSync(join(FONTS_DIR, 'fonts.json'), 'utf8'));
+  [...fonts.map((f) => f.file), 'OFL.txt'].forEach((file) => {
+    const from = readFileSync(join(FONTS_DIR, file));
+    const to = join(home, 'fonts', file);
+    if (!existsSync(to) || !readFileSync(to).equals(from)) writeAtomic(to, from);
+  });
+}
+
+/** Rewrite the hub page and the kit page beside it, and make sure the fonts are there. */
 export function writeHub(home, manifest, options = {}) {
+  copyFonts(home);
   const paths = libraryPaths(home);
   const config = publicConfig(readConfig(home));
   const { style } = config;
   // The hub is a page: it gets no local paths.
   const pageManifest = { ...manifest, explainers: manifest.explainers.map(({ sourcePath, repoPath, ...entry }) => entry) };
   const index = manifest.explainers.flatMap((entry) => buildSearchIndex(entry.slug, readStoredData(paths, entry.slug) || { meta: entry }));
-  writeAtomic(paths.hub, buildLibrary(pageManifest, index, { templateDir: options.templateDir, style, config, kitHref: KIT_HREF }));
+  writeAtomic(paths.hub, buildLibrary(pageManifest, index, { templateDir: options.templateDir, style, config, kitHref: KIT_HREF, fontBase: 'fonts/' }));
   const kit = { kinds: NODE_KINDS, patterns: listPatterns(), version: packageVersion() };
-  writeAtomic(paths.kit, buildGallery(kit, { templateDir: options.templateDir, context: { libraryHref: 'index.html', style, config } }));
+  writeAtomic(paths.kit, buildGallery(kit, { templateDir: options.templateDir, context: { libraryHref: 'index.html', style, config }, fontBase: 'fonts/' }));
   return paths.hub;
 }
 
 function writePage(paths, slug, data, options, style) {
   const pagePath = join(paths.dirFor(slug), 'index.html');
   const context = { libraryHref: HUB_FROM_PAGE, slug, style, config: publicConfig(readConfig(paths.home)) };
-  writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context }));
+  writeAtomic(pagePath, buildExplainer(data, { templateDir: options.templateDir, context, fontBase: '../../fonts/' }));
   return pagePath;
 }
 

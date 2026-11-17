@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'template');
+export const FONTS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'fonts');
 
 // Order matters only for readability; all modules share one function scope.
 const SCRIPT_ORDER = ['dom.js', 'icons.js', 'map.js', 'models.js', 'flow.js', 'changes.js', 'lessons.js', 'picker.js', 'settings.js', 'sections.js', 'app.js'];
@@ -101,11 +102,24 @@ function withCsp(html) {
   return html.replace(/<meta charset="utf-8">\n?/i, (charset) => `${charset.trimEnd()}\n${tag}\n`);
 }
 
-function assemble({ html, styles, scripts }, title, data, bootCall = '', description = '', context = {}) {
+// Self-hosted fonts (fonts/, SIL OFL) for pages in the library, which has a
+// fonts/ folder beside the hub. Standalone pages get none and fall back to
+// system fonts. The base is relative and checked, so no URL can be injected.
+const FONT_BASE = /^(\.\.\/)*fonts\/$/;
+
+export function fontFaceCss(base) {
+  if (!FONT_BASE.test(base)) throw new Error(`build: font base "${base}" must look like fonts/ or ../../fonts/`);
+  const { fonts } = JSON.parse(readFileSync(join(FONTS_DIR, 'fonts.json'), 'utf8'));
+  return fonts.map((f) => `@font-face{font-family:'${f.family}';font-style:normal;font-weight:${f.weight};font-display:swap;src:url('${base}${f.file}') format('woff2');unicode-range:${f.unicodeRange}}`).join('\n');
+}
+
+// The @font-face rules go first in the inline stylesheet, before the template's own.
+function assemble({ html, styles, scripts }, title, data, bootCall = '', description = '', context = {}, fontBase = null) {
+  const css = fontBase ? `${fontFaceCss(fontBase)}\n${styles}` : styles;
   const values = {
     __TITLE__: escapeHtml(title),
     __DESCRIPTION__: escapeHtml(description),
-    '/*__STYLES__*/': inlineSafe(styles, 'style'),
+    '/*__STYLES__*/': inlineSafe(css, 'style'),
     '/*__SCRIPTS__*/': inlineSafe(`(() => {\n'use strict';\n${scripts}\n${bootCall}\n})();`, 'script'),
     __EXPLAINER_DATA__: serializeForScript(data),
     __CONTEXT__: serializeForScript(context),
@@ -124,7 +138,7 @@ export function buildExplainer(data, options = {}) {
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR);
   const title = data && data.meta && data.meta.title ? `${data.meta.title} · Concept Explainer` : 'Concept Explainer';
   const description = data && data.meta && typeof data.meta.summary === 'string' ? data.meta.summary : '';
-  return assemble(parts, title, data, 'boot();', description, options.context || {});
+  return assemble(parts, title, data, 'boot();', description, options.context || {}, options.fontBase);
 }
 
 /**
@@ -149,7 +163,7 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
     index: searchIndex,
   };
   const context = { style, ...(options.config ? { config: options.config } : {}) };
-  return assemble(parts, 'Explainer library · Concept Explainer', data, 'bootLibrary();', description, context);
+  return assemble(parts, 'Explainer library · Concept Explainer', data, 'bootLibrary();', description, context, options.fontBase);
 }
 
 /**
@@ -160,5 +174,5 @@ export function buildLibrary(manifest, searchIndex, options = {}) {
 export function buildGallery(kit, options = {}) {
   const order = SCRIPT_ORDER.filter((f) => f !== 'app.js').concat('gallery.js');
   const parts = readTemplate(options.templateDir || TEMPLATE_DIR, order);
-  return assemble(parts, 'Concept Explainer kit', kit, 'bootGallery();', 'Icons, visuals, components and flow patterns for Concept Explainer.', options.context || {});
+  return assemble(parts, 'Concept Explainer kit', kit, 'bootGallery();', 'Icons, visuals, components and flow patterns for Concept Explainer.', options.context || {}, options.fontBase);
 }
