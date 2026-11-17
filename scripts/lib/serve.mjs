@@ -4,12 +4,13 @@
 // request needs the right Host (DNS rebinding). Files are read only and never
 // leave the library folder. node:http only. Contract: references/library.md.
 import { createServer } from 'node:http';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { readConfig, rebuildLibrary, writeConfig } from './library.mjs';
 import { MAX_BUNDLE_BYTES, applyImport, createBundle, parseBundle, planImport } from './bundle.mjs';
 import { SLUG_PATTERN } from './library-model.mjs';
+import { pageCspFrom } from './build.mjs';
 
 export const HOST = '127.0.0.1';
 export const TOKEN_HEADER = 'x-concept-explainer-token';
@@ -87,30 +88,10 @@ function resolveFile(root, pathname) {
 }
 
 const NON_PAGE_CSP = "default-src 'none'; frame-ancestors 'none'";
-const hashOf = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
 
-// A CSP for one built page: every inline <script> and <style> block by
-// hash, Google Fonts, and fetches back to this server. Style attributes set
-// by the page's own code (CSS variables, positions) cannot be hashed, so
-// style-src-attr allows them; that permits no style elements and no script.
-export function pageCsp(html) {
-  // Every inline block, whatever its attributes (the pre-paint theme script
-  // has one). JSON data blocks are hashed too; that is harmless.
-  const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map((m) => hashOf(m[1]));
-  const styles = [...html.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)].map((m) => hashOf(m[1]));
-  return [
-    "default-src 'none'",
-    `script-src ${scripts.join(' ') || "'none'"}`,
-    `style-src ${[...styles, 'https://fonts.googleapis.com'].join(' ')}`,
-    "style-src-attr 'unsafe-inline'",
-    'font-src https://fonts.gstatic.com',
-    "img-src 'self' data:",
-    "connect-src 'self'",
-    "base-uri 'none'",
-    "form-action 'none'",
-    "frame-ancestors 'none'",
-  ].join('; ');
-}
+// The policy a page's build fixed (its meta tag), never recomputed from the
+// file being served, plus frame-ancestors, which only works as a header.
+export const pageCsp = (html) => `${pageCspFrom(html)}; frame-ancestors 'none'`;
 
 function serveFile(root, url, req, res) {
   const found = resolveFile(root, url.pathname);

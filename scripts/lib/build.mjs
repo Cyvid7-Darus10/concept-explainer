@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -58,6 +59,48 @@ export function inlineSafe(source, tag) {
   return source.replace(new RegExp(`<\\/(${tag})`, 'gi'), '<\\/$1');
 }
 
+// Content Security Policy, fixed at build time and carried by the page in a
+// meta tag, so it holds from file:// too. Only the page's own inline scripts
+// and styles run, by hash; fonts come from the library folder; nothing
+// remote. Style attributes the page's code sets (CSS variables, positions)
+// cannot be hashed, so style-src-attr allows them; that permits no style
+// element and no script. frame-ancestors is ignored in a meta tag, so
+// library serve adds it as a header.
+const EXECUTABLE_SCRIPT = /<script(?![^>]*\b(?:src|type)=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi;
+const INLINE_STYLE = /<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi;
+const CSP_META = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/;
+const STRICTEST = "default-src 'none'";
+const sha256 = (text) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
+
+export function cspFor(html) {
+  const scripts = [...html.matchAll(EXECUTABLE_SCRIPT)].map((m) => sha256(m[1]));
+  const styles = [...html.matchAll(INLINE_STYLE)].map((m) => sha256(m[1]));
+  return [
+    STRICTEST,
+    `script-src ${scripts.join(' ') || "'none'"}`,
+    `style-src ${styles.join(' ') || "'none'"}`,
+    "style-src-attr 'unsafe-inline'",
+    "font-src 'self'",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "base-uri 'none'",
+    "form-action 'none'",
+  ].join('; ');
+}
+
+/** The policy a built page carries, or the strictest one if it carries none. */
+export function pageCspFrom(html) {
+  const match = String(html).match(CSP_META);
+  return match ? match[1] : STRICTEST;
+}
+
+// Data is escaped and the title goes through escapeHtml, so the first
+// <meta charset> is always the template's own, in the head.
+function withCsp(html) {
+  const tag = `<meta http-equiv="Content-Security-Policy" content="${cspFor(html)}">`;
+  return html.replace(/<meta charset="utf-8">\n?/i, (charset) => `${charset.trimEnd()}\n${tag}\n`);
+}
+
 function assemble({ html, styles, scripts }, title, data, bootCall = '', description = '', context = {}) {
   const values = {
     __TITLE__: escapeHtml(title),
@@ -67,7 +110,7 @@ function assemble({ html, styles, scripts }, title, data, bootCall = '', descrip
     __EXPLAINER_DATA__: serializeForScript(data),
     __CONTEXT__: serializeForScript(context),
   };
-  return html.replace(PLACEHOLDER_PATTERN, (match) => values[match]);
+  return withCsp(html.replace(PLACEHOLDER_PATTERN, (match) => values[match]));
 }
 
 /**
