@@ -38,6 +38,8 @@ The source of truth stays where it was made, usually `<repo>/.explainer/explaine
 | `library style [clean\|playful]` | Prints the default style, or sets it. |
 | `library serve [--port n]` | Serves the library on 127.0.0.1 so Settings can save (see Serve). |
 | `config [get\|set\|reset] [--json]` | Prints or changes the explainer defaults (see Config). |
+| `export [slug...] [--type t] [--tag t] [--stack s] [--search q] [--out f]` | Writes a bundle of the matching explainers (no selector: the whole library) and prints what went in (see Share). |
+| `import <file> [--on-conflict rename\|skip\|replace] [--dry-run]` | Adds a bundle to the library, and prints what was added, replaced, skipped or rejected and why. |
 | `install [--force]` | Links this skill into `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/concept-explainer` and copies `rules/concept-explainer.md` into `${CLAUDE_CONFIG_DIR:-~/.claude}/rules/`. |
 
 Every write in the library goes to a temp file in the same folder and is renamed into place, so a reader never sees half a file.
@@ -114,7 +116,8 @@ A slug names an explainer's folder and appears in every link.
       "generatedAt": "2026-11-18",
       "publishedAt": "2026-11-18T03:12:09.101Z",
       "counts": { "layers": 4, "nodes": 6, "flows": 2, "changes": 0, "concepts": 0, "files": 0, "quiz": 3, "diff": 6, "options": 0, "risks": 3, "rollout": 4, "timeline": 0, "diagrams": 0 },
-      "layers": [{ "label": "Client", "color": "blue" }]
+      "layers": [{ "label": "Client", "color": "blue" }],
+      "thumb": { "kind": "map", "layers": [{ "id": "client", "color": "blue" }], "nodes": [{ "id": "web", "layer": "client", "status": "changed" }], "edges": [["web", "api"]] }
     }
   ]
 }
@@ -124,6 +127,10 @@ A slug names an explainer's folder and appears in every link.
 - `type` is always set (`repo` for files without `meta.type`). `repo`, `sourcePath`, `repoPath`, `preset`, `status`, `source`, `commit` and `generatedAt` are `null` when unknown. `stack`, `tags` and `layers` are always arrays; `counts` always has all thirteen keys.
 - `counts.files` is the number of `tree` entries; `counts.diff` the number of diff files.
 - `source.url` is present only when it is http or https.
+- `thumb` is a small picture for the hub card (`scripts/lib/thumb.mjs`), or `null`:
+  - **Map** for repo, pr, change, proposal and migration: `{ kind: "map", layers: [{ id, color }], nodes: [{ id, layer, status? }], edges: [[from, to]] }`, at most 40 nodes and 60 edges, edges only between kept nodes.
+  - **Otherwise the first visual** (diagrams first, then concept visuals), trimmed to its shape: `layers`, `cycle`: `items: [{ label }]`; `funnel`: `items: [{ label, value? }]`; `state`: `states: [{ id, label }]`, `transitions: [[from, to]]`; `compare`: `columns`, `rows: [{ label, values }]`; `hierarchy`: `nodes: [{ id, label, parent? }]`; `beforeAfter`: `before.items`, `after.items` (labels, 4 each); `quadrant`: `axes: { x, y }`, `points: [{ x, y }]`; `venn`: `sets: [{ id, label }]`, `items: [{ in }]`. Up to 8 items, 10 states, 6 rows, 12 points; labels cut to 24 characters; details dropped.
+  - A map-centric type with no nodes falls back to its first visual, and the other types fall back to the map.
 
 **Reading it.** The manifest is checked on every read: `version` must be 1, `explainers` an array, and each `slug` must match `^[a-z0-9]+(-[a-z0-9]+)*$`. A file that fails to parse or fails the check is moved to `library.json.corrupt-<time>`, and a new manifest is rebuilt from `explainers/*/explainer.json` (paths are unknown then, and `publishedAt` comes from the file time).
 
@@ -210,9 +217,25 @@ A page opened from `file://` cannot write files, so Settings there shows the cur
 - A fresh random **token** per run (48 hex characters) travels to the page in the URL fragment, so it never reaches a server log or a Referer header.
 - **Host** must be `127.0.0.1:<port>` or `localhost:<port>` on every request (blocks DNS rebinding).
 - **Files:** `GET` and `HEAD` only, for files under the library home. A folder serves its `index.html`; there is no directory listing. `..`, encoded traversal, NUL bytes and symlinks that leave the library are refused. Responses carry `nosniff`, `no-store`, `no-referrer` and `DENY` framing headers.
-- **API:** `GET /api/config` returns `{ "config": {...} }`. `POST /api/config` is the only write.
+- **API:** every call needs the token in `X-Concept-Explainer-Token`; writes also need the Origin. `GET /api/config` needs it too, since `instructions` may be private.
+- **CSP:** every page is served with `default-src 'none'`, its own inline `<script>` and `<style>` blocks allowed by sha256 hash (computed when served), Google Fonts for styles and fonts, `img-src 'self' data:`, `connect-src 'self'`, `base-uri 'none'`, `form-action 'none'` and `frame-ancestors 'none'`. `style-src-attr 'unsafe-inline'` allows the style attributes the page's own code sets (CSS variables, tooltip positions); hashes cannot cover attributes, and this permits no style elements and no script. Other files get `default-src 'none'`.
+
+| Endpoint | Request | Response |
+|---|---|---|
+| `GET /api/config` | token | `{ "config": {...} }` |
+| `POST /api/config` | token, Origin, JSON body of changed keys, 64 KB cap | `{ "config": {...} }` after saving and rebuilding |
+| `GET /api/export` | token; optional `slugs=a,b`, `type`, `tag`, `stack`, `search` (none: the whole library) | the bundle JSON, as an attachment named `explainers-<date>.explainers.json` |
+| `POST /api/import` | token, Origin, the bundle text as `application/json`, 10 MB cap; `dryRun=1` to plan only; `onConflict=rename\|skip\|replace` (default `rename`) | `{ "summary": { "dryRun", "added", "replaced", "skipped", "rejected" } }` |
+
+Errors are `{ "error": "..." }` with 400 (bad input, named), 403 (token, origin or host), 405, 413 or 415.
 
 ### Page side of serve
+
+Built pages are static files, so they do not carry the API paths. Use these defaults:
+
+```json
+{ "serve": { "api": { "config": "/api/config", "export": "/api/export", "import": "/api/import" } } }
+```
 
 How a page knows it is served, and how it saves:
 
@@ -236,3 +259,67 @@ The browser adds `Origin`, which must be `http://127.0.0.1:<port>` or `http://lo
 | 400 | `{ "error": "save config: audience: \"kids\" is not one of ..." }` | Bad JSON or a bad value; nothing saved. Show the message. |
 | 403 | `{ "error": "wrong or missing token" }` or `wrong origin` or `wrong host` | Refused; nothing saved. |
 | 405, 413, 415 | `{ "error": "..." }` | Wrong method, body too large, not JSON. |
+
+## Share: export and import
+
+A **bundle** (`*.explainers.json`) carries explainer data only:
+
+```json
+{
+  "format": "concept-explainer-bundle",
+  "version": 1,
+  "exportedAt": "2026-11-18T09:00:00.000Z",
+  "exportedBy": null,
+  "explainers": [{ "slug": "acme-taskflow-pr-512", "data": { "schemaVersion": 2, "meta": { "type": "pr" } } }]
+}
+```
+
+No HTML, no scripts, no config, no local paths. The importer rebuilds every page with its own template, so a bundle can never inject markup or code.
+
+**Selectors** (CLI flags or `/api/export` params): slugs, `type`, `tag` (exact, any case), `stack` (contains, any case), `search` (any case, in titles, summaries, tags, stack and everything the search index covers). They combine with AND. No selector exports the whole library.
+
+**Import treats the file as untrusted:**
+- At most 10 MB and 500 explainers. JSON errors are named.
+- `__proto__`, `constructor` and `prototype` keys are dropped while parsing, at every depth.
+- `format` must be `concept-explainer-bundle` and `version` 1.
+- Every `url` that is not http or https is dropped (and the summary says how many).
+- Every explainer is validated. Errors reject that explainer, with the first reasons; warnings are allowed.
+- Slugs are re-derived: the bundle's slug is only a hint and goes through `slugify`; without one the slug comes from the data. Imported entries have no `sourcePath` or `repoPath`.
+
+**Conflicts** (`--on-conflict`, or `onConflict`):
+
+| Mode | The slug is free | The slug holds the same source | The slug holds a different explainer |
+|---|---|---|---|
+| `rename` (default) | add | add as `<slug>-2` | add as `<slug>-2` |
+| `skip` | add | skip | skip |
+| `replace` | add | replace it | add as `<slug>-2` (never overwrites a different explainer) |
+
+"Same source" means the same type and, for a repo, the same `meta.repo`; for other types, the same `meta.source` reference.
+
+**The summary** (CLI output, or `summary` from the API):
+
+```json
+{
+  "dryRun": true,
+  "added": [{ "slug": "acme-taskflow-pr-512-2", "title": "...", "note": "renamed from acme-taskflow-pr-512; dropped 1 unsafe link" }],
+  "replaced": [{ "slug": "...", "title": "...", "note": "" }],
+  "skipped": [{ "index": 0, "title": "...", "slug": "...", "reason": "already in the library" }],
+  "rejected": [{ "index": 2, "title": "...", "reasons": ["concepts[0].body: contains HTML markup..."] }]
+}
+```
+
+**One explainer from its own page** (works from `file://`): the page builds the bundle from what it already embeds, with no request:
+
+```js
+const data = JSON.parse(document.getElementById('explainer-data').textContent);
+const context = JSON.parse(document.getElementById('explainer-context').textContent);
+const bundle = {
+  format: 'concept-explainer-bundle', version: 1, exportedAt: new Date().toISOString(), exportedBy: null,
+  explainers: [{ slug: context.slug || '', data }],
+};
+// download JSON.stringify(bundle, null, 2) as <slug or title>.explainers.json
+```
+
+An empty `slug` is fine: the importer derives one from the data. "Save as page" downloads the page's own HTML.
+
+**From the hub:** under `library serve`, `GET /api/export` with the picked slugs or the current filter, and for import `POST /api/import?dryRun=1`, show the summary, then the same body without `dryRun` to import. From `file://`, show the matching `concept-explainer export ...` or `concept-explainer import <file>` command to copy.

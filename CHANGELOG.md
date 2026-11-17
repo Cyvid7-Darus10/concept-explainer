@@ -22,6 +22,8 @@ TODO: the GitHub repository is still `Cyvid7-Darus10/repo-explainer`. Renaming i
 - **`library` command:** `list`, `path`, `add`, `remove`, `rebuild`, `open`, `style` and `serve`. `build --no-library` skips publishing.
 - **Settings and `config`:** explainer defaults in `<home>/config.json` (audience, depth, language, visuals, chapters per type, quiz, analogies, model, budget, confirm before start, instructions), embedded in every page. `library serve` lets the Settings view save them, on 127.0.0.1 with a per-run token.
 - **`install` command.** Links the skill as `concept-explainer` and adds `rules/concept-explainer.md` (both under `$CLAUDE_CONFIG_DIR` when set). Safe to rerun; `--force` keeps backups.
+- **Share:** `export` writes a data-only bundle (`*.explainers.json`) of one explainer, a filtered set (type, tag, stack, search) or the whole library; `import` adds one with `--dry-run` and `--on-conflict rename|skip|replace`. Bundles are untrusted input: 10 MB cap, prototype keys dropped, format checked, unsafe links dropped, every explainer validated and rebuilt locally. `library serve` adds `GET /api/export` and `POST /api/import`.
+- **Card thumbnails:** each manifest entry carries a small, capped `thumb` (the map, or the first visual) for the hub.
 - **Two styles.** `clean` (default) and `playful`, picked with `--style` or the config default, and switchable by readers.
 
 ### Changed
@@ -33,6 +35,10 @@ TODO: the GitHub repository is still `Cyvid7-Darus10/repo-explainer`. Renaming i
 - Design credit is now Geist (Vercel) for type and greys and Brilliant for lesson pacing. The `playful` style credits Duolingo's design language.
 
 ### Fixed
+
+- A PR, proposal or concept explainer for the same repo as a repo explainer no longer overwrites it in the library: a source matches only with the same type, and non-repo types match by their source reference.
+- Template code containing the text `</script>` can no longer end the inlined script block; the build escapes it.
+- `library serve` needs the token to read config too, and serves pages with a strict Content Security Policy.
 
 - `--open` on Windows used `cmd /c start`, which ran shell metacharacters found in a path. It now uses `explorer.exe` with the path as one argument.
 

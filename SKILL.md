@@ -99,7 +99,7 @@ Report:
 - the estimate next to what happened (model, rough time; cost if you know it),
 - anything you could not verify.
 
-Leave `explainer.json` where it is, as the source for the next update.
+Leave `explainer.json` where it is, as the source for the next update. If the user wants to share it, `ce export <slug> --out <file>` writes a data-only bundle they can send; the other side runs `ce import <file>`.
 
 ## Truth rules
 

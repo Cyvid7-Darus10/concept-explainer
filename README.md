@@ -166,6 +166,8 @@ Needs Node 18.3 or newer. Nothing to install. The output is one HTML file you ca
 | `build <file> [--out f] [--repo dir] [--style s]` | Validate, render the page, publish it to the library (`--no-library` skips that) |
 | `library [list\|path\|add\|remove\|rebuild\|open\|style\|serve]` | Work with the library |
 | `config [get\|set\|reset] [--json]` | The explainer defaults the skill reads first |
+| `export [slug...] [--type t] [--tag t] [--out f]` | Share explainers as a data-only bundle |
+| `import <file> [--dry-run] [--on-conflict mode]` | Add a bundle to your library |
 | `install [--force]` | Link the skill and the library rule into `~/.claude` |
 | `presets` | One preset per type, and stack presets for repos |
 | `patterns [id]` | Reusable flow shapes: auth, webhook, async job, cache, and more |
@@ -205,6 +207,18 @@ concept-explainer library serve                # Settings can save while this ru
 
 From `file://`, Settings shows the values and gives you a `config set` command to copy. Through `library serve`, it saves directly. The server binds to 127.0.0.1 only, uses a fresh token per run, checks Host and Origin, and accepts exactly one write: the validated settings.
 
+### Share
+
+Send one explainer, a topic or the whole library to someone else, who imports it into their own library.
+
+```sh
+concept-explainer export --type pr --tag payments --out payments.explainers.json
+concept-explainer import payments.explainers.json --dry-run    # see what would happen
+concept-explainer import payments.explainers.json              # rename on conflict by default
+```
+
+A bundle holds explainer data only: no pages, no scripts, no settings, no local paths. The importer checks it as untrusted input (size cap, format, every explainer validated, unsafe links dropped) and rebuilds the pages with its own template. Each page can also export itself, or save itself as one HTML file, from Settings.
+
 ## What a run costs
 
 The agent does the costly part: reading and writing the explainer. Estimated cost and agent time **per run** at a typical size, from [Claude API prices](https://claude.com/platform/api) checked November 18, 2026.
@@ -240,7 +254,8 @@ Agents only write data. The design, components, icons, visuals and motion are fi
 - All text renders as plain text, and embedded data is escaped. Links must be `http` or `https`.
 - The page makes no network calls except loading Google Fonts. It falls back to system fonts offline.
 - The library lives only on your machine. Slugs are limited to `[a-z0-9-]`, files are written atomically, and the hub only follows links into its own `explainers/` folder.
-- `library serve` binds to 127.0.0.1, needs a per-run token for writes, checks Host and Origin, and never serves files outside the library.
+- `library serve` binds to 127.0.0.1, needs a per-run token for every API call, checks Host and Origin, sends a strict Content Security Policy, and never serves files outside the library.
+- `import` treats a bundle as untrusted: a size cap, prototype keys dropped, every explainer validated, unsafe links dropped, and pages rebuilt locally.
 - Git runs with argument arrays, never through a shell, and refs that look like options are refused.
 
 Report vulnerabilities through [SECURITY.md](SECURITY.md).
