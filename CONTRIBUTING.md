@@ -7,7 +7,7 @@ Thanks for helping. This project has two audiences, people and agents, and one r
 ```sh
 git clone https://github.com/Cyvid7-Darus10/repo-explainer
 cd repo-explainer      # the GitHub repo keeps its old name for now
-npm run check        # tests + rebuild the example and gallery (never touches your library)
+npm run check        # tests, validate and rebuild every example, rebuild the kit (never touches your library)
 ```
 
 No dependencies to install. Node 18.3 or newer.

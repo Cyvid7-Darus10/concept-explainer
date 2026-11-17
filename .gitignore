@@ -8,3 +8,8 @@ node_modules/
 coverage/
 !test/fixtures/**/node_modules/
 /examples/.stress.html
+# Built pages for the new example types. Committed at release, once the
+# template renders these types; until then they are local previews.
+/examples/pr-cursor-paging.html
+/examples/proposal-live-updates.html
+/examples/concept-idempotency-keys.html

@@ -21,10 +21,11 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "build:example": "node bin/concept-explainer.mjs build examples/taskflow.explainer.json --no-library --style clean",
+    "validate:examples": "node bin/concept-explainer.mjs validate examples/taskflow.explainer.json --strict && node bin/concept-explainer.mjs validate examples/pr-cursor-paging.explainer.json --strict && node bin/concept-explainer.mjs validate examples/proposal-live-updates.explainer.json --strict && node bin/concept-explainer.mjs validate examples/concept-idempotency-keys.explainer.json --strict",
+    "build:examples": "node bin/concept-explainer.mjs build examples/taskflow.explainer.json --no-library --style clean && node bin/concept-explainer.mjs build examples/pr-cursor-paging.explainer.json --no-library --style clean && node bin/concept-explainer.mjs build examples/proposal-live-updates.explainer.json --no-library --style clean && node bin/concept-explainer.mjs build examples/concept-idempotency-keys.explainer.json --no-library --style clean",
     "build:gallery": "node bin/concept-explainer.mjs gallery --out examples/gallery.html",
     "build:assets": "node bin/concept-explainer.mjs assets --out assets",
-    "check": "npm test && npm run build:example && npm run build:gallery"
+    "check": "npm test && npm run validate:examples && npm run build:examples && npm run build:gallery"
   },
   "engines": {
     "node": ">=18.3"
