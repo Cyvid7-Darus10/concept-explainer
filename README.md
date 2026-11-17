@@ -99,7 +99,7 @@ One self-contained HTML page per explainer, laid out as a dashboard.
 |---|---|
 | <img src="docs/media/hero.png" alt="The Overview with the summary, counts and a card per chapter"> | <img src="docs/media/map.png" alt="The architecture map with a part selected"> |
 | **Overview.** The summary, counts and where to start. | **Map.** Pick a part to see its files, neighbours and flows. |
-| <img src="docs/media/flow.png" alt="A sequence diagram beside a step card with code"> | <img src="docs/media/settings.png" alt="Settings with Reading choices, explainer defaults and Share"> |
+| <img src="docs/media/flow.png" alt="A sequence diagram beside a step card with code"> | <img src="docs/media/settings.png" alt="Settings with Reading choices and explainer defaults"> |
 | **Flows.** One hop at a time, with the code that does it. | **Settings.** Reading choices, explainer defaults and Share. |
 
 ### Looks and Settings
