@@ -92,7 +92,7 @@ body {
 }
 h1, h2, h3, h4, p, ol, ul, dl, dd, figure { margin: 0; }
 ol, ul { padding: 0; list-style: none; }
-h1, h2, h3, h4 { font-weight: 450; color: var(--ink); text-wrap: balance; }
+h1, h2, h3, h4 { font-weight: 450; color: var(--ink); text-wrap: balance; overflow-wrap: anywhere; hyphens: auto; }
 p { text-wrap: pretty; }
 b, strong { font-weight: 550; color: var(--ink); }
 a { color: var(--ink); text-decoration-thickness: from-font; text-underline-offset: 0.2em; }
@@ -115,17 +115,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .eyebrow, .panel-bar, .side-label, .step-count, .tag, .top-row, .glance-grid dt {
   font-family: var(--mono); font-size: 12px; font-weight: 400; line-height: 1.5; letter-spacing: var(--tracking-label); text-transform: uppercase;
 }
-.eyebrow { color: var(--ink); }
+.eyebrow { color: var(--ink); overflow-wrap: anywhere; }
 .eyebrow.quiet { color: var(--muted); }
 .tag {
-  display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; border-radius: 4px; max-width: 100%;
+  display: inline-block; max-width: 100%; padding: 0 6px; border-radius: 4px; vertical-align: middle;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; line-height: 18px; color: var(--body);
 }
-.tag-new::before, .tag-key::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 1px; background: var(--accent); }
-.tag-agent::before, .tag-human::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 9999px; box-shadow: inset 0 0 0 1px var(--muted); }
+.tag-new::before, .tag-key::before, .tag-agent::before, .tag-human::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; vertical-align: 1px; border-radius: 1px; background: var(--accent);
+}
+.tag-agent::before, .tag-human::before { border-radius: 9999px; background: none; box-shadow: inset 0 0 0 1px var(--muted); }
 .tag-agent::before { background: var(--muted); }
+.stack .tag, .lib-stack .tag { max-width: min(100%, 32ch); }
 .chip {
-  display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border-radius: var(--radius);
+  display: inline-block; max-width: 100%; min-height: 28px; padding: 2px 10px; border-radius: var(--radius); line-height: 24px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
   background: var(--surface); box-shadow: var(--ring); font-size: 14px; color: var(--ink); text-decoration: none;
 }
 @media (hover: hover) { a.chip:hover { box-shadow: var(--ring-strong); } }
@@ -189,9 +194,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   :root { --sticky-top: 24px; --heads-top: 0px; }
 }
 .side-repo { display: grid; gap: 2px; padding: 0 8px; }
-.side-repo b { font-size: 15px; font-weight: 500; line-height: 1.35; }
-.side-repo .mono { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
-.links ul { display: grid; gap: 2px; }
+.side-repo b { font-size: 15px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.side-repo .mono { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.links ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .links ul + .side-label { margin-block-start: 16px; }
 .side-label { padding: 0 8px 6px 20px; color: var(--muted); }
 .links a {
@@ -651,7 +656,7 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
 /* ---------- Long words ----------
    Flex and grid items refuse to shrink below their longest word, so text
    holders in rows must opt in to breaking anywhere and to a 100% cap. */
-.chip, .tag, .link, .option, .change-top > *, .step-top > *, .step-route > *, .route-part,
+.link, .option, .change-top > *, .step-top > *, .step-route > *, .route-part,
 .rel li > *, .er-name > *, .entity-name, .entity-key > *, .node-label, .glossary dt, .glossary dd, .key-badge + *,
 .flow-pick-title, .card-title, .row-title, .flow-trigger > span, .tree .note, .change-top, .side-repo b, .pager-title, .map-col-head, .next-title {
   max-width: 100%;
@@ -718,6 +723,66 @@ kbd { padding: 0 5px; border-radius: 4px; background: var(--surface); box-shadow
   grid-template-columns: minmax(0, 1fr);
 }
 .kit-stack > .seg { justify-self: start; }
+
+/* ---------- Library hub ---------- */
+.hub-search-wrap { display: grid; gap: 8px; max-width: 720px; }
+.search.hub-search { max-width: none; min-height: 52px; padding-inline: 16px; font-size: 17px; }
+.search-hint { font-size: 13px; color: var(--muted); }
+.hub-filters { display: grid; gap: 10px; }
+.facet-group { display: grid; grid-template-columns: 5.5em minmax(0, 1fr); align-items: start; gap: 6px 8px; }
+.facet-group > .eyebrow { padding-block-start: 6px; }
+.facet-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+@media (max-width: 559px) { .facet-group { grid-template-columns: minmax(0, 1fr); } .facet-group > .eyebrow { padding-block-start: 0; } }
+.facet {
+  max-width: min(100%, 26ch); min-height: 32px; padding: 0 10px; border: 0; border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--ring); font-size: 14px; color: var(--body);
+}
+.facet-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.facet[aria-pressed="true"] { color: var(--ink); font-weight: 500; box-shadow: var(--ring-accent); }
+@media (hover: hover) { .facet[aria-pressed="false"]:hover { color: var(--ink); box-shadow: var(--ring-strong); } }
+.hub-status { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.hub-status:empty { display: none; }
+.hub-results { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap); }
+.hub-results:empty { display: none; }
+.result-group-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.result-link { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); align-items: baseline; gap: 4px 14px; padding: 12px 16px; color: var(--ink); text-decoration: none; }
+.result-link:focus-visible { outline-offset: -2px; border-radius: var(--radius); }
+.result-type { justify-self: start; }
+.result-text { display: grid; gap: 2px; min-width: 0; }
+.result-title { font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.result-snippet { font-size: 14px; color: var(--body); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+@media (hover: hover) { a.result-link:hover { background: var(--hover-tint); } a.result-link:hover .result-title { text-decoration: underline; text-decoration-color: var(--accent); } }
+@media (max-width: 559px) { .result-link { grid-template-columns: minmax(0, 1fr); } }
+.lib-grid { margin-block-start: 8px; }
+.lib-card { min-height: 240px; }
+.lib-card .card-title { margin-block-start: 8px; }
+.lib-repo { font-family: var(--mono); font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
+.lib-stack { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.lib-stack .tag { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-counts { min-width: 0; }
+.lib-layers { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.layer-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--layer); }
+.lib-empty { display: grid; gap: 12px; padding: var(--card-pad); max-width: 720px; grid-template-columns: minmax(0, 1fr); }
+.lib-empty h2 { font-size: 24px; letter-spacing: -0.035em; }
+.lib-empty p:not(.eyebrow) { color: var(--body); }
+.hub-change { grid-template-columns: 7.5em minmax(0, 1fr) auto; }
+.hub-change-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+@media (max-width: 559px) { .hub-change { grid-template-columns: minmax(0, 1fr) auto; } .hub-change .result-text { grid-column: 1 / -1; grid-row: 2; } }
+.hub-repos a { min-height: 36px; font-size: 14px; }
+.hub-repos .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view[data-view="changes"] .seg { justify-self: start; }
+.hub-view { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap); align-content: start; }
+.hub-view > .view-head { margin-block-end: 8px; }
+
+/* Display titles with a very long word step down a size (fitClass in dom.js). */
+.ov-head h1.fit-long { font-size: clamp(24px, 1.2vw + 16px, 32px); letter-spacing: -0.03em; }
+.ov-head h1.fit-xlong { font-size: clamp(20px, 0.9vw + 14px, 26px); letter-spacing: -0.02em; }
+.card-title.fit-long, .flow-pick-title.fit-long { letter-spacing: -0.02em; }
+.card-title.fit-xlong { font-size: 18px; letter-spacing: -0.01em; }
+.map-col-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-file, .tag, .chip { min-width: 0; }
+.stack > li { min-width: 0; max-width: 100%; }
 
 </style>
 </head>
@@ -851,7 +916,16 @@ function linkPart(value) {
 
 // A small mono label: kinds, authors, PK/FK. Never coloured fills.
 function tag(label, extra = '') {
-  return h('span', { class: `tag${extra ? ` ${extra}` : ''}` }, label);
+  return h('span', { class: `tag${extra ? ` ${extra}` : ''}`, title: String(label) }, label);
+}
+
+// Display titles step down a size when their longest word is long, so an
+// identifier like AbstractSingletonProxyFactoryBean breaks cleanly.
+function fitClass(value) {
+  const longest = String(value || '').split(/\s+/).reduce((max, word) => Math.max(max, word.length), 0);
+  if (longest > 32) return 'fit-xlong';
+  if (longest > 18) return 'fit-long';
+  return '';
 }
 
 // Tiny, safe highlighter: tokenises into spans, never parses HTML.
@@ -975,6 +1049,38 @@ function themeRegistry() {
   };
 }
 
+
+// ---------- Page context (library builds) ----------
+// The library context is optional: missing, broken or unfilled means standalone.
+function readContext() {
+  const el = document.getElementById('explainer-context');
+  const raw = el ? el.textContent.trim() : '';
+  if (!raw || raw === '__CONTEXT__') return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+// A relative link (../../index.html) or an http(s) one. No other schemes.
+function safeHref(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const trimmed = value.trim();
+  if (safeUrl(trimmed)) return safeUrl(trimmed);
+  return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(trimmed) ? null : trimmed;
+}
+
+// The skip link moves focus only; a "#main" hash would read as a view name.
+function wireSkipLink(main) {
+  const skip = document.querySelector('.skip');
+  if (!skip || !main) return;
+  skip.addEventListener('click', (event) => {
+    event.preventDefault();
+    main.focus();
+  });
+}
 
 // ---- icons.js ----
 // Hairline icons for each component kind: one stroke weight, no fills,
@@ -1264,7 +1370,7 @@ function mapColumn(layer, nodes, changedIds, onSelect) {
   const colors = paletteFor(layer.color);
   const layerNodes = nodes.filter((node) => node.layer === layer.id);
   return h('div', { class: 'map-col', style: `--layer:${colors.ink}` },
-    h('div', { class: 'map-col-head' }, layer.label),
+    h('div', { class: 'map-col-head', title: layer.label }, h('span', { class: 'map-col-name' }, layer.label)),
     layerNodes.map((node) => h('button', {
       class: 'node', type: 'button', 'data-node': node.id, 'aria-pressed': 'false', onclick: () => onSelect(node.id),
     },
@@ -1555,7 +1661,7 @@ function renderFlows(data, mount) {
       onclick: () => setState({ flowIndex: i, stepIndex: 0, finished: false }),
     },
     h('span', { class: 'flow-pick-top' }, h('span', null, padNumber(i + 1)), h('span', null, `${list(f.steps).length} steps`)),
-    h('span', { class: 'flow-pick-title' }, f.title)))));
+    h('span', { class: `flow-pick-title ${fitClass(f.title)}` }, f.title)))));
     fill(meta,
       flow.trigger && h('p', { class: 'flow-trigger' }, h('span', { class: 'eyebrow quiet' }, 'Starts when'), h('span', null, flow.trigger)),
       flow.summary && h('p', { class: 'flow-summary' }, flow.summary));
@@ -1847,7 +1953,7 @@ function changeItem(change, nodeIndex, isTarget) {
       change.risk && h('div', { class: 'why why-risk' }, h('p', { class: 'eyebrow quiet' }, 'Risk'), h('p', null, change.risk)),
       list(change.nodes).length > 0 && h('div', { class: 'change-nodes' }, list(change.nodes).map((id) => {
         const node = nodeIndex.get(id);
-        return h('a', { class: 'chip', href: `#map/${linkPart(id)}` }, node ? node.label : id);
+        return h('a', { class: 'chip', href: `#map/${linkPart(id)}`, title: node ? node.label : id }, node ? node.label : id);
       })),
       list(change.files).length > 0 && h('div', { class: 'change-nodes' }, list(change.files).slice(0, 6).map(fileChip))));
 }
@@ -2017,8 +2123,8 @@ function renderOverview(data, mount, ctx) {
 
   mount.append(h('div', { class: 'overview' },
     h('header', { class: 'ov-head' },
-      h('p', { class: 'eyebrow' }, text(meta.repo, 'Repository')),
-      h('h1', { id: 'view-overview-title', tabindex: '-1' }, meta.title),
+      h('p', { class: 'eyebrow', title: text(meta.repo, 'Repository') }, text(meta.repo, 'Repository')),
+      h('h1', { id: 'view-overview-title', tabindex: '-1', class: fitClass(meta.title) }, meta.title),
       meta.summary && h('p', { class: 'lede' }, meta.summary),
       list(meta.stack).length > 0 && h('ul', { class: 'stack', 'aria-label': 'Built with' },
         list(meta.stack).map((item) => h('li', null, tag(item))))),
@@ -2081,7 +2187,7 @@ function chapterCard(data, chapter, index) {
   return h('a', { class: 'card', href: `#${chapter.key}` },
     h('span', { class: 'top-row' }, h('span', null, padNumber(index + 1)),
       h('span', { class: 'card-count' }, `${chapter.count(data)} ${chapter.unit}`)),
-    h('span', { class: 'card-title' }, chapter.title),
+    h('span', { class: `card-title ${fitClass(chapter.title)}` }, chapter.title),
     h('span', { class: 'line' }, chapter.lead),
     h('span', { class: 'card-foot' }, h('span', { class: 'card-viewed' }, 'Viewed'), h('span', { class: 'card-open' }, 'Open')));
 }
@@ -2191,27 +2297,6 @@ function chooseChapters(data) {
     });
 }
 
-// The library context is optional: missing, broken or unfilled means standalone.
-function readContext() {
-  const el = document.getElementById('explainer-context');
-  const raw = el ? el.textContent.trim() : '';
-  if (!raw || raw === '__CONTEXT__') return {};
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch (error) {
-    return {};
-  }
-}
-
-// A relative link (../../index.html) or an http(s) one. No other schemes.
-function safeHref(value) {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const trimmed = value.trim();
-  if (safeUrl(trimmed)) return safeUrl(trimmed);
-  return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(trimmed) ? null : trimmed;
-}
-
 // ---------- Viewed chapters (this browser only) ----------
 function viewedStore(meta) {
   const key = `repo-explainer:viewed:${text(meta.repo, meta.title)}:${text(meta.commit, '')}`;
@@ -2271,13 +2356,13 @@ function buildShell(data, chapters, context, registry) {
   const progressLines = [];
   const side = h('aside', { class: 'side', 'aria-label': 'Sidebar' },
     brandRow(),
-    h('div', { class: 'side-repo' }, h('b', null, meta.title), meta.repo && h('span', { class: 'mono' }, meta.repo)),
+    h('div', { class: 'side-repo' }, h('b', { title: meta.title }, meta.title), meta.repo && h('span', { class: 'mono', title: meta.repo }, meta.repo)),
     navList(chapters, data, links),
     h('div', { class: 'side-foot' }, footBits(meta, context, registry, progressLines)));
 
   const closeButton = h('button', { class: 'btn sheet-close', type: 'button' }, h('span', { class: 'close-icon', 'aria-hidden': 'true' }), 'Close');
   const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Menu' },
-    h('div', { class: 'sheet-head' }, h('span', { class: 'name' }, meta.title), closeButton),
+    h('div', { class: 'sheet-head' }, h('span', { class: 'name', title: meta.title }, meta.title), closeButton),
     navList(chapters, data, links),
     h('div', { class: 'sheet-foot' }, footBits(meta, context, registry, progressLines)));
   closeButton.addEventListener('click', () => sheet.close());
@@ -2291,7 +2376,7 @@ function buildShell(data, chapters, context, registry) {
     h('span', { class: 'menu-icon', 'aria-hidden': 'true' }), 'Menu');
   const top = h('header', { class: 'top' }, h('div', { class: 'bar' },
     h('a', { class: 'brand', href: '#overview', 'aria-label': 'Overview' }, brandMark(),
-      h('span', { class: 'bar-names' }, h('span', { class: 'name' }, meta.title), barView)),
+      h('span', { class: 'bar-names' }, h('span', { class: 'name', title: meta.title }, meta.title), barView)),
     h('div', { class: 'bar-actions' },
       library && h('a', { class: 'btn bar-library', href: library }, 'Library'),
       menuButton)));
@@ -2431,14 +2516,7 @@ function boot() {
   fill(app, h('div', { class: 'app' }, shell.side, main), shell.sheet);
   app.removeAttribute('aria-busy');
   registry.paint();
-  // The skip link moves focus only; a "#main" hash would read as a view name.
-  const skip = document.querySelector('.skip');
-  if (skip) {
-    skip.addEventListener('click', (event) => {
-      event.preventDefault();
-      main.focus();
-    });
-  }
+  wireSkipLink(main);
   createRouter(views, shell, chapters, viewed, data.meta).route({ initial: true });
 }
 
