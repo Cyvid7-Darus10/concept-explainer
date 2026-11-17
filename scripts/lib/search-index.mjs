@@ -3,6 +3,8 @@
 // (docs/plans/2026-11-18-dashboard-and-library.md, section 2).
 // Documented for humans in references/library.md: keep them in sync.
 
+import { shownChapters } from './chapters.mjs';
+
 export const SEARCH_TYPES = [
   'explainer', 'node', 'flow', 'step', 'change', 'entity', 'concept', 'glossary', 'file', 'run',
   'diff', 'option', 'risk', 'rollout', 'event', 'visual', 'question', 'code',
@@ -98,6 +100,13 @@ export function buildSearchIndex(slug, data) {
   const d = isObject(data) ? data : {};
   const meta = isObject(d.meta) ? d.meta : {};
   const withId = (items, key) => list(items).filter((item) => str(item[key]));
+  // Only chapters the page shows (scripts/lib/chapters.mjs, the page's own rule);
+  // a link into a hidden chapter would open the Overview instead.
+  const shown = new Set(shownChapters(d));
+  const visible = (e) => {
+    const hash = e.href.split('#')[1] || '';
+    return !hash || shown.has(decodeURIComponent(hash.split('/')[0]));
+  };
   return dedupe([
     entry(slug, 'explainer', meta.title || slug, join(meta.summary, isObject(d.context) ? d.context.problem : '', ...(Array.isArray(meta.stack) ? meta.stack : [])), ''),
     ...withId(d.nodes, 'id').map((node) => entry(slug, 'node', node.label || node.id, join(node.summary, node.tech), route('map', node.id))),
@@ -109,5 +118,5 @@ export function buildSearchIndex(slug, data) {
     ...withId(d.tree, 'path').map((item) => entry(slug, 'file', item.path, item.note, route('tree', item.path))),
     ...list(d.runbook).map((item) => entry(slug, 'run', item.label || item.command, join(item.command, item.note), 'run')),
     ...v2Entries(slug, d),
-  ]);
+  ]).filter(visible);
 }
