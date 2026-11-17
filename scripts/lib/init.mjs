@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SCHEMA_VERSION, TYPE_RULES } from './schema.mjs';
+import { today } from './dates.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const PRESETS_DIR = join(ROOT, 'presets');
@@ -46,7 +47,7 @@ export function loadPreset(id) {
  */
 export function createStarter(presetId, scan = {}) {
   const preset = loadPreset(presetId);
-  const today = new Date().toISOString().slice(0, 10);
+  const day = today();
   return {
     schemaVersion: SCHEMA_VERSION,
     meta: {
@@ -56,7 +57,7 @@ export function createStarter(presetId, scan = {}) {
       summary: 'TODO: two plain sentences. What this does, and for whom.',
       stack: (scan.frameworks || []).slice(0, 8),
       preset: preset.id,
-      generatedAt: today,
+      generatedAt: day,
       chapters: preset.chapters,
     },
     layers: preset.layers,
@@ -102,7 +103,7 @@ export function createTypedStarter(type, input = {}) {
       source: sourceFor(preset, input.ref),
       ...(preset.status ? { status: preset.status } : {}),
       tags: [],
-      generatedAt: new Date().toISOString().slice(0, 10),
+      generatedAt: today(),
       chapters: TYPE_RULES[type].chapters,
     },
     ...structuredClone(preset.starter),

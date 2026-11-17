@@ -11,6 +11,7 @@ import { readConfig, rebuildLibrary, withLibraryLock, writeConfig } from './libr
 import { MAX_BUNDLE_BYTES, applyImport, createBundle, parseBundle, planImport } from './bundle.mjs';
 import { SLUG_PATTERN } from './library-model.mjs';
 import { pageCspFrom } from './build.mjs';
+import { today } from './dates.mjs';
 
 export const HOST = '127.0.0.1';
 export const TOKEN_HEADER = 'x-concept-explainer-token';
@@ -193,7 +194,7 @@ function exportBundle(state, url, res) {
   } catch (error) {
     return fail(res, 400, error.message);
   }
-  const name = `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
+  const name = `explainers-${today()}.explainers.json`;
   res.writeHead(200, { ...SAFE_HEADERS, 'content-type': TYPES['.json'], 'content-disposition': `attachment; filename="${name}"` });
   return res.end(JSON.stringify(result.bundle, null, 2));
 }

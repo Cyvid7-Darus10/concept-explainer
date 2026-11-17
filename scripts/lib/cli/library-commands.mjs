@@ -6,6 +6,7 @@ import {
 import { installSkill, resolveConfigDir } from '../install.mjs';
 import { CONFIG_DEFAULTS, setConfigValue } from '../config.mjs';
 import { startLibraryServer } from '../serve.mjs';
+import { localDay, today } from '../dates.mjs';
 import { applyImport, createBundle, planImport, readBundleFile } from '../bundle.mjs';
 import { openPath } from '../open.mjs';
 import { validateExplainer } from '../validate.mjs';
@@ -44,7 +45,7 @@ const LIBRARY = {
       return;
     }
     const width = Math.max(...entries.map((e) => e.slug.length)) + 2;
-    entries.forEach((e) => out(`${e.slug.padEnd(width)}${e.type.padEnd(11)}${oneLine(e.title)}  (${String(e.publishedAt).slice(0, 10)})\n`));
+    entries.forEach((e) => out(`${e.slug.padEnd(width)}${e.type.padEnd(11)}${oneLine(e.title)}  (${localDay(e.publishedAt)})\n`));
     out(`\n${entries.length} explainer(s). Hub: ${libraryPaths(home()).hub}\n`);
   },
   path() {
@@ -137,7 +138,7 @@ export const LIBRARY_COMMANDS = {
   export(positionals, opts) {
     const selectors = { slugs: positionals, type: opts.type, tag: opts.tag, stack: opts.stack, search: opts.search };
     const { bundle, slugs } = asUsage(() => createBundle(home(), selectors));
-    const out = opts.out || `explainers-${new Date().toISOString().slice(0, 10)}.explainers.json`;
+    const out = opts.out || `explainers-${today()}.explainers.json`;
     writeFile(out, toJson(bundle));
     err(`✔ exported ${slugs.length} explainer(s): ${slugs.join(', ')}\n  data only: no pages, no config, no local paths\n`);
   },
