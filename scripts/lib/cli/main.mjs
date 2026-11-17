@@ -41,6 +41,11 @@ const OPTIONS = {
 
 const COMMANDS = { ...EXPLAIN_COMMANDS, ...LIBRARY_COMMANDS };
 
+// Only commands that read or write the library may move an old one. Checks
+// and throwaway builds (npm run check) must never touch the real home.
+const USES_LIBRARY = new Set(['library', 'config', 'export', 'import', 'install', 'estimate']);
+const usesLibrary = (command, values) => USES_LIBRARY.has(command) || (command === 'build' && !values['no-library']);
+
 export async function main(argv) {
   let parsed;
   try {
@@ -56,11 +61,13 @@ export async function main(argv) {
   }
   const run = COMMANDS[command];
   if (!run) throw new UsageError(`unknown command "${command}". Run \`concept-explainer --help\``);
-  try {
-    const moved = migrateLegacyHome();
-    if (moved) process.stderr.write(`✔ ${moved}\n`);
-  } catch (error) {
-    process.stderr.write(`  ⚠ ${error.message}\n`);
+  if (usesLibrary(command, values)) {
+    try {
+      const moved = migrateLegacyHome();
+      if (moved) process.stderr.write(`✔ ${moved}\n`);
+    } catch (error) {
+      process.stderr.write(`  ⚠ ${error.message}\n`);
+    }
   }
   await run(rest, values, { skillDir: SKILL_DIR });
 }
